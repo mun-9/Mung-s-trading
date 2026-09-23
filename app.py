@@ -19,7 +19,7 @@ except:
     MY_PASSPHRASE = ""
 
 # -----------------------------------------------------------------------------
-# 1. 페이지 설정 & CSS (모바일 UI 완벽 대응)
+# 1. 페이지 설정 & 모바일 완벽 대응 CSS
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="멍그 Trading Journal",
@@ -30,17 +30,32 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-    /* 전체 배경색 */
+    /* 전체 배경색 지정 */
     .stApp { background-color: #f4f5f7; }
     
-    /* [핵심] 모든 네모 컨테이너(보유 포지션, 매매 동향 등)를 완벽한 흰색 카드로 강제 지정 */
-    div[data-testid="stVerticalBlockBorderWrapper"] {
+    /* [핵심] 보이지 않는 '화이트 마커'를 품은 모든 컨테이너를 강제로 흰색 카드로 만듦 */
+    div[data-testid="stVerticalBlockBorderWrapper"]:has(.white-marker),
+    div[data-testid="stContainer"]:has(.white-marker),
+    div[data-testid="stVerticalBlock"]:has(.white-marker) > div[style*="border"] {
         background-color: #ffffff !important;
         border: 1px solid #e5e7eb !important;
         border-radius: 12px !important;
         box-shadow: 0 1px 3px rgba(0,0,0,0.02) !important;
     }
     
+    /* 모바일 반응형 클래스: PC에선 세로선, 모바일에선 가로선으로 변환 */
+    .pos-box { padding: 10px; flex: 1 1 200px; }
+    .pos-divider { border-left: 1px solid #f3f4f6; }
+    @media (max-width: 768px) {
+        .pos-divider { 
+            border-left: none !important; 
+            border-top: 1px solid #f3f4f6 !important; 
+            padding-top: 15px !important; 
+            margin-top: 5px !important; 
+        }
+    }
+    
+    /* 버튼 디자인 */
     .stButton>button {
         height: 38px; padding: 0 8px; border-radius: 8px; border: 1px solid #d1d5db;
         background-color: #ffffff; color: #374151; font-weight: 500; white-space: nowrap;
@@ -192,10 +207,11 @@ def fetch_exchange_data(exchange_name, api_key, secret, pwd):
         st.sidebar.error(f"API 연동 에러: {e}")
         return get_mock_data()
 
+# 화면 입력칸 대신 금고에서 꺼내온 변수 사용
 current_position, df_trades, wallet_balance = fetch_exchange_data(exchange_choice, MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
 
 # -----------------------------------------------------------------------------
-# 4. 🎯 메인 타이틀 (100억 부자!) & 상단 네비게이션
+# 4. 🎯 메인 타이틀 & 상단 네비게이션
 # -----------------------------------------------------------------------------
 st.markdown("""
 <div style="margin-top: -10px; margin-bottom: 25px;">
@@ -222,93 +238,84 @@ st.markdown(
 )
 
 # -----------------------------------------------------------------------------
-# 5. 🎯 현재 보유 포지션 VIP 하이라이트 배너 (모바일 최적화)
+# 5. 🎯 현재 보유 포지션 (100% 완벽한 반응형 HTML 카드로 교체)
 # -----------------------------------------------------------------------------
 st.markdown("<div style='font-size: 16px; font-weight: 800; color: #111827; margin-bottom: 10px;'>🎯 현재 보유 포지션</div>", unsafe_allow_html=True)
 
-with st.container(border=True):
-    if current_position["symbol"] == "보유 포지션 없음":
-        st.markdown("<div style='padding: 20px; text-align: center; color: #9ca3af; font-size: 15px;'>현재 진행 중인 포지션이 없습니다.</div>", unsafe_allow_html=True)
-    else:
-        c_p1, c_p2, c_p3, c_p4 = st.columns(4)
+if current_position["symbol"] == "보유 포지션 없음":
+    st.markdown("""
+    <div style='background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:24px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); text-align: center; color: #9ca3af; font-size: 15px;'>
+        현재 진행 중인 포지션이 없습니다.
+    </div>
+    """, unsafe_allow_html=True)
+else:
+    pos_side = current_position["side"]
+    side_color = "#00a86b" if pos_side == "LONG" else "#ef4444"
+    side_bg = "rgba(0,168,107,0.1)" if pos_side == "LONG" else "rgba(239,68,68,0.1)"
+    pnl_val = current_position["unrealized_pnl"]
+    roe_val = current_position["roe"]
+    pnl_color = "#00a86b" if pnl_val >= 0 else "#ef4444"
+    pnl_sign = "+" if pnl_val >= 0 else ""
+    base_coin = current_position['symbol'].split('/')[0] if '/' in current_position['symbol'] else current_position['symbol']
+    pos_usdt_value = current_position['size'] * current_position['entry_price']
+    margin_ratio = (current_position['margin'] / wallet_balance * 100) if wallet_balance > 0 else 0
+
+    # 스트림릿의 껍데기를 완전히 버리고 '오늘 추정 PNL'과 똑같은 HTML 흰색 껍데기 적용!
+    html_position_card = f"""
+    <div style="background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:15px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); display: flex; flex-wrap: wrap; margin-bottom: 25px;">
+        <div class="pos-box">
+            <div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 8px;'>종목 / 방향 및 규모</div>
+            <div style='font-size: 24px; font-weight: 800; color: #111827;'>
+                {current_position['symbol']} 
+                <span style='font-size: 13px; font-weight: 700; color: {side_color}; background-color: {side_bg}; padding: 4px 8px; border-radius: 6px; margin-left: 5px; vertical-align: middle;'>{pos_side} {current_position['leverage']}x</span>
+            </div>
+            <div style='font-size: 14px; color: #4b5563; font-weight: 600; margin-top: 8px;'>
+                {current_position['size']} {base_coin} ≈ ${pos_usdt_value:,.2f}
+            </div>
+        </div>
         
-        pos_side = current_position["side"]
-        side_color = "#00a86b" if pos_side == "LONG" else "#ef4444"
-        side_bg = "rgba(0,168,107,0.1)" if pos_side == "LONG" else "rgba(239,68,68,0.1)"
+        <div class="pos-box pos-divider">
+            <div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 12px;'>진입가 / 현재가</div>
+            <div style='display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px;'>
+                <span style='width: 45px; font-size: 12px; color: #9ca3af;'>진입가</span>
+                <span style='font-size: 18px; font-weight: 700; color: #111827;'>${current_position['entry_price']:,.2f}</span>
+            </div>
+            <div style='display: flex; align-items: baseline; gap: 8px;'>
+                <span style='width: 45px; font-size: 12px; color: #9ca3af;'>현재가</span>
+                <span style='font-size: 18px; font-weight: 700; color: #2563eb;'>${current_position['mark_price']:,.2f}</span>
+            </div>
+        </div>
         
-        pnl_val = current_position["unrealized_pnl"]
-        roe_val = current_position["roe"]
-        pnl_color = "#00a86b" if pnl_val >= 0 else "#ef4444"
-        pnl_sign = "+" if pnl_val >= 0 else ""
+        <div class="pos-box pos-divider">
+            <div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 12px;'>미실현 손익 / 수익률(ROE)</div>
+            <div style='font-size: 26px; font-weight: 800; color: {pnl_color}; margin-bottom: -5px;'>
+                {pnl_sign}${pnl_val:,.2f}
+            </div>
+            <div style='font-size: 15px; font-weight: 700; color: {pnl_color};'>
+                ({pnl_sign}{roe_val:.2f}%)
+            </div>
+        </div>
+        
+        <div class="pos-box pos-divider">
+            <div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 12px;'>증거금 <span style="color:#2563eb;">(비중%)</span> / 청산가</div>
+            <div style='display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px;'>
+                <span style='width: 45px; font-size: 12px; color: #9ca3af;'>증거금</span>
+                <span style='font-size: 18px; font-weight: 700; color: #111827;'>${current_position['margin']:,.2f} <span style='font-size:14px; color:#2563eb;'>({margin_ratio:.1f}%)</span></span>
+            </div>
+            <div style='display: flex; align-items: baseline; gap: 8px;'>
+                <span style='width: 45px; font-size: 12px; color: #9ca3af;'>청산가</span>
+                <span style='font-size: 18px; font-weight: 700; color: #4b5563;'>${current_position['liq_price']:,.2f}</span>
+            </div>
+        </div>
+    </div>
+    """
+    st.markdown(html_position_card, unsafe_allow_html=True)
 
-        base_coin = current_position['symbol'].split('/')[0] if '/' in current_position['symbol'] else current_position['symbol']
-        pos_usdt_value = current_position['size'] * current_position['entry_price']
-        margin_ratio = (current_position['margin'] / wallet_balance * 100) if wallet_balance > 0 else 0
-
-        # 모바일 환경에서 찌그러짐을 방지하기 위해 border-left를 없애고 padding을 통일
-        with c_p1:
-            st.markdown(f"""
-            <div style='padding: 15px 10px;'>
-                <div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 8px;'>종목 / 방향 및 규모</div>
-                <div style='font-size: 24px; font-weight: 800; color: #111827;'>
-                    {current_position['symbol']} 
-                    <span style='font-size: 13px; font-weight: 700; color: {side_color}; background-color: {side_bg}; padding: 4px 8px; border-radius: 6px; margin-left: 5px; vertical-align: middle;'>{pos_side} {current_position['leverage']}x</span>
-                </div>
-                <div style='font-size: 14px; color: #4b5563; font-weight: 600; margin-top: 8px;'>
-                    {current_position['size']} {base_coin} ≈ ${pos_usdt_value:,.2f}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        with c_p2:
-            st.markdown(f"""
-            <div style='padding: 15px 10px; height: 100%;'>
-                <div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 12px;'>진입가 / 현재가</div>
-                <div style='display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px;'>
-                    <span style='width: 45px; font-size: 12px; color: #9ca3af;'>진입가</span>
-                    <span style='font-size: 18px; font-weight: 700; color: #111827;'>${current_position['entry_price']:,.2f}</span>
-                </div>
-                <div style='display: flex; align-items: baseline; gap: 8px;'>
-                    <span style='width: 45px; font-size: 12px; color: #9ca3af;'>현재가</span>
-                    <span style='font-size: 18px; font-weight: 700; color: #2563eb;'>${current_position['mark_price']:,.2f}</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        with c_p3:
-            st.markdown(f"""
-            <div style='padding: 15px 10px; height: 100%;'>
-                <div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 12px;'>미실현 손익 / 수익률(ROE)</div>
-                <div style='font-size: 26px; font-weight: 800; color: {pnl_color}; margin-bottom: -5px;'>
-                    {pnl_sign}${pnl_val:,.2f}
-                </div>
-                <div style='font-size: 15px; font-weight: 700; color: {pnl_color};'>
-                    ({pnl_sign}{roe_val:.2f}%)
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        with c_p4:
-            st.markdown(f"""
-            <div style='padding: 15px 10px; height: 100%;'>
-                <div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 12px;'>증거금 <span style="color:#2563eb;">(비중%)</span> / 청산가</div>
-                <div style='display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px;'>
-                    <span style='width: 45px; font-size: 12px; color: #9ca3af;'>증거금</span>
-                    <span style='font-size: 18px; font-weight: 700; color: #111827;'>${current_position['margin']:,.2f} <span style='font-size:14px; color:#2563eb;'>({margin_ratio:.1f}%)</span></span>
-                </div>
-                <div style='display: flex; align-items: baseline; gap: 8px;'>
-                    <span style='width: 45px; font-size: 12px; color: #9ca3af;'>청산가</span>
-                    <span style='font-size: 18px; font-weight: 700; color: #4b5563;'>${current_position['liq_price']:,.2f}</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-st.markdown("<div style='margin-bottom: 25px;'></div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
 # 6. 상단 PNL 카드
 # -----------------------------------------------------------------------------
-st.markdown("<div style='font-size: 11px; color: #9ca3af; margin-bottom: 10px;'>미실현손익은 일별·월별 추정 PNL 합계에 포함하지 않습니다.</div>", unsafe_allow_html=True)
+st.markdown("<div style='font-size: 11px; color: #9ca3af; margin-bottom: 10px; margin-top: -10px;'>미실현손익은 일별·월별 추정 PNL 합계에 포함하지 않습니다.</div>", unsafe_allow_html=True)
 
 col_s1, col_s2, col_s3 = st.columns(3)
 
@@ -392,7 +399,7 @@ else:
     filtered_df = df_trades
 
 # -----------------------------------------------------------------------------
-# 8. 매매 동향
+# 8. 매매 동향 (화이트 마커 삽입)
 # -----------------------------------------------------------------------------
 st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
 
@@ -416,6 +423,7 @@ short_p = (shorts/(longs+shorts)*100) if (longs+shorts)>0 else 0
 
 with col_t1:
     with st.container(border=True):
+        st.markdown("<div class='white-marker'></div>", unsafe_allow_html=True) # 강제 화이트 변환 마커
         st.markdown("<div style='padding:5px;'>", unsafe_allow_html=True)
         st.markdown("<div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>포지션 거래 횟수</span><span style='color:#9ca3af; font-weight:400;'>선택 기간</span></div>", unsafe_allow_html=True)
         st.markdown(f"<div style='font-size:36px; font-weight:800; color:#111827; margin:15px 0;'>{total} <span style='font-size:14px; font-weight:500;'>회</span></div>", unsafe_allow_html=True)
@@ -443,6 +451,7 @@ with col_t1:
 
 with col_t2:
     with st.container(border=True):
+        st.markdown("<div class='white-marker'></div>", unsafe_allow_html=True)
         st.markdown("<div style='padding:5px;'>", unsafe_allow_html=True)
         st.markdown("<div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>LONG / SHORT</span><span style='color:#9ca3af; font-weight:400;'>신규 진입</span></div>", unsafe_allow_html=True)
         
@@ -459,7 +468,8 @@ with col_t2:
                 {"text": "<b style='color:#111827; font-size:26px;'>0회</b>", "x": 0.5, "y": 0.38, "showarrow": False}
             ]
 
-        fig_donut.update_layout(showlegend=False, margin=dict(t=15, b=15, l=0, r=0), height=160, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", annotations=donut_annos)
+        # 그래프 배경도 강제로 흰색 지정
+        fig_donut.update_layout(showlegend=False, margin=dict(t=15, b=15, l=0, r=0), height=160, paper_bgcolor="#ffffff", plot_bgcolor="#ffffff", annotations=donut_annos)
         st.plotly_chart(fig_donut, use_container_width=True, config={"displayModeBar": False})
         
         st.markdown(f"<div style='display:flex; justify-content:space-between; font-size:13px; margin-top:5px;'><span style='color:#00a86b;'>LONG</span><b style='color:#00a86b;'>{longs}회 · {long_p:.1f}%</b></div>", unsafe_allow_html=True)
@@ -468,6 +478,7 @@ with col_t2:
 
 with col_t3:
     with st.container(border=True):
+        st.markdown("<div class='white-marker'></div>", unsafe_allow_html=True)
         st.markdown("<div style='padding:5px;'>", unsafe_allow_html=True)
         st.markdown("<div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>승률 추이</span><span style='color:#9ca3af; font-weight:400;'>최근 7일 · 오늘 포함</span></div>", unsafe_allow_html=True)
         
@@ -489,16 +500,18 @@ with col_t3:
         trend_dates = [(datetime.now() - timedelta(days=i)).strftime("%m/%d") for i in range(6, -1, -1)]
         trend_vals = [50, 69, 49, 100, 79, 81, r_rate]
         fig_line = go.Figure(go.Scatter(x=trend_dates, y=trend_vals, mode="lines+markers+text", text=[f"{v}%" for v in trend_vals], textposition="top center", line=dict(color="#2563eb", width=2)))
-        fig_line.update_layout(margin=dict(t=20, b=0, l=0, r=0), height=100, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", xaxis=dict(showgrid=False, zeroline=False, tickfont=dict(size=10, color="#9ca3af")), yaxis=dict(showgrid=True, gridcolor="#f3f4f6", zeroline=False, showticklabels=False))
+        fig_line.update_layout(margin=dict(t=20, b=0, l=0, r=0), height=100, paper_bgcolor="#ffffff", plot_bgcolor="#ffffff", xaxis=dict(showgrid=False, zeroline=False, tickfont=dict(size=10, color="#9ca3af")), yaxis=dict(showgrid=True, gridcolor="#f3f4f6", zeroline=False, showticklabels=False))
         st.plotly_chart(fig_line, use_container_width=True, config={"displayModeBar": False})
         
         st.markdown("</div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 9. 선택 기간 PNL 박스 
+# 9. 선택 기간 PNL 박스 (화이트 마커 삽입)
 # -----------------------------------------------------------------------------
 st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
 with st.container(border=True):
+    st.markdown("<div class='white-marker'></div>", unsafe_allow_html=True)
+    
     period_sum = filtered_df["pnl"].sum() if not filtered_df.empty else 0.0
     st.markdown("<div style='padding: 15px 20px 0 20px;'>", unsafe_allow_html=True)
     st.markdown("<div style='font-size:12px; color:#9ca3af; margin-bottom:5px;'>선택 기간 추정 PNL</div>", unsafe_allow_html=True)
@@ -520,7 +533,7 @@ with st.container(border=True):
             fig1 = go.Figure(go.Bar(x=daily_pnl["date"], y=daily_pnl["pnl"], marker_color=daily_pnl["color"]))
         else:
             fig1 = go.Figure()
-        fig1.update_layout(template="plotly_white", margin=dict(t=30, b=10, l=10, r=10), height=350, plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
+        fig1.update_layout(template="plotly_white", margin=dict(t=30, b=10, l=10, r=10), height=350, plot_bgcolor="#ffffff", paper_bgcolor="#ffffff")
         st.plotly_chart(fig1, use_container_width=True, config={"displayModeBar": False})
     
     with tab2:
@@ -528,7 +541,7 @@ with st.container(border=True):
             fig2 = go.Figure(go.Scatter(x=daily_pnl["date"], y=daily_pnl["cum"], mode="lines+markers", line=dict(color="#2563eb", width=3), fill="tozeroy", fillcolor="rgba(37, 99, 235, 0.08)"))
         else:
             fig2 = go.Figure()
-        fig2.update_layout(template="plotly_white", margin=dict(t=30, b=10, l=10, r=10), height=350, plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
+        fig2.update_layout(template="plotly_white", margin=dict(t=30, b=10, l=10, r=10), height=350, plot_bgcolor="#ffffff", paper_bgcolor="#ffffff")
         st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False})
 
 st.markdown("<div style='font-size:11px; color:#9ca3af; margin: 10px 0 30px 0;'>추정 PNL · USDT · 한국시간 기준 · 기간 누적은 선택한 기간의 시작을 0으로 계산합니다.</div>", unsafe_allow_html=True)
