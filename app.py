@@ -33,7 +33,7 @@ st.markdown("""
     /* 전체 배경색 지정 */
     .stApp { background-color: #f4f5f7; }
     
-    /* [핵심] 보이지 않는 '화이트 마커'를 품은 모든 컨테이너를 강제로 흰색 카드로 만듦 */
+    /* 보이지 않는 '화이트 마커'를 품은 모든 컨테이너를 강제로 흰색 카드로 만듦 */
     div[data-testid="stVerticalBlockBorderWrapper"]:has(.white-marker),
     div[data-testid="stContainer"]:has(.white-marker),
     div[data-testid="stVerticalBlock"]:has(.white-marker) > div[style*="border"] {
@@ -211,14 +211,14 @@ def fetch_exchange_data(exchange_name, api_key, secret, pwd):
 current_position, df_trades, wallet_balance = fetch_exchange_data(exchange_choice, MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
 
 # -----------------------------------------------------------------------------
-# 4. 🎯 메인 타이틀 & 상단 네비게이션
+# 4. 🎯 메인 타이틀 (깔끔한 Trading History) & 상단 네비게이션
 # -----------------------------------------------------------------------------
 st.markdown("""
 <div style="margin-top: -10px; margin-bottom: 25px;">
-    <h1 style="font-size: 32px; font-weight: 900; color: #111827; margin: 0; padding: 0; letter-spacing: -1.5px;">
-        💰 100억 부자가 될 매매 히스토리
+    <h1 style="font-size: 32px; font-weight: 900; color: #111827; margin: 0; padding: 0; letter-spacing: -0.5px;">
+        Trading History
     </h1>
-    <div style="width: 60px; height: 5px; background: linear-gradient(135deg, #00a86b, #059669); margin-top: 10px; border-radius: 3px;"></div>
+    <div style="width: 40px; height: 4px; background-color: #2563eb; margin-top: 10px; border-radius: 2px;"></div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -238,7 +238,7 @@ st.markdown(
 )
 
 # -----------------------------------------------------------------------------
-# 5. 🎯 현재 보유 포지션 (100% 완벽한 반응형 HTML 카드로 교체)
+# 5. 🎯 현재 보유 포지션 (글자 누출 버그 해결: 엔터 제거 및 밀착)
 # -----------------------------------------------------------------------------
 st.markdown("<div style='font-size: 16px; font-weight: 800; color: #111827; margin-bottom: 10px;'>🎯 현재 보유 포지션</div>", unsafe_allow_html=True)
 
@@ -260,7 +260,7 @@ else:
     pos_usdt_value = current_position['size'] * current_position['entry_price']
     margin_ratio = (current_position['margin'] / wallet_balance * 100) if wallet_balance > 0 else 0
 
-    # 스트림릿의 껍데기를 완전히 버리고 '오늘 추정 PNL'과 똑같은 HTML 흰색 껍데기 적용!
+    # [핵심] div 태그 사이에 빈 줄(엔터)이 있으면 Streamlit이 마크다운 문법으로 착각하여 화면에 출력해버리므로 꽉 붙였습니다.
     html_position_card = f"""
     <div style="background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:15px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); display: flex; flex-wrap: wrap; margin-bottom: 25px;">
         <div class="pos-box">
@@ -273,7 +273,6 @@ else:
                 {current_position['size']} {base_coin} ≈ ${pos_usdt_value:,.2f}
             </div>
         </div>
-        
         <div class="pos-box pos-divider">
             <div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 12px;'>진입가 / 현재가</div>
             <div style='display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px;'>
@@ -285,7 +284,6 @@ else:
                 <span style='font-size: 18px; font-weight: 700; color: #2563eb;'>${current_position['mark_price']:,.2f}</span>
             </div>
         </div>
-        
         <div class="pos-box pos-divider">
             <div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 12px;'>미실현 손익 / 수익률(ROE)</div>
             <div style='font-size: 26px; font-weight: 800; color: {pnl_color}; margin-bottom: -5px;'>
@@ -295,7 +293,6 @@ else:
                 ({pnl_sign}{roe_val:.2f}%)
             </div>
         </div>
-        
         <div class="pos-box pos-divider">
             <div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 12px;'>증거금 <span style="color:#2563eb;">(비중%)</span> / 청산가</div>
             <div style='display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px;'>
@@ -423,7 +420,7 @@ short_p = (shorts/(longs+shorts)*100) if (longs+shorts)>0 else 0
 
 with col_t1:
     with st.container(border=True):
-        st.markdown("<div class='white-marker'></div>", unsafe_allow_html=True) # 강제 화이트 변환 마커
+        st.markdown("<div class='white-marker'></div>", unsafe_allow_html=True)
         st.markdown("<div style='padding:5px;'>", unsafe_allow_html=True)
         st.markdown("<div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>포지션 거래 횟수</span><span style='color:#9ca3af; font-weight:400;'>선택 기간</span></div>", unsafe_allow_html=True)
         st.markdown(f"<div style='font-size:36px; font-weight:800; color:#111827; margin:15px 0;'>{total} <span style='font-size:14px; font-weight:500;'>회</span></div>", unsafe_allow_html=True)
@@ -468,7 +465,6 @@ with col_t2:
                 {"text": "<b style='color:#111827; font-size:26px;'>0회</b>", "x": 0.5, "y": 0.38, "showarrow": False}
             ]
 
-        # 그래프 배경도 강제로 흰색 지정
         fig_donut.update_layout(showlegend=False, margin=dict(t=15, b=15, l=0, r=0), height=160, paper_bgcolor="#ffffff", plot_bgcolor="#ffffff", annotations=donut_annos)
         st.plotly_chart(fig_donut, use_container_width=True, config={"displayModeBar": False})
         
@@ -506,7 +502,7 @@ with col_t3:
         st.markdown("</div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 9. 선택 기간 PNL 박스 (화이트 마커 삽입)
+# 9. 선택 기간 PNL 박스
 # -----------------------------------------------------------------------------
 st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
 with st.container(border=True):
