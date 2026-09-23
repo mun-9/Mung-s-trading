@@ -19,7 +19,7 @@ except:
     MY_PASSPHRASE = ""
 
 # -----------------------------------------------------------------------------
-# 1. 페이지 설정 & CSS
+# 1. 페이지 설정 & CSS (모바일 UI 완벽 대응)
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="멍그 Trading Journal",
@@ -30,13 +30,17 @@ st.set_page_config(
 
 st.markdown("""
 <style>
+    /* 전체 배경색 */
     .stApp { background-color: #f4f5f7; }
+    
+    /* [핵심] 모든 네모 컨테이너(보유 포지션, 매매 동향 등)를 완벽한 흰색 카드로 강제 지정 */
     div[data-testid="stVerticalBlockBorderWrapper"] {
-        background-color: #ffffff;
+        background-color: #ffffff !important;
         border: 1px solid #e5e7eb !important;
         border-radius: 12px !important;
         box-shadow: 0 1px 3px rgba(0,0,0,0.02) !important;
     }
+    
     .stButton>button {
         height: 38px; padding: 0 8px; border-radius: 8px; border: 1px solid #d1d5db;
         background-color: #ffffff; color: #374151; font-weight: 500; white-space: nowrap;
@@ -46,7 +50,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 2. 사이드바 (API 입력칸 완전히 삭제!)
+# 2. 사이드바 
 # -----------------------------------------------------------------------------
 st.sidebar.title("⚙️ 멍그 대시보드 설정")
 exchange_choice = st.sidebar.selectbox("거래소 선택", ["Bitget", "Binance", "Bybit", "Demo (샘플 데이터)"])
@@ -188,7 +192,6 @@ def fetch_exchange_data(exchange_name, api_key, secret, pwd):
         st.sidebar.error(f"API 연동 에러: {e}")
         return get_mock_data()
 
-# 화면 입력칸 대신 금고에서 꺼내온 변수를 사용
 current_position, df_trades, wallet_balance = fetch_exchange_data(exchange_choice, MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
 
 # -----------------------------------------------------------------------------
@@ -219,7 +222,7 @@ st.markdown(
 )
 
 # -----------------------------------------------------------------------------
-# 5. 현재 보유 포지션 VIP 하이라이트 배너 
+# 5. 🎯 현재 보유 포지션 VIP 하이라이트 배너 (모바일 최적화)
 # -----------------------------------------------------------------------------
 st.markdown("<div style='font-size: 16px; font-weight: 800; color: #111827; margin-bottom: 10px;'>🎯 현재 보유 포지션</div>", unsafe_allow_html=True)
 
@@ -240,12 +243,12 @@ with st.container(border=True):
 
         base_coin = current_position['symbol'].split('/')[0] if '/' in current_position['symbol'] else current_position['symbol']
         pos_usdt_value = current_position['size'] * current_position['entry_price']
-        
         margin_ratio = (current_position['margin'] / wallet_balance * 100) if wallet_balance > 0 else 0
 
+        # 모바일 환경에서 찌그러짐을 방지하기 위해 border-left를 없애고 padding을 통일
         with c_p1:
             st.markdown(f"""
-            <div style='padding: 10px 10px 20px 10px;'>
+            <div style='padding: 15px 10px;'>
                 <div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 8px;'>종목 / 방향 및 규모</div>
                 <div style='font-size: 24px; font-weight: 800; color: #111827;'>
                     {current_position['symbol']} 
@@ -259,7 +262,7 @@ with st.container(border=True):
             
         with c_p2:
             st.markdown(f"""
-            <div style='padding: 10px 10px 20px 15px; border-left: 1px solid #f3f4f6; height: 100%;'>
+            <div style='padding: 15px 10px; height: 100%;'>
                 <div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 12px;'>진입가 / 현재가</div>
                 <div style='display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px;'>
                     <span style='width: 45px; font-size: 12px; color: #9ca3af;'>진입가</span>
@@ -274,7 +277,7 @@ with st.container(border=True):
             
         with c_p3:
             st.markdown(f"""
-            <div style='padding: 10px 10px 20px 15px; border-left: 1px solid #f3f4f6; height: 100%;'>
+            <div style='padding: 15px 10px; height: 100%;'>
                 <div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 12px;'>미실현 손익 / 수익률(ROE)</div>
                 <div style='font-size: 26px; font-weight: 800; color: {pnl_color}; margin-bottom: -5px;'>
                     {pnl_sign}${pnl_val:,.2f}
@@ -287,7 +290,7 @@ with st.container(border=True):
             
         with c_p4:
             st.markdown(f"""
-            <div style='padding: 10px 10px 20px 15px; border-left: 1px solid #f3f4f6; height: 100%;'>
+            <div style='padding: 15px 10px; height: 100%;'>
                 <div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 12px;'>증거금 <span style="color:#2563eb;">(비중%)</span> / 청산가</div>
                 <div style='display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px;'>
                     <span style='width: 45px; font-size: 12px; color: #9ca3af;'>증거금</span>
