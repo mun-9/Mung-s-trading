@@ -40,7 +40,7 @@ st.markdown("""
 # 🔐 2. 보안 게이트 (비밀번호 설정)
 # =============================================================================
 st.sidebar.title("🔐 보안 설정")
-ADMIN_PWD = st.secrets.get("ADMIN_PWD", "1313")
+ADMIN_PWD = st.secrets.get("ADMIN_PWD", "1234")
 user_pwd = st.sidebar.text_input("대시보드 암호", type="password")
 
 if user_pwd != ADMIN_PWD:
@@ -334,7 +334,7 @@ else:
     filtered_df = df_trades
 
 # -----------------------------------------------------------------------------
-# 10. 매매 동향 (★ 완벽한 흰색 박스 대칭 정렬)
+# 10. 매매 동향 (★ 3개의 카드가 완벽한 대칭/높이(320px)로 나란히 정렬됨)
 # -----------------------------------------------------------------------------
 st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
 st.markdown("<div style='display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px;'><span style='font-size:16px; font-weight:800; color:#111827; margin-left:5px;'>매매 동향</span><span style='font-size:12px; color:#9ca3af;'>선택된 기간 기준</span></div>", unsafe_allow_html=True)
@@ -357,6 +357,7 @@ shorts = len(closed_df[closed_df["side"] == "SHORT"]) if closed_total > 0 else 0
 long_p = (longs / closed_total * 100) if closed_total > 0 else 0
 short_p = (shorts / closed_total * 100) if closed_total > 0 else 0
 
+# 공통 카드 스타일 (높이 320px 고정으로 완벽한 좌우 대칭)
 card_style = "background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); height: 320px; display:flex; flex-direction:column; justify-content:space-between;"
 
 with col_t1:
@@ -406,65 +407,55 @@ with col_t3:
     total_7d_closed = total_wins_7d + total_losses_7d
     overall_7d_rate = (total_wins_7d / total_7d_closed * 100) if total_7d_closed > 0 else 0
 
-    # Plotly 차트 객체 생성 (스트림릿 st.plotly_chart를 사용하므로 코드 노출 원천 차단)
-    fig_trend = go.Figure()
-    fig_trend.add_trace(go.Scatter(
-        x=trend_dates,
-        y=trend_vals,
-        mode="lines+text+markers",
-        text=[f"{v}%" for v in trend_vals],
-        textposition="top center",
-        textfont=dict(size=10, color="#374151", family="sans-serif"),
-        line=dict(color="#2563eb", width=2.5, shape="linear"),
-        marker=dict(size=6, color="#2563eb", line=dict(color="#ffffff", width=2)),
-        hoverinfo="skip"
-    ))
+    # SVG 좌표 계산 (카드 높이 320px 박스 내부 공간에 딱 맞게 스케일링)
+    svg_points = ""
+    circles_html = ""
+    texts_html = ""
+    max_w, max_h = 260, 95
+    step_x = max_w / 6 if 6 > 0 else max_w
+    
+    for idx, val in enumerate(trend_vals):
+        cx = idx * step_x + 10
+        cy = max_h - 15 - (val / 100.0) * (max_h - 30)
+        svg_points += f"{cx},{cy} "
+        circles_html += f'<circle cx="{cx}" cy="{cy}" r="4" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>'
+        texts_html += f'<text x="{cx}" y="{cy - 8}" font-size="10" font-weight="bold" fill="#374151" text-anchor="middle">{val}%</text>'
 
-    fig_trend.update_layout(
-        template="plotly_white",
-        margin=dict(t=25, b=0, l=5, r=5),
-        height=185,
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        xaxis=dict(
-            showgrid=False,
-            zeroline=False,
-            type='category',
-            tickfont=dict(size=10, color="#9ca3af")
-        ),
-        yaxis=dict(
-            range=[-15, 120],
-            tickvals=[0, 50, 100],
-            ticktext=["0%", "50%", "100%"],
-            showgrid=True,
-            gridcolor="#f3f4f6",
-            griddash="dash",
-            zeroline=False,
-            tickfont=dict(size=9, color="#9ca3af")
-        ),
-        showlegend=False
-    )
+    grid_html = '''
+        <line x1="0" y1="15" x2="280" y2="15" stroke="#f3f4f6" stroke-dasharray="3,3" />
+        <line x1="0" y1="50" x2="280" y2="50" stroke="#f3f4f6" stroke-dasharray="3,3" />
+        <line x1="0" y1="85" x2="280" y2="85" stroke="#f3f4f6" stroke-dasharray="3,3" />
+    '''
+    
+    labels_html = "".join([f'<div style="flex:1; text-align:center; font-size:10px; color:#9ca3af;">{d}</div>' for d in trend_dates])
 
-    # 3번째 카드 컨테이너를 정확한 높이와 스타일의 흰색 박스로 감싸기
-    with st.container(border=True):
-        st.markdown("<div class='white-marker'></div>", unsafe_allow_html=True)
-        st.markdown(f"""
-        <div style="height: 275px; display: flex; flex-direction: column; justify-content: space-between;">
-            <div>
-                <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'>
-                    <span>승률 추이</span>
-                    <span style='color:#9ca3af; font-weight:400;'>최근 7일 · 오늘 포함</span>
-                </div>
-                <div style='display:flex; align-items:baseline; gap:8px; margin-top:6px;'>
-                    <span style='font-size:28px; font-weight:800; color:#2563eb;'>{overall_7d_rate:.1f}%</span>
-                    <span style='font-size:12px; color:#9ca3af;'>익절 {total_wins_7d} · 손절 {total_losses_7d}</span>
-                </div>
+    # 3번째 카드도 1,2번 카드와 완벽하게 동일한 card_style 내부로 밀봉하여 출력
+    st.markdown(f"""
+    <div style="{card_style}">
+        <div>
+            <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'>
+                <span>승률 추이</span>
+                <span style='color:#9ca3af; font-weight:400;'>최근 7일 · 오늘 포함</span>
             </div>
-        """, unsafe_allow_html=True)
+            <div style='display:flex; align-items:baseline; gap:8px; margin-top:6px;'>
+                <span style='font-size:28px; font-weight:800; color:#2563eb;'>{overall_7d_rate:.1f}%</span>
+                <span style='font-size:12px; color:#9ca3af;'>익절 {total_wins_7d} · 손절 {total_losses_7d}</span>
+            </div>
+        </div>
         
-        st.plotly_chart(fig_trend, use_container_width=True, config={"displayModeBar": False})
-        
-        st.markdown("</div>", unsafe_allow_html=True)
+        <div style="margin-top: auto; width: 100%;">
+            <svg viewBox="0 0 280 100" style="width:100%; height:95px; overflow:visible;">
+                {grid_html}
+                <polyline points="{svg_points.strip()}" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                {circles_html}
+                {texts_html}
+            </svg>
+            <div style="display:flex; justify-content:space-between; margin-top:2px; padding:0 2px;">
+                {labels_html}
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
 # 11. 선택 기간 PNL 박스
