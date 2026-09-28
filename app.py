@@ -16,7 +16,7 @@ except:
     MY_SECRET_KEY = ""
     MY_PASSPHRASE = ""
 
-# 🎯 [초기화 설정] 여기서 설정한 날짜 이전의 과거 데이터는 싹 다 날립니다! (유저에겐 비밀)
+# 🎯 [초기화 설정] 여기서 설정한 날짜 이전의 과거 데이터는 싹 다 날립니다! 
 DASHBOARD_START_DATE = "2026-09-28"
 
 # -----------------------------------------------------------------------------
@@ -98,15 +98,20 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
         random.seed(42)
         records = []
         today_utc = datetime.utcnow()
-        for _ in range(25): 
+        for _ in range(35): 
             t_utc = today_utc - timedelta(hours=random.randint(1, 23))
-            pnl = random.choice([random.uniform(100, 2500), random.uniform(-1500, -50)])
+            # ★ 데모 데이터에서도 PNL 0(진입) 상황을 만듭니다
+            pnl = random.choice([0, 0, random.uniform(100, 2500), random.uniform(-1500, -50)])
+            if pnl > 0: res = "익절"
+            elif pnl < 0: res = "손절"
+            else: res = "진입"
+            
             records.append({
                 "datetime": t_utc + timedelta(hours=9),
                 "date": t_utc.strftime("%Y-%m-%d"),
                 "symbol": random.choice(["BTC/USDT", "ETH/USDT", "SOL/USDT"]),
                 "side": random.choice(["LONG", "SHORT"]),
-                "pnl": round(pnl, 2), "result": "익절" if pnl >= 0 else "손절",
+                "pnl": round(pnl, 2), "result": res,
             })
         df = pd.DataFrame(records).sort_values("datetime", ascending=False)
         return df[df["date"] >= DASHBOARD_START_DATE]
@@ -124,13 +129,19 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
                     for t in exchange.fetch_my_trades(symbol=sym, limit=200):
                         t_utc = datetime.utcfromtimestamp(t["timestamp"] / 1000)
                         pnl = float(t.get("info", {}).get("profit", 0))
+                        
+                        # ★ 진짜 데이터 분류: 수익 0은 '진입'으로 철저히 분리
+                        if pnl > 0: res = "익절"
+                        elif pnl < 0: res = "손절"
+                        else: res = "진입"
+                            
                         info_side = str(t.get("info", {}).get("tradeSide", "")).lower()
                         mapped_side = "LONG" if "long" in info_side else ("SHORT" if "short" in info_side else ("LONG" if t["side"].upper() == "BUY" else "SHORT"))
                         trade_records.append({
                             "datetime": t_utc + timedelta(hours=9), 
                             "date": t_utc.strftime("%Y-%m-%d"),
                             "symbol": t["symbol"].replace(":USDT", ""), "side": mapped_side, 
-                            "pnl": pnl, "result": "익절" if pnl >= 0 else "손절"
+                            "pnl": pnl, "result": res
                         })
             except: continue
             
@@ -177,7 +188,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 5. [FRAGMENT] 🎯 현재 보유 포지션 (10초 자동 갱신!)
+# 5. [FRAGMENT] 🎯 현재 보유 포지션 
 # -----------------------------------------------------------------------------
 st.markdown("<div style='font-size: 16px; font-weight: 800; color: #111827; margin-bottom: 10px;'>🎯 현재 보유 포지션</div>", unsafe_allow_html=True)
 
@@ -301,7 +312,12 @@ def render_trade_stats(f_df):
     total = len(f_df)
     wins = len(f_df[f_df["result"] == "익절"]) if total > 0 else 0
     losses = len(f_df[f_df["result"] == "손절"]) if total > 0 else 0
-    rate = (wins / total * 100) if total > 0 else 0
+    entries = len(f_df[f_df["result"] == "진입"]) if total > 0 else 0
+    
+    # ★ 승률 계산은 무의미한 '진입' 내역을 제외하고 '청산(익절+손절)' 건수만으로 계산!
+    closed_trades = wins + losses
+    rate = (wins / closed_trades * 100) if closed_trades > 0 else 0
+    
     longs = len(f_df[f_df["side"] == "LONG"]) if total > 0 else 0
     shorts = len(f_df[f_df["side"] == "SHORT"]) if total > 0 else 0
     long_p = (longs/(longs+shorts)*100) if (longs+shorts)>0 else 0
@@ -310,25 +326,25 @@ def render_trade_stats(f_df):
     card_style = "background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); height: 320px; display:flex; flex-direction:column; justify-content:space-between;"
 
     with col_t1:
-        # 빈 줄(엔터)이 마크다운 버그를 일으키지 않도록 HTML 코드를 꽉 붙여서 작성
-        st.markdown(f"""<div style="{card_style}"><div><div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>포지션 거래 횟수</span><span style='color:#9ca3af; font-weight:400;'>선택 기간</span></div><div style='font-size:36px; font-weight:800; color:#111827; margin:15px 0;'>{total} <span style='font-size:14px; font-weight:500;'>회</span></div><div style='font-size:12px; color:#6b7280; margin-bottom:5px; display:flex; justify-content:space-between;'><span>승·패 비율</span><b style='color:#111827;'>{rate:.1f}% 승률</b></div><div style="display:flex; width: 100%; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 20px; background-color:#f3f4f6;"><div style="width: {rate}%; background-color: #00a86b;"></div><div style="width: {100-rate if total > 0 else 0}%; background-color: #ef4444;"></div></div><div style='display:flex; justify-content:space-between; font-size:13px; color:#6b7280; margin-bottom:10px; padding: 0 5px;'><div style='display:flex; align-items:center; gap:6px;'><div style='width:8px; height:8px; border-radius:50%; background-color:#00a86b;'></div><span>익절 거래</span></div><b style='color:#00a86b;'>{wins} 회</b></div><div style='display:flex; justify-content:space-between; font-size:13px; color:#6b7280; margin-bottom:10px; padding: 0 5px;'><div style='display:flex; align-items:center; gap:6px;'><div style='width:8px; height:8px; border-radius:50%; background-color:#ef4444;'></div><span>손절 거래</span></div><b style='color:#ef4444;'>{losses} 회</b></div></div><div style='border-top:1px solid #f3f4f6; padding-top:15px; display:flex; justify-content:space-between; font-size:13px; color:#6b7280;'><span>전체 오더 수</span><b style='color:#2563eb;'>{total} 회</b></div></div>""", unsafe_allow_html=True)
+        # 생코드가 안 뜨도록 HTML을 안전하게 한 줄로 밀어넣었습니다.
+        st.markdown(f"""<div style="{card_style}"><div><div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>총 체결 건수</span><span style='color:#9ca3af; font-weight:400;'>선택 기간</span></div><div style='font-size:36px; font-weight:800; color:#111827; margin:15px 0;'>{total} <span style='font-size:14px; font-weight:500;'>건</span></div><div style='font-size:12px; color:#6b7280; margin-bottom:5px; display:flex; justify-content:space-between;'><span>승·패 비율 (청산 기준)</span><b style='color:#111827;'>{rate:.1f}% 승률</b></div><div style="display:flex; width: 100%; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 20px; background-color:#f3f4f6;"><div style="width: {rate}%; background-color: #00a86b;"></div><div style="width: {100-rate if closed_trades > 0 else 0}%; background-color: #ef4444;"></div></div><div style='display:flex; justify-content:space-between; font-size:13px; color:#6b7280; margin-bottom:10px; padding: 0 5px;'><div style='display:flex; align-items:center; gap:6px;'><div style='width:8px; height:8px; border-radius:50%; background-color:#00a86b;'></div><span>익절 청산</span></div><b style='color:#00a86b;'>{wins} 건</b></div><div style='display:flex; justify-content:space-between; font-size:13px; color:#6b7280; margin-bottom:10px; padding: 0 5px;'><div style='display:flex; align-items:center; gap:6px;'><div style='width:8px; height:8px; border-radius:50%; background-color:#ef4444;'></div><span>손절 청산</span></div><b style='color:#ef4444;'>{losses} 건</b></div></div><div style='border-top:1px solid #f3f4f6; padding-top:15px; display:flex; justify-content:space-between; font-size:13px; color:#6b7280;'><span>신규 진입 (단순 오더)</span><b style='color:#2563eb;'>{entries} 건</b></div></div>""", unsafe_allow_html=True)
 
     with col_t2:
         bg_gradient = f"conic-gradient(#00a86b 0% {long_p}%, #ef4444 {long_p}% 100%)" if (longs+shorts)>0 else "conic-gradient(#e5e7eb 0% 100%)"
         st.markdown(f"""
         <div style="{card_style}">
-            <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>LONG / SHORT</span><span style='color:#9ca3af; font-weight:400;'>신규 진입</span></div>
+            <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>LONG / SHORT</span><span style='color:#9ca3af; font-weight:400;'>총 진입/청산</span></div>
             <div style="display:flex; justify-content:center; align-items:center; flex-grow:1;">
                 <div style="width: 125px; height: 125px; border-radius: 50%; background: {bg_gradient}; display:flex; justify-content:center; align-items:center;">
                     <div style="width: 90px; height: 90px; background-color: #ffffff; border-radius: 50%; display:flex; flex-direction:column; justify-content:center; align-items:center; box-shadow: inset 0 0 5px rgba(0,0,0,0.02);">
-                        <span style="font-size:12px; color:#6b7280; font-weight:500;">총 진입</span>
-                        <b style="font-size:24px; color:#111827; margin-top:-2px;">{longs+shorts}회</b>
+                        <span style="font-size:12px; color:#6b7280; font-weight:500;">총 체결</span>
+                        <b style="font-size:24px; color:#111827; margin-top:-2px;">{longs+shorts}건</b>
                     </div>
                 </div>
             </div>
             <div>
-                <div style='display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px;'><span style='color:#00a86b; font-weight:700;'>LONG</span><b style='color:#00a86b;'>{longs}회 · {long_p:.1f}%</b></div>
-                <div style='display:flex; justify-content:space-between; font-size:13px;'><span style='color:#ef4444; font-weight:700;'>SHORT</span><b style='color:#ef4444;'>{shorts}회 · {short_p:.1f}%</b></div>
+                <div style='display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px;'><span style='color:#00a86b; font-weight:700;'>LONG</span><b style='color:#00a86b;'>{longs}건 · {long_p:.1f}%</b></div>
+                <div style='display:flex; justify-content:space-between; font-size:13px;'><span style='color:#ef4444; font-weight:700;'>SHORT</span><b style='color:#ef4444;'>{shorts}건 · {short_p:.1f}%</b></div>
             </div>
         </div>
         """, unsafe_allow_html=True)
