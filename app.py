@@ -16,7 +16,7 @@ except:
     MY_SECRET_KEY = ""
     MY_PASSPHRASE = ""
 
-# 🎯 [초기화 설정] 여기서 설정한 날짜 이전의 과거 데이터는 싹 다 날립니다!
+# 🎯 [초기화 설정] 여기서 설정한 날짜 이전의 과거 데이터는 싹 다 날립니다! (유저에겐 비밀)
 DASHBOARD_START_DATE = "2026-09-28"
 
 # -----------------------------------------------------------------------------
@@ -62,7 +62,6 @@ st.markdown("""
 # -----------------------------------------------------------------------------
 @st.cache_data(ttl=5, show_spinner=False)
 def fetch_fast_data(exchange_name, api_key, secret, pwd):
-    """현재 포지션과 지갑 잔고만 아주 빠르게 긁어옵니다. (10초마다 갱신용)"""
     if not api_key or not secret or exchange_name == "Demo (샘플 데이터)":
         return [{
             "symbol": "BTC/USDT", "side": "LONG", "leverage": 20,
@@ -94,13 +93,12 @@ def fetch_fast_data(exchange_name, api_key, secret, pwd):
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_slow_data(exchange_name, api_key, secret, pwd):
-    """과거 매매 내역을 가져옵니다. (1시간마다 갱신용 & 특정 시작일 이전 데이터 삭제)"""
     if not api_key or not secret or exchange_name == "Demo (샘플 데이터)":
         import random
         random.seed(42)
         records = []
         today_utc = datetime.utcnow()
-        for _ in range(25): # 데모도 오늘치 데이터만 생성하게 변경
+        for _ in range(25): 
             t_utc = today_utc - timedelta(hours=random.randint(1, 23))
             pnl = random.choice([random.uniform(100, 2500), random.uniform(-1500, -50)])
             records.append({
@@ -138,7 +136,6 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
             
         df = pd.DataFrame(trade_records).sort_values("datetime", ascending=False) if trade_records else pd.DataFrame(columns=["datetime", "date", "symbol", "side", "pnl", "result"])
         
-        # ★ [핵심 필터] 2026-09-28 이전의 기록은 여기서 모조리 삭제합니다!
         if not df.empty:
             df = df[df["date"] >= DASHBOARD_START_DATE]
             
@@ -152,14 +149,12 @@ st.sidebar.title("⚙️ 멍그 대시보드 설정")
 exchange_choice = st.sidebar.selectbox("거래소 선택", ["Bitget", "Binance", "Bybit", "Demo (샘플 데이터)"])
 st.sidebar.markdown("<div style='font-size:13px; color:#00a86b; margin-bottom:15px;'>✅ API 보안 금고 연동 완료</div>", unsafe_allow_html=True)
 st.sidebar.markdown("<div style='font-size:12px; color:#2563eb; margin-bottom:15px;'>🟢 실시간 자동 업데이트 작동 중 (10초 단위)</div>", unsafe_allow_html=True)
-st.sidebar.markdown(f"<div style='font-size:11px; color:#ef4444; margin-bottom:15px;'>🚨 리셋 적용: {DASHBOARD_START_DATE} 이후 내역만 표시</div>", unsafe_allow_html=True)
 
-if st.sidebar.button("🔄 전체 캐시 초기화 (수동 갱신)"):
+if st.sidebar.button("🔄 수동 새로고침"):
     fetch_fast_data.clear()
     fetch_slow_data.clear()
     st.rerun()
 
-# 베이스가 될 느린 데이터(과거 기록) 로드
 df_trades = fetch_slow_data(exchange_choice, MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
 
 # -----------------------------------------------------------------------------
@@ -228,7 +223,7 @@ def show_live_positions():
 show_live_positions()
 
 # -----------------------------------------------------------------------------
-# 6. 상단 PNL 카드 (각자의 시간에 맞춰 독립적으로 갱신!)
+# 6. 상단 PNL 카드 
 # -----------------------------------------------------------------------------
 st.markdown("<div style='font-size: 11px; color: #9ca3af; margin-bottom: 10px; margin-top: -10px;'>미실현손익은 일별·월별 추정 PNL 합계에 포함하지 않습니다.</div>", unsafe_allow_html=True)
 col_s1, col_s2, col_s3 = st.columns(3)
@@ -290,12 +285,11 @@ if btn_today: start_date, end_date = datetime.utcnow().date(), datetime.utcnow()
 elif btn_month: start_date, end_date = datetime.utcnow().date().replace(day=1), datetime.utcnow().date()
 elif btn_30d: start_date, end_date = datetime.utcnow().date() - timedelta(days=30), datetime.utcnow().date()
 
-# 시작일(START_DATE) 이전으로 필터가 넘어가지 않도록 방어 로직 추가
 filter_start_date = max(start_date, datetime.strptime(DASHBOARD_START_DATE, "%Y-%m-%d").date())
 filtered_df = df_trades[(df_trades["date_obj"] >= filter_start_date) & (df_trades["date_obj"] <= end_date)] if not df_trades.empty else df_trades
 
 # -----------------------------------------------------------------------------
-# 8. [FRAGMENT] 매매 동향 (1시간마다 백그라운드 갱신 & 차트 소수점 제거!)
+# 8. [FRAGMENT] 매매 동향
 # -----------------------------------------------------------------------------
 st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
 st.markdown("<div style='display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px;'><span style='font-size:16px; font-weight:800; color:#111827; margin-left:5px;'>매매 동향</span><span style='font-size:12px; color:#9ca3af;'>관측 기록 기준 (1시간 갱신)</span></div>", unsafe_allow_html=True)
@@ -315,22 +309,33 @@ def render_trade_stats(f_df):
 
     card_style = "background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); height: 320px; display:flex; flex-direction:column; justify-content:space-between;"
 
+    # ★ 거래 횟수 카드 디자인 전면 개편 (게이지바 추가)
     with col_t1:
         st.markdown(f"""
         <div style="{card_style}">
             <div>
                 <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>포지션 거래 횟수</span><span style='color:#9ca3af; font-weight:400;'>선택 기간</span></div>
                 <div style='font-size:36px; font-weight:800; color:#111827; margin:15px 0;'>{total} <span style='font-size:14px; font-weight:500;'>회</span></div>
-                <div style='display:flex; font-size:13px; color:#6b7280; margin-bottom:6px;'>
-                    <div style='flex:1; display:flex; justify-content:space-between; margin-right:15px;'><span>신규 진입</span><b style='color:#111827;'>{total} 회</b></div>
-                    <div style='flex:1; display:flex; justify-content:space-between; margin-left:15px;'><span>오더</span><b style='color:#111827;'>{total} 회</b></div>
+                
+                <div style='font-size:12px; color:#6b7280; margin-bottom:5px; display:flex; justify-content:space-between;'>
+                    <span>승·패 비율</span>
+                    <b style='color:#111827;'>{rate:.1f}% 승률</b>
                 </div>
-                <div style='display:flex; font-size:13px; color:#6b7280; margin-bottom:15px;'>
-                    <div style='flex:1; display:flex; justify-content:space-between; margin-right:15px;'><span>익절</span><b style='color:#00a86b;'>{wins} 회</b></div>
-                    <div style='flex:1; display:flex; justify-content:space-between; margin-left:15px;'><span>손절</span><b style='color:#ef4444;'>{losses} 회</b></div>
+                <div style="display:flex; width: 100%; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 20px; background-color:#f3f4f6;">
+                    <div style="width: {rate}%; background-color: #00a86b;"></div>
+                    <div style="width: {100-rate if total > 0 else 0}%; background-color: #ef4444;"></div>
+                </div>
+
+                <div style='display:flex; justify-content:space-between; font-size:13px; color:#6b7280; margin-bottom:10px; padding: 0 5px;'>
+                    <div style='display:flex; align-items:center; gap:6px;'><div style='width:8px; height:8px; border-radius:50%; background-color:#00a86b;'></div><span>익절 거래</span></div>
+                    <b style='color:#00a86b;'>{wins} 회</b>
+                </div>
+                <div style='display:flex; justify-content:space-between; font-size:13px; color:#6b7280; margin-bottom:10px; padding: 0 5px;'>
+                    <div style='display:flex; align-items:center; gap:6px;'><div style='width:8px; height:8px; border-radius:50%; background-color:#ef4444;'></div><span>손절 거래</span></div>
+                    <b style='color:#ef4444;'>{losses} 회</b>
                 </div>
             </div>
-            <div style='border-top:1px solid #f3f4f6; padding-top:15px; display:flex; justify-content:space-between; font-size:13px; color:#6b7280;'><span>기간 승률</span><b style='color:#2563eb;'>{rate:.1f}%</b></div>
+            <div style='border-top:1px solid #f3f4f6; padding-top:15px; display:flex; justify-content:space-between; font-size:13px; color:#6b7280;'><span>전체 오더 수</span><b style='color:#2563eb;'>{total} 회</b></div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -389,7 +394,7 @@ def render_trade_stats(f_df):
 render_trade_stats(filtered_df)
 
 # -----------------------------------------------------------------------------
-# 9. [FRAGMENT] 선택 기간 PNL 박스 (하나의 완벽한 거대 화이트 카드!)
+# 9. [FRAGMENT] 선택 기간 PNL 박스
 # -----------------------------------------------------------------------------
 st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
 
@@ -459,7 +464,7 @@ render_pnl_charts(filtered_df)
 st.markdown("<div style='font-size:11px; color:#9ca3af; margin: 10px 0 30px 0;'>추정 PNL · USDT · 한국시간 기준 · 기간 누적은 선택한 기간의 시작을 0으로 계산합니다.</div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 10. 매매 상세 내역 로그 (이 영역도 1시간 갱신)
+# 10. 매매 상세 내역 로그
 # -----------------------------------------------------------------------------
 st.markdown("<div style='font-size: 18px; font-weight: 800; color: #111827; margin-bottom: 15px;'>📝 상세 매매 내역</div>", unsafe_allow_html=True)
 
