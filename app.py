@@ -27,8 +27,14 @@ st.markdown("""
     .pos-box { padding: 10px; flex: 1 1 200px; }
     .pos-divider { border-left: 1px solid #f3f4f6; }
     @media (max-width: 768px) { .pos-divider { border-left: none !important; border-top: 1px solid #f3f4f6 !important; padding-top: 15px !important; margin-top: 5px !important; } }
-    .stButton>button { height: 38px; padding: 0 8px; border-radius: 8px; border: 1px solid #d1d5db; background-color: #ffffff; color: #374151; font-weight: 500; white-space: nowrap; }
+    
+    /* 🎯 필터 버튼을 날짜 입력창보다 약간 작게 튜닝 */
+    .stButton>button { height: 32px !important; padding: 0 10px !important; border-radius: 6px !important; border: 1px solid #d1d5db; background-color: #ffffff; color: #374151; font-weight: 500; font-size: 13px !important; white-space: nowrap; margin-top: 4px; }
     .stButton>button:hover { border-color: #2563eb; color: #2563eb; }
+    
+    /* 🎯 10초 갱신 시 흐려짐(깜빡임) 강제 차단 CSS */
+    [data-testid="stFragment"] { opacity: 1 !important; transition: none !important; filter: none !important; }
+    div[data-testid="stVerticalBlock"] > div[style*="opacity"] { opacity: 1 !important; transition: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -36,36 +42,30 @@ st.markdown("""
 # 🔐 2. 보안 게이트 (비밀번호 설정)
 # =============================================================================
 st.sidebar.title("🔐 보안 설정")
-# 웹사이트 비밀 금고에 ADMIN_PWD가 없으면 기본 비밀번호는 1234로 작동합니다.
 ADMIN_PWD = st.secrets.get("ADMIN_PWD", "1313")
 user_pwd = st.sidebar.text_input("대시보드 암호", type="password")
 
 if user_pwd != ADMIN_PWD:
     st.warning("🚨 권한이 없습니다. 올바른 비밀번호를 입력해주세요.")
-    st.stop() # 비밀번호가 틀리면 여기서 화면 렌더링 멈춤!
+    st.stop()
 
-# 🎯 [초기화 설정] 여기서 설정한 날짜 이전의 과거 데이터는 싹 다 날립니다!
 DASHBOARD_START_DATE = "2026-09-28"
 
 # -----------------------------------------------------------------------------
-# 3. 데이터 로드 헬퍼 함수 및 API 분리 세팅
+# 3. 데이터 로드 헬퍼 함수
 # -----------------------------------------------------------------------------
 def get_api_keys(exc_name):
-    """기존 호환성을 유지하면서 거래소별 API 키를 가져옵니다."""
     prefix = exc_name.upper().replace(" ", "_")
-    # 새 키 이름(예: BITGET_API_KEY)이 없으면 기존 이름(API_KEY)을 찾아봅니다 (Demo 튕김 방지)
     ak = st.secrets.get(f"{prefix}_API_KEY", st.secrets.get("API_KEY", ""))
     sk = st.secrets.get(f"{prefix}_SECRET_KEY", st.secrets.get("SECRET_KEY", ""))
     pp = st.secrets.get(f"{prefix}_PASSPHRASE", st.secrets.get("PASSPHRASE", ""))
     return ak, sk, pp
 
 def safe_float(val):
-    """None, 빈 문자열로 인해 크래시(에러)가 나는 것을 방지하는 안전망"""
     if val is None or val == "": return 0.0
     try: return float(val)
     except: return 0.0
 
-# KST(한국 시간) 설정을 통일하여 시간대 불일치 버그 방지
 KST = timezone(timedelta(hours=9))
 
 # -----------------------------------------------------------------------------
@@ -109,23 +109,21 @@ def fetch_fast_data(exchange_name, api_key, secret, pwd):
 def fetch_slow_data(exchange_name, api_key, secret, pwd):
     if not api_key or not secret or exchange_name == "Demo":
         records = []
-        today_kst = datetime.now(KST)
+        today_utc = datetime.now(timezone.utc)
         for _ in range(40): 
-            t_kst = today_kst - timedelta(hours=random.randint(1, 48))
+            t_utc = today_utc - timedelta(hours=random.randint(1, 48))
+            t_kst = t_utc.astimezone(KST)
             pnl = random.choice([0, 0, random.uniform(100, 2500), random.uniform(-1500, -50)])
             records.append({
                 "order_id": f"DEMO_{random.randint(1000,9999)}",
-                "datetime": t_kst, "date": t_kst.strftime("%Y-%m-%d"),
+                "datetime": t_kst, "date": t_utc.strftime("%Y-%m-%d"),
                 "symbol": random.choice(["BTC/USDT", "ETH/USDT", "SOL/USDT"]),
                 "side": random.choice(["LONG", "SHORT"]),
                 "pnl": round(pnl, 2)
             })
         df = pd.DataFrame(records).sort_values("datetime", ascending=False)
-        
-        # ★ KeyError의 원흉 수정! 데모 데이터에도 똑같이 result(결과) 컬럼을 만들어줍니다.
         if not df.empty:
             df["result"] = df["pnl"].apply(lambda p: "익절" if p > 0.001 else ("손절" if p < -0.001 else "진입"))
-            
         return df[df["date"] >= DASHBOARD_START_DATE] if not df.empty else pd.DataFrame(columns=["order_id", "datetime", "date", "symbol", "side", "pnl", "result"])
     
     if exchange_name == "Bitget": exchange = ccxt.bitget({'apiKey': api_key, 'secret': secret, 'password': pwd, 'enableRateLimit': True, 'options': {'defaultType': 'swap'}})
@@ -156,7 +154,8 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
                 
                 trade_records.append({
                     "order_id": str(t.get("order") or t.get("id") or t["timestamp"]), 
-                    "datetime": t_kst, "date": t_kst.strftime("%Y-%m-%d"),
+                    "datetime": t_kst, 
+                    "date": t_utc.strftime("%Y-%m-%d"), 
                     "symbol": t["symbol"].replace(":USDT", ""), "side": mapped_side, 
                     "pnl": net_pnl
                 })
@@ -187,7 +186,6 @@ if st.sidebar.button("🔄 수동 새로고침"):
     fetch_slow_data.clear()
     st.rerun()
 
-# 에러가 발생해도 사이트가 멈추지 않도록 예외 처리
 try:
     df_trades = fetch_slow_data(exchange_choice, API_KEY, SECRET_KEY, PASSPHRASE)
 except Exception as e:
@@ -214,7 +212,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 7. [FRAGMENT] 🎯 현재 보유 포지션 (10초 갱신)
+# 7. [FRAGMENT] 🎯 현재 보유 포지션 
 # -----------------------------------------------------------------------------
 st.markdown("<div style='font-size: 16px; font-weight: 800; color: #111827; margin-bottom: 10px;'>🎯 현재 보유 포지션</div>", unsafe_allow_html=True)
 
@@ -277,14 +275,14 @@ def make_top_card(title, value, sub_left):
         <div style="font-size:12px; color:#9ca3af; margin-top:auto;">{sub_left}</div></div>"""
 
 with col_s1:
-    today_str = datetime.now(KST).strftime("%Y-%m-%d")
-    today_pnl = df_trades[df_trades["date"] == today_str]["pnl"].sum() if not df_trades.empty else 0.0
-    st.markdown(make_top_card("오늘 추정 PNL", today_pnl, "매일 오전 0시 리셋 (KST)"), unsafe_allow_html=True)
+    today_crypto_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today_pnl = df_trades[df_trades["date"] == today_crypto_str]["pnl"].sum() if not df_trades.empty else 0.0
+    st.markdown(make_top_card("오늘 추정 PNL", today_pnl, "한국시간 오전 9시부터 집계"), unsafe_allow_html=True)
 
 with col_s2:
-    month_str = datetime.now(KST).strftime("%Y-%m")
-    month_pnl = df_trades[df_trades["date"].str.startswith(month_str)]["pnl"].sum() if not df_trades.empty else 0.0
-    st.markdown(make_top_card("이번 달 추정 PNL", month_pnl, "매월 1일 리셋 (KST)"), unsafe_allow_html=True)
+    month_crypto_str = datetime.now(timezone.utc).strftime("%Y-%m")
+    month_pnl = df_trades[df_trades["date"].str.startswith(month_crypto_str)]["pnl"].sum() if not df_trades.empty else 0.0
+    st.markdown(make_top_card("이번 달 추정 PNL", month_pnl, "한국시간 1일 오전 9시부터 집계"), unsafe_allow_html=True)
 
 with col_s3:
     @st.fragment(run_every=10)
@@ -298,7 +296,7 @@ with col_s3:
 st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 9. 수익 히스토리 필터
+# 9. 수익 히스토리 필터 
 # -----------------------------------------------------------------------------
 st.markdown("<div style='display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px;'><span style='font-size:20px; font-weight:800; color:#111827;'>수익 히스토리</span></div>", unsafe_allow_html=True)
 
@@ -308,21 +306,22 @@ if "filter_sd" not in st.session_state:
     else:
         st.session_state.filter_sd = datetime.strptime(DASHBOARD_START_DATE, "%Y-%m-%d").date()
 if "filter_ed" not in st.session_state:
-    st.session_state.filter_ed = datetime.now(KST).date()
+    st.session_state.filter_ed = datetime.now(timezone.utc).date()
 
-c_d1, c_d2, c_btn1, c_btn2, c_btn3, c_space = st.columns([1.5, 1.5, 0.8, 0.9, 1.1, 5.5])
+c_d1, c_d2, c_btn1, c_btn2, c_btn3, c_space = st.columns([1.6, 1.6, 0.6, 0.7, 0.6, 5.0])
 with c_btn1:
     if st.button("오늘", use_container_width=True):
-        st.session_state.filter_sd = datetime.now(KST).date()
-        st.session_state.filter_ed = datetime.now(KST).date()
+        st.session_state.filter_sd = datetime.now(timezone.utc).date()
+        st.session_state.filter_ed = datetime.now(timezone.utc).date()
 with c_btn2:
-    if st.button("이번 달", use_container_width=True):
-        st.session_state.filter_sd = datetime.now(KST).date().replace(day=1)
-        st.session_state.filter_ed = datetime.now(KST).date()
+    if st.button("이번 주", use_container_width=True):
+        now_date = datetime.now(timezone.utc).date()
+        st.session_state.filter_sd = now_date - timedelta(days=now_date.weekday())
+        st.session_state.filter_ed = now_date
 with c_btn3:
-    if st.button("최근 30일", use_container_width=True):
-        st.session_state.filter_sd = datetime.now(KST).date() - timedelta(days=30)
-        st.session_state.filter_ed = datetime.now(KST).date()
+    if st.button("30일", use_container_width=True):
+        st.session_state.filter_sd = datetime.now(timezone.utc).date() - timedelta(days=30)
+        st.session_state.filter_ed = datetime.now(timezone.utc).date()
 
 with c_d1:
     start_date = st.date_input("s", value=st.session_state.filter_sd, label_visibility="collapsed")
@@ -340,7 +339,7 @@ else:
 # 10. 매매 동향
 # -----------------------------------------------------------------------------
 st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
-st.markdown("<div style='display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px;'><span style='font-size:16px; font-weight:800; color:#111827; margin-left:5px;'>매매 동향</span><span style='font-size:12px; color:#9ca3af;'>관측 기록 기준</span></div>", unsafe_allow_html=True)
+st.markdown("<div style='display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px;'><span style='font-size:16px; font-weight:800; color:#111827; margin-left:5px;'>매매 동향</span><span style='font-size:12px; color:#9ca3af;'>선택된 기간 기준</span></div>", unsafe_allow_html=True)
 
 col_t1, col_t2, col_t3 = st.columns([1, 1, 1.2])
 
@@ -352,10 +351,14 @@ entries = len(filtered_df[filtered_df["result"] == "진입"]) if total > 0 else 
 closed_trades = wins + losses
 rate = (wins / closed_trades * 100) if closed_trades > 0 else 0
 
-longs = len(filtered_df[filtered_df["side"] == "LONG"]) if total > 0 else 0
-shorts = len(filtered_df[filtered_df["side"] == "SHORT"]) if total > 0 else 0
-long_p = (longs/(longs+shorts)*100) if (longs+shorts)>0 else 0
-short_p = (shorts/(longs+shorts)*100) if (longs+shorts)>0 else 0
+# ★ 요청 반영: 롱/숏 비율을 '부분 축소 및 전체 종료(청산)'된 건들(익절+손절) 기준으로 계산하도록 변경!
+closed_df = filtered_df[filtered_df["result"].isin(["익절", "손절"])] if not filtered_df.empty else filtered_df
+closed_total = len(closed_df)
+
+longs = len(closed_df[closed_df["side"] == "LONG"]) if closed_total > 0 else 0
+shorts = len(closed_df[closed_df["side"] == "SHORT"]) if closed_total > 0 else 0
+long_p = (longs / closed_total * 100) if closed_total > 0 else 0
+short_p = (shorts / closed_total * 100) if closed_total > 0 else 0
 
 card_style = "background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); height: 320px; display:flex; flex-direction:column; justify-content:space-between;"
 
@@ -363,15 +366,15 @@ with col_t1:
     st.markdown(f"""<div style="{card_style}"><div><div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>총 체결 건수 (분할병합 기준)</span><span style='color:#9ca3af; font-weight:400;'>선택 기간</span></div><div style='font-size:36px; font-weight:800; color:#111827; margin:15px 0;'>{total} <span style='font-size:14px; font-weight:500;'>건</span></div><div style='font-size:12px; color:#6b7280; margin-bottom:5px; display:flex; justify-content:space-between;'><span>승·패 비율 (청산 기준)</span><b style='color:#111827;'>{rate:.1f}% 승률</b></div><div style="display:flex; width: 100%; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 20px; background-color:#f3f4f6;"><div style="width: {rate}%; background-color: #00a86b;"></div><div style="width: {100-rate if closed_trades > 0 else 0}%; background-color: #ef4444;"></div></div><div style='display:flex; justify-content:space-between; font-size:13px; color:#6b7280; margin-bottom:10px; padding: 0 5px;'><div style='display:flex; align-items:center; gap:6px;'><div style='width:8px; height:8px; border-radius:50%; background-color:#00a86b;'></div><span>익절 청산</span></div><b style='color:#00a86b;'>{wins} 건</b></div><div style='display:flex; justify-content:space-between; font-size:13px; color:#6b7280; margin-bottom:10px; padding: 0 5px;'><div style='display:flex; align-items:center; gap:6px;'><div style='width:8px; height:8px; border-radius:50%; background-color:#ef4444;'></div><span>손절 청산</span></div><b style='color:#ef4444;'>{losses} 건</b></div></div><div style='border-top:1px solid #f3f4f6; padding-top:15px; display:flex; justify-content:space-between; font-size:13px; color:#6b7280;'><span>신규 진입 (단순 오더)</span><b style='color:#2563eb;'>{entries} 건</b></div></div>""", unsafe_allow_html=True)
 
 with col_t2:
-    bg_gradient = f"conic-gradient(#00a86b 0% {long_p}%, #ef4444 {long_p}% 100%)" if (longs+shorts)>0 else "conic-gradient(#e5e7eb 0% 100%)"
+    bg_gradient = f"conic-gradient(#00a86b 0% {long_p}%, #ef4444 {long_p}% 100%)" if closed_total > 0 else "conic-gradient(#e5e7eb 0% 100%)"
     st.markdown(f"""
     <div style="{card_style}">
-        <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>LONG / SHORT</span><span style='color:#9ca3af; font-weight:400;'>총 진입/청산</span></div>
+        <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>LONG / SHORT</span><span style='color:#9ca3af; font-weight:400;'>청산 횟수 기준</span></div>
         <div style="display:flex; justify-content:center; align-items:center; flex-grow:1;">
             <div style="width: 125px; height: 125px; border-radius: 50%; background: {bg_gradient}; display:flex; justify-content:center; align-items:center;">
                 <div style="width: 90px; height: 90px; background-color: #ffffff; border-radius: 50%; display:flex; flex-direction:column; justify-content:center; align-items:center; box-shadow: inset 0 0 5px rgba(0,0,0,0.02);">
-                    <span style="font-size:12px; color:#6b7280; font-weight:500;">총 체결</span>
-                    <b style="font-size:24px; color:#111827; margin-top:-2px;">{longs+shorts}건</b>
+                    <span style="font-size:12px; color:#6b7280; font-weight:500;">총 청산</span>
+                    <b style="font-size:24px; color:#111827; margin-top:-2px;">{closed_total}건</b>
                 </div>
             </div>
         </div>
@@ -384,9 +387,9 @@ with col_t2:
 
 with col_t3:
     trend_vals = []
-    now_kst = datetime.now(KST)
+    now_utc = datetime.now(timezone.utc)
     for i in range(6, -1, -1):
-        target_date = (now_kst - timedelta(days=i)).strftime("%Y-%m-%d")
+        target_date = (now_utc - timedelta(days=i)).strftime("%Y-%m-%d")
         if not df_trades.empty:
             day_df = df_trades[df_trades["date"] == target_date]
             d_w = len(day_df[day_df["result"] == "익절"])
@@ -405,7 +408,7 @@ with col_t3:
     
     svg_html = f"""<svg viewBox="-15 -15 330 140" style="width:100%; height:130px; display:block;"><polyline points="{svg_points}" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />{circles}{texts}</svg>"""
 
-    st.markdown(f"""<div style="{card_style}"><div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>승률 추이</span><span style='color:#9ca3af; font-weight:400;'>최근 7일 · 오늘 포함</span></div><div style="display:flex; align-items:baseline; gap:10px; margin-top:10px;"><span style="font-size:32px; font-weight:800; color:#2563eb;">{trend_vals[-1]}%</span><span style="font-size:12px; color:#6b7280;">오늘의 승률</span></div><div style="flex-grow:1; display:flex; flex-direction:column; justify-content:flex-end;">{svg_html}</div></div>""", unsafe_allow_html=True)
+    st.markdown(f"""<div style="{card_style}"><div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>승률 추이</span><span style='color:#9ca3af; font-weight:400;'>최근 7일 (오전 9시 기준)</span></div><div style="display:flex; align-items:baseline; gap:10px; margin-top:10px;"><span style="font-size:32px; font-weight:800; color:#2563eb;">{trend_vals[-1]}%</span><span style="font-size:12px; color:#6b7280;">오늘의 승률</span></div><div style="flex-grow:1; display:flex; flex-direction:column; justify-content:flex-end;">{svg_html}</div></div>""", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
 # 11. 선택 기간 PNL 박스
@@ -420,7 +423,7 @@ with st.container(border=True):
     st.markdown(f"""
     <div style="padding: 10px 10px 0 10px;">
         <div style='display:flex; justify-content:space-between;'>
-            <span style='font-size:12px; color:#9ca3af; font-weight:600;'>선택 기간 실현 PNL (KST 기준)</span>
+            <span style='font-size:12px; color:#9ca3af; font-weight:600;'>선택 기간 실현 PNL</span>
         </div>
         <div style='font-size:32px; font-weight:800; color:{pnl_color}; margin-top:5px;'>
             {pnl_sign}${period_sum:,.2f} <span style='font-size:14px; color:#00a86b; font-weight:600;'>USDT</span>
@@ -472,7 +475,7 @@ st.markdown("<div style='font-size:11px; color:#9ca3af; margin: 10px 0 30px 0;'>
 # -----------------------------------------------------------------------------
 # 12. 매매 상세 내역 로그
 # -----------------------------------------------------------------------------
-st.markdown("<div style='font-size: 18px; font-weight: 800; color: #111827; margin-bottom: 15px;'>📝 상세 매매 내역</div>", unsafe_allow_html=True)
+st.markdown("<div style='font-size: 18px; font-weight: 800; color: #111827; margin-bottom: 15px;'>📝 상세 매매 내역 (KST 기준)</div>", unsafe_allow_html=True)
 
 if not filtered_df.empty:
     st.dataframe(filtered_df[["datetime", "symbol", "side", "pnl", "result", "order_id"]], use_container_width=True, hide_index=True, height=400)
