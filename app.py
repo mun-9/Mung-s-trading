@@ -334,7 +334,7 @@ else:
     filtered_df = df_trades
 
 # -----------------------------------------------------------------------------
-# 10. 매매 동향 (★ 토스증권 스타일 승률 추이 그래프 적용 완료)
+# 10. 매매 동향 (★ 토스증권 스타일 승률 추이 - 흰색 박스 내부 완벽 안착)
 # -----------------------------------------------------------------------------
 st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
 st.markdown("<div style='display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px;'><span style='font-size:16px; font-weight:800; color:#111827; margin-left:5px;'>매매 동향</span><span style='font-size:12px; color:#9ca3af;'>선택된 기간 기준</span></div>", unsafe_allow_html=True)
@@ -383,7 +383,7 @@ with col_t2:
     """, unsafe_allow_html=True)
 
 with col_t3:
-    # 7일간의 진짜 날짜별 데이터 수집
+    # 7일간의 날짜별 데이터 동적 집계
     trend_dates, trend_vals = [], []
     total_wins_7d, total_losses_7d = 0, 0
     now_utc = datetime.now(timezone.utc)
@@ -406,7 +406,7 @@ with col_t3:
     total_7d_closed = total_wins_7d + total_losses_7d
     overall_7d_rate = (total_wins_7d / total_7d_closed * 100) if total_7d_closed > 0 else 0
 
-    # Plotly를 이용한 토스증권 스타일 꺾은선 그래프 생성
+    # 토스증권 스타일 Plotly 그래프
     fig_trend = go.Figure()
     fig_trend.add_trace(go.Scatter(
         x=trend_dates,
@@ -422,8 +422,8 @@ with col_t3:
 
     fig_trend.update_layout(
         template="plotly_white",
-        margin=dict(t=25, b=10, l=10, r=10),
-        height=185,
+        margin=dict(t=20, b=5, l=10, r=10),
+        height=170,
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         xaxis=dict(
@@ -433,7 +433,7 @@ with col_t3:
             tickfont=dict(size=11, color="#9ca3af")
         ),
         yaxis=dict(
-            range=[-10, 115], # 상단 텍스트가 잘리지 않도록 여유 공간 확보
+            range=[-15, 120],
             tickvals=[0, 50, 100],
             ticktext=["0%", "50%", "100%"],
             showgrid=True,
@@ -445,24 +445,20 @@ with col_t3:
         showlegend=False
     )
 
-    with st.container(border=False):
+    # ★ 핵심 수정: Streamlit 컨테이너를 사용하여 Plotly 차트를 카드 박스 내부에 완벽 배치!
+    with st.container(border=True):
+        st.markdown("<div class='white-marker'></div>", unsafe_allow_html=True)
         st.markdown(f"""
-        <div style="{card_style}">
-            <div>
-                <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'>
-                    <span>승률 추이</span>
-                    <span style='color:#9ca3af; font-weight:400;'>최근 7일 · 오늘 포함</span>
-                </div>
-                <div style='display:flex; align-items:baseline; gap:8px; margin-top:8px; margin-bottom:2px;'>
-                    <span style='font-size:28px; font-weight:800; color:#2563eb;'>{overall_7d_rate:.1f}%</span>
-                    <span style='font-size:12px; color:#9ca3af;'>익절 {total_wins_7d} · 손절 {total_losses_7d}</span>
-                </div>
-            </div>
+        <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'>
+            <span>승률 추이</span>
+            <span style='color:#9ca3af; font-weight:400;'>최근 7일 · 오늘 포함</span>
+        </div>
+        <div style='display:flex; align-items:baseline; gap:8px; margin-top:8px; margin-bottom:0px;'>
+            <span style='font-size:28px; font-weight:800; color:#2563eb;'>{overall_7d_rate:.1f}%</span>
+            <span style='font-size:12px; color:#9ca3af;'>익절 {total_wins_7d} · 손절 {total_losses_7d}</span>
+        </div>
         """, unsafe_allow_html=True)
-        
         st.plotly_chart(fig_trend, use_container_width=True, config={"displayModeBar": False})
-        
-        st.markdown("</div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
 # 11. 선택 기간 PNL 박스
