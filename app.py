@@ -309,35 +309,9 @@ def render_trade_stats(f_df):
 
     card_style = "background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); height: 320px; display:flex; flex-direction:column; justify-content:space-between;"
 
-    # ★ 거래 횟수 카드 디자인 전면 개편 (게이지바 추가)
     with col_t1:
-        st.markdown(f"""
-        <div style="{card_style}">
-            <div>
-                <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>포지션 거래 횟수</span><span style='color:#9ca3af; font-weight:400;'>선택 기간</span></div>
-                <div style='font-size:36px; font-weight:800; color:#111827; margin:15px 0;'>{total} <span style='font-size:14px; font-weight:500;'>회</span></div>
-                
-                <div style='font-size:12px; color:#6b7280; margin-bottom:5px; display:flex; justify-content:space-between;'>
-                    <span>승·패 비율</span>
-                    <b style='color:#111827;'>{rate:.1f}% 승률</b>
-                </div>
-                <div style="display:flex; width: 100%; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 20px; background-color:#f3f4f6;">
-                    <div style="width: {rate}%; background-color: #00a86b;"></div>
-                    <div style="width: {100-rate if total > 0 else 0}%; background-color: #ef4444;"></div>
-                </div>
-
-                <div style='display:flex; justify-content:space-between; font-size:13px; color:#6b7280; margin-bottom:10px; padding: 0 5px;'>
-                    <div style='display:flex; align-items:center; gap:6px;'><div style='width:8px; height:8px; border-radius:50%; background-color:#00a86b;'></div><span>익절 거래</span></div>
-                    <b style='color:#00a86b;'>{wins} 회</b>
-                </div>
-                <div style='display:flex; justify-content:space-between; font-size:13px; color:#6b7280; margin-bottom:10px; padding: 0 5px;'>
-                    <div style='display:flex; align-items:center; gap:6px;'><div style='width:8px; height:8px; border-radius:50%; background-color:#ef4444;'></div><span>손절 거래</span></div>
-                    <b style='color:#ef4444;'>{losses} 회</b>
-                </div>
-            </div>
-            <div style='border-top:1px solid #f3f4f6; padding-top:15px; display:flex; justify-content:space-between; font-size:13px; color:#6b7280;'><span>전체 오더 수</span><b style='color:#2563eb;'>{total} 회</b></div>
-        </div>
-        """, unsafe_allow_html=True)
+        # 빈 줄(엔터)이 마크다운 버그를 일으키지 않도록 HTML 코드를 꽉 붙여서 작성
+        st.markdown(f"""<div style="{card_style}"><div><div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>포지션 거래 횟수</span><span style='color:#9ca3af; font-weight:400;'>선택 기간</span></div><div style='font-size:36px; font-weight:800; color:#111827; margin:15px 0;'>{total} <span style='font-size:14px; font-weight:500;'>회</span></div><div style='font-size:12px; color:#6b7280; margin-bottom:5px; display:flex; justify-content:space-between;'><span>승·패 비율</span><b style='color:#111827;'>{rate:.1f}% 승률</b></div><div style="display:flex; width: 100%; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 20px; background-color:#f3f4f6;"><div style="width: {rate}%; background-color: #00a86b;"></div><div style="width: {100-rate if total > 0 else 0}%; background-color: #ef4444;"></div></div><div style='display:flex; justify-content:space-between; font-size:13px; color:#6b7280; margin-bottom:10px; padding: 0 5px;'><div style='display:flex; align-items:center; gap:6px;'><div style='width:8px; height:8px; border-radius:50%; background-color:#00a86b;'></div><span>익절 거래</span></div><b style='color:#00a86b;'>{wins} 회</b></div><div style='display:flex; justify-content:space-between; font-size:13px; color:#6b7280; margin-bottom:10px; padding: 0 5px;'><div style='display:flex; align-items:center; gap:6px;'><div style='width:8px; height:8px; border-radius:50%; background-color:#ef4444;'></div><span>손절 거래</span></div><b style='color:#ef4444;'>{losses} 회</b></div></div><div style='border-top:1px solid #f3f4f6; padding-top:15px; display:flex; justify-content:space-between; font-size:13px; color:#6b7280;'><span>전체 오더 수</span><b style='color:#2563eb;'>{total} 회</b></div></div>""", unsafe_allow_html=True)
 
     with col_t2:
         bg_gradient = f"conic-gradient(#00a86b 0% {long_p}%, #ef4444 {long_p}% 100%)" if (longs+shorts)>0 else "conic-gradient(#e5e7eb 0% 100%)"
@@ -378,18 +352,7 @@ def render_trade_stats(f_df):
         
         svg_html = f"""<svg viewBox="-15 -15 330 140" style="width:100%; height:130px; display:block;"><polyline points="{svg_points}" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />{circles}{texts}</svg>"""
 
-        st.markdown(f"""
-        <div style="{card_style}">
-            <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>승률 추이</span><span style='color:#9ca3af; font-weight:400;'>최근 7일 · 오늘 포함</span></div>
-            <div style="display:flex; align-items:baseline; gap:10px; margin-top:10px;">
-                <span style="font-size:32px; font-weight:800; color:#2563eb;">{r_rate}%</span>
-                <span style="font-size:12px; color:#6b7280;">익절 {r_wins} · 손절 {r_losses}</span>
-            </div>
-            <div style="flex-grow:1; display:flex; flex-direction:column; justify-content:flex-end;">
-                {svg_html}
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(f"""<div style="{card_style}"><div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>승률 추이</span><span style='color:#9ca3af; font-weight:400;'>최근 7일 · 오늘 포함</span></div><div style="display:flex; align-items:baseline; gap:10px; margin-top:10px;"><span style="font-size:32px; font-weight:800; color:#2563eb;">{r_rate}%</span><span style="font-size:12px; color:#6b7280;">익절 {r_wins} · 손절 {r_losses}</span></div><div style="flex-grow:1; display:flex; flex-direction:column; justify-content:flex-end;">{svg_html}</div></div>""", unsafe_allow_html=True)
 
 render_trade_stats(filtered_df)
 
