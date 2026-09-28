@@ -334,7 +334,7 @@ else:
     filtered_df = df_trades
 
 # -----------------------------------------------------------------------------
-# 10. 매매 동향 (★ 토스증권 스타일 승률 추이 - 흰색 박스 내부 완벽 안착)
+# 10. 매매 동향 (★ 3개의 카드가 완전히 동일한 높이와 흰색 카드 박스로 나란히 정렬됨)
 # -----------------------------------------------------------------------------
 st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
 st.markdown("<div style='display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px;'><span style='font-size:16px; font-weight:800; color:#111827; margin-left:5px;'>매매 동향</span><span style='font-size:12px; color:#9ca3af;'>선택된 기간 기준</span></div>", unsafe_allow_html=True)
@@ -357,6 +357,7 @@ shorts = len(closed_df[closed_df["side"] == "SHORT"]) if closed_total > 0 else 0
 long_p = (longs / closed_total * 100) if closed_total > 0 else 0
 short_p = (shorts / closed_total * 100) if closed_total > 0 else 0
 
+# 공통 카드 디자인 (높이 320px로 3개 모두 완전 대칭 일치)
 card_style = "background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); height: 320px; display:flex; flex-direction:column; justify-content:space-between;"
 
 with col_t1:
@@ -422,15 +423,15 @@ with col_t3:
 
     fig_trend.update_layout(
         template="plotly_white",
-        margin=dict(t=20, b=5, l=10, r=10),
-        height=170,
+        margin=dict(t=20, b=0, l=5, r=5),
+        height=195,
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         xaxis=dict(
             showgrid=False,
             zeroline=False,
             type='category',
-            tickfont=dict(size=11, color="#9ca3af")
+            tickfont=dict(size=10, color="#9ca3af")
         ),
         yaxis=dict(
             range=[-15, 120],
@@ -440,25 +441,33 @@ with col_t3:
             gridcolor="#f3f4f6",
             griddash="dash",
             zeroline=False,
-            tickfont=dict(size=10, color="#9ca3af")
+            tickfont=dict(size=9, color="#9ca3af")
         ),
         showlegend=False
     )
 
-    # ★ 핵심 수정: Streamlit 컨테이너를 사용하여 Plotly 차트를 카드 박스 내부에 완벽 배치!
-    with st.container(border=True):
-        st.markdown("<div class='white-marker'></div>", unsafe_allow_html=True)
-        st.markdown(f"""
-        <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'>
-            <span>승률 추이</span>
-            <span style='color:#9ca3af; font-weight:400;'>최근 7일 · 오늘 포함</span>
+    # ★ 3번째 카드도 1, 2번 카드와 완벽하게 대칭되는 동일한 card_style 내부로 그래프를 집어넣음
+    import plotly.io as pio
+    chart_html = pio.to_html(fig_trend, include_plotlyjs='cdn', config={'displayModeBar': False})
+
+    st.markdown(f"""
+    <div style="{card_style}">
+        <div>
+            <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'>
+                <span>승률 추이</span>
+                <span style='color:#9ca3af; font-weight:400;'>최근 7일 · 오늘 포함</span>
+            </div>
+            <div style='display:flex; align-items:baseline; gap:8px; margin-top:6px; margin-bottom:2px;'>
+                <span style='font-size:28px; font-weight:800; color:#2563eb;'>{overall_7d_rate:.1f}%</span>
+                <span style='font-size:12px; color:#9ca3af;'>익절 {total_wins_7d} · 손절 {total_losses_7d}</span>
+            </div>
         </div>
-        <div style='display:flex; align-items:baseline; gap:8px; margin-top:8px; margin-bottom:0px;'>
-            <span style='font-size:28px; font-weight:800; color:#2563eb;'>{overall_7d_rate:.1f}%</span>
-            <span style='font-size:12px; color:#9ca3af;'>익절 {total_wins_7d} · 손절 {total_losses_7d}</span>
-        </div>
-        """, unsafe_allow_html=True)
-        st.plotly_chart(fig_trend, use_container_width=True, config={"displayModeBar": False})
+        <div style="margin-top: auto; width: 100%;">
+    """, unsafe_allow_html=True)
+    
+    st.plotly_chart(fig_trend, use_container_width=True, config={"displayModeBar": False})
+    
+    st.markdown("</div></div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
 # 11. 선택 기간 PNL 박스
