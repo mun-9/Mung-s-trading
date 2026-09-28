@@ -33,6 +33,17 @@ st.markdown("""
     
     [data-testid="stFragment"] { opacity: 1 !important; transition: none !important; filter: none !important; }
     div[data-testid="stVerticalBlock"] > div[style*="opacity"] { opacity: 1 !important; transition: none !important; }
+
+    /* 승률 추이 카드: Streamlit의 nested border container를 사용하지 않고
+       실제 Plotly 그래프까지 같은 부모 블록 안에서 흰색 카드로 감쌈 */
+    div[data-testid="stVerticalBlock"]:has(.winrate-marker) {
+        background: #f8fafc !important;
+        border: 1px solid #e6ebf1 !important;
+        border-radius: 12px !important;
+        padding: 22px !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -464,9 +475,9 @@ with st.container(border=True):
         """, unsafe_allow_html=True)
 
     with col_t3:
-        # 승률 추이: 제목 + 수치 + 그래프 전체를 하나의 흰색 카드 안에 배치
-        with st.container(border=True):
-            st.markdown("<div class='white-marker'></div>", unsafe_allow_html=True)
+        # 승률 추이: 제목 + 수치 + 그래프 전체를 하나의 동일한 카드 블록에 배치
+        with st.container():
+            st.markdown("<div class='winrate-marker'></div>", unsafe_allow_html=True)
 
             # 최근 7일 승률 집계 — 모든 날짜는 UTC 기준
             trend_dates, trend_vals = [], []
