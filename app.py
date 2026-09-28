@@ -464,79 +464,91 @@ with st.container(border=True):
         """, unsafe_allow_html=True)
 
     with col_t3:
-        # 최근 7일 승률 집계 — 모든 날짜는 UTC 기준
-        trend_dates, trend_vals = [], []
-        total_wins_7d, total_losses_7d = 0, 0
-        now_utc = datetime.now(UTC)
+        # 승률 추이: 제목 + 수치 + 그래프 전체를 하나의 흰색 카드 안에 배치
+        with st.container(border=True):
+            st.markdown("<div class='white-marker'></div>", unsafe_allow_html=True)
 
-        for i in range(6, -1, -1):
-            target_date = (now_utc - timedelta(days=i)).date()
-            target_date_str = target_date.strftime("%Y-%m-%d")
-            trend_dates.append(target_date.strftime("%m/%d"))
+            # 최근 7일 승률 집계 — 모든 날짜는 UTC 기준
+            trend_dates, trend_vals = [], []
+            total_wins_7d, total_losses_7d = 0, 0
+            now_utc = datetime.now(UTC)
 
-            if not df_trades.empty:
-                day_df = df_trades[
-                    (df_trades["date"] == target_date_str) &
-                    (df_trades["result"].isin(["익절", "손절"]))
-                ]
-                d_w = int((day_df["result"] == "익절").sum())
-                d_l = int((day_df["result"] == "손절").sum())
-                total_wins_7d += d_w
-                total_losses_7d += d_l
-                day_closed = d_w + d_l
-                trend_vals.append(round(d_w / day_closed * 100, 1) if day_closed > 0 else None)
-            else:
-                trend_vals.append(None)
+            for i in range(6, -1, -1):
+                target_date = (now_utc - timedelta(days=i)).date()
+                target_date_str = target_date.strftime("%Y-%m-%d")
+                trend_dates.append(target_date.strftime("%m/%d"))
 
-        total_7d_closed = total_wins_7d + total_losses_7d
-        overall_7d_rate = (total_wins_7d / total_7d_closed * 100) if total_7d_closed > 0 else 0
+                if not df_trades.empty:
+                    day_df = df_trades[
+                        (df_trades["date"] == target_date_str) &
+                        (df_trades["result"].isin(["익절", "손절"]))
+                    ]
+                    d_w = int((day_df["result"] == "익절").sum())
+                    d_l = int((day_df["result"] == "손절").sum())
+                    total_wins_7d += d_w
+                    total_losses_7d += d_l
+                    day_closed = d_w + d_l
+                    trend_vals.append(round(d_w / day_closed * 100, 1) if day_closed > 0 else None)
+                else:
+                    trend_vals.append(None)
 
-        st.markdown(f"""
-        <div style="{card_style}; padding-bottom:10px;">
-            <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'>
-                <span>승률 추이</span>
-                <span style='color:#94a3b8; font-weight:400;'>최근 7일 · 오늘 포함</span>
-            </div>
-            <div style='display:flex; align-items:baseline; gap:8px; margin-top:6px; margin-bottom:0;'>
-                <span style='font-size:28px; font-weight:800; color:#2563eb;'>{overall_7d_rate:.1f}%</span>
-                <span style='font-size:12px; color:#94a3b8;'>익절 {total_wins_7d} · 손절 {total_losses_7d}</span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+            total_7d_closed = total_wins_7d + total_losses_7d
+            overall_7d_rate = (total_wins_7d / total_7d_closed * 100) if total_7d_closed > 0 else 0
 
-        trend_df = pd.DataFrame({"날짜": trend_dates, "승률": trend_vals})
-        fig_trend = go.Figure()
-        fig_trend.add_trace(go.Scatter(
-            x=trend_df["날짜"],
-            y=trend_df["승률"],
-            mode="lines+markers+text",
-            text=[f"{v:.0f}%" if pd.notna(v) else "" for v in trend_df["승률"]],
-            textposition="top center",
-            textfont=dict(size=10, color="#334155"),
-            line=dict(color="#2563eb", width=2.5),
-            marker=dict(size=7, color="#2563eb", line=dict(color="#ffffff", width=2)),
-            connectgaps=False,
-            hovertemplate="<b>%{x}</b><br>승률 %{y:.1f}%<extra></extra>"
-        ))
-        fig_trend.update_layout(
-            height=195,
-            margin=dict(t=18, b=10, l=28, r=8),
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            showlegend=False,
-            hovermode="x unified",
-            xaxis=dict(
-                type="category", showgrid=False, showline=False, zeroline=False,
-                tickfont=dict(size=10, color="#94a3b8"), fixedrange=True
-            ),
-            yaxis=dict(
-                range=[0, 105], showgrid=True, gridcolor="#e8edf2", griddash="dash",
-                showline=False, zeroline=False, tickmode="array", tickvals=[0, 50, 100],
-                ticktext=["0%", "50%", "100%"], tickfont=dict(size=9, color="#94a3b8"), fixedrange=True
-            ),
-            font=dict(family="Arial, sans-serif")
-        )
-        st.plotly_chart(fig_trend, use_container_width=True, config={"displayModeBar": False, "responsive": True})
+            st.markdown(
+                "<div style='display:flex; justify-content:space-between; align-items:center; "
+                "font-size:13px; font-weight:600; color:#111827; margin-bottom:2px;'>"
+                "<span>승률 추이</span>"
+                "<span style='color:#94a3b8; font-weight:400;'>최근 7일 · 오늘 포함</span>"
+                "</div>",
+                unsafe_allow_html=True
+            )
+
+            st.markdown(
+                f"<div style='display:flex; align-items:baseline; gap:8px; margin-top:6px; margin-bottom:0;'>"
+                f"<span style='font-size:28px; font-weight:800; color:#2563eb;'>{overall_7d_rate:.1f}%</span>"
+                f"<span style='font-size:12px; color:#94a3b8;'>익절 {total_wins_7d} · 손절 {total_losses_7d}</span>"
+                f"</div>",
+                unsafe_allow_html=True
+            )
+
+            trend_df = pd.DataFrame({"날짜": trend_dates, "승률": trend_vals})
+            fig_trend = go.Figure()
+            fig_trend.add_trace(go.Scatter(
+                x=trend_df["날짜"],
+                y=trend_df["승률"],
+                mode="lines+markers+text",
+                text=[f"{v:.0f}%" if pd.notna(v) else "" for v in trend_df["승률"]],
+                textposition="top center",
+                textfont=dict(size=10, color="#334155"),
+                line=dict(color="#2563eb", width=2.5),
+                marker=dict(size=7, color="#2563eb", line=dict(color="#ffffff", width=2)),
+                connectgaps=False,
+                hovertemplate="<b>%{x}</b><br>승률 %{y:.1f}%<extra></extra>"
+            ))
+            fig_trend.update_layout(
+                height=170,
+                margin=dict(t=18, b=4, l=28, r=8),
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                showlegend=False,
+                hovermode="x unified",
+                xaxis=dict(
+                    type="category", showgrid=False, showline=False, zeroline=False,
+                    tickfont=dict(size=10, color="#94a3b8"), fixedrange=True
+                ),
+                yaxis=dict(
+                    range=[0, 105], showgrid=True, gridcolor="#e8edf2", griddash="dash",
+                    showline=False, zeroline=False, tickmode="array", tickvals=[0, 50, 100],
+                    ticktext=["0%", "50%", "100%"], tickfont=dict(size=9, color="#94a3b8"), fixedrange=True
+                ),
+                font=dict(family="Arial, sans-serif")
+            )
+            st.plotly_chart(
+                fig_trend,
+                use_container_width=True,
+                config={"displayModeBar": False, "responsive": True}
+            )
 
     st.markdown(
         "<div style='border-top:1px solid #eef1f5; margin-top:20px; padding:14px 2px 0 2px; "
