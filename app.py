@@ -33,10 +33,10 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =============================================================================
-# 🔐 2. 보안 게이트 (누구나 내 포지션을 보지 못하게 막음!)
+# 🔐 2. 보안 게이트 (비밀번호 설정)
 # =============================================================================
 st.sidebar.title("🔐 보안 설정")
-# secrets.toml에 ADMIN_PWD = "내비밀번호" 형태로 저장하세요. 없으면 기본값 1234
+# 웹사이트 비밀 금고에 ADMIN_PWD가 없으면 기본 비밀번호는 1234로 작동합니다.
 ADMIN_PWD = st.secrets.get("ADMIN_PWD", "1313")
 user_pwd = st.sidebar.text_input("대시보드 암호", type="password")
 
@@ -51,13 +51,13 @@ DASHBOARD_START_DATE = "2026-09-28"
 # 3. 데이터 로드 헬퍼 함수 및 API 분리 세팅
 # -----------------------------------------------------------------------------
 def get_api_keys(exc_name):
-    """거래소별로 독립적인 API 키를 가져옵니다."""
+    """기존 호환성을 유지하면서 거래소별 API 키를 가져옵니다."""
     prefix = exc_name.upper().replace(" ", "_")
-    return (
-        st.secrets.get(f"{prefix}_API_KEY", ""),
-        st.secrets.get(f"{prefix}_SECRET_KEY", ""),
-        st.secrets.get(f"{prefix}_PASSPHRASE", "")
-    )
+    # 새 키 이름(예: BITGET_API_KEY)이 없으면 기존 이름(API_KEY)을 찾아봅니다 (Demo 튕김 방지)
+    ak = st.secrets.get(f"{prefix}_API_KEY", st.secrets.get("API_KEY", ""))
+    sk = st.secrets.get(f"{prefix}_SECRET_KEY", st.secrets.get("SECRET_KEY", ""))
+    pp = st.secrets.get(f"{prefix}_PASSPHRASE", st.secrets.get("PASSPHRASE", ""))
+    return ak, sk, pp
 
 def safe_float(val):
     """None, 빈 문자열로 인해 크래시(에러)가 나는 것을 방지하는 안전망"""
@@ -69,14 +69,13 @@ def safe_float(val):
 KST = timezone(timedelta(hours=9))
 
 # -----------------------------------------------------------------------------
-# 4. 캐싱된 API 데이터 로드 (에러 캐싱 방지 & 로직 최적화)
+# 4. 캐싱된 API 데이터 로드
 # -----------------------------------------------------------------------------
 @st.cache_data(ttl=5, show_spinner=False)
 def fetch_fast_data(exchange_name, api_key, secret, pwd):
     if not api_key or not secret or exchange_name == "Demo":
         return [], 0.0
     
-    # 캐시 함수 내에서 try-except를 빼서, 에러가 나면 캐시하지 않도록 함 (에러 고착 방지)
     if exchange_name == "Bitget": exchange = ccxt.bitget({'apiKey': api_key, 'secret': secret, 'password': pwd, 'enableRateLimit': True, 'options': {'defaultType': 'swap'}})
     elif exchange_name == "Binance": exchange = ccxt.binance({'apiKey': api_key, 'secret': secret, 'enableRateLimit': True, 'options': {'defaultType': 'future'}})
     elif exchange_name == "Bybit": exchange = ccxt.bybit({'apiKey': api_key, 'secret': secret, 'enableRateLimit': True, 'options': {'defaultType': 'linear'}})
@@ -92,13 +91,13 @@ def fetch_fast_data(exchange_name, api_key, secret, pwd):
             mark = safe_float(p.get("markPrice"))
             size = safe_float(p.get("contracts"))
             margin = safe_float(p.get("initialMargin"))
-            # 거래소에서 주는 미실현손익 값을 직접 가져오고, 없으면 계산
+            
             unreal_pnl = safe_float(p.get("unrealizedPnl") or p.get("info", {}).get("unrealizedPnl"))
             if unreal_pnl == 0.0:
                 unreal_pnl = (mark - entry) * size if pos_side == "LONG" else (entry - mark) * size
                 
             roe = (unreal_pnl / margin * 100) if margin > 0 else 0
-            # liquidationPrice가 None일 때 터지는 버그 완벽 수정 (safe_float 활용)
+            
             active_positions.append({
                 "symbol": p.get("symbol", "").replace(":USDT", ""), "side": pos_side, "leverage": int(p.get("leverage", 1)),
                 "entry_price": entry, "mark_price": mark, "size": size, "margin": margin,
@@ -122,20 +121,24 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
                 "pnl": round(pnl, 2)
             })
         df = pd.DataFrame(records).sort_values("datetime", ascending=False)
-        return df[df["date"] >= DASHBOARD_START_DATE]
+        
+        # ★ KeyError의 원흉 수정! 데모 데이터에도 똑같이 result(결과) 컬럼을 만들어줍니다.
+        if not df.empty:
+            df["result"] = df["pnl"].apply(lambda p: "익절" if p > 0.001 else ("손절" if p < -0.001 else "진입"))
+            
+        return df[df["date"] >= DASHBOARD_START_DATE] if not df.empty else pd.DataFrame(columns=["order_id", "datetime", "date", "symbol", "side", "pnl", "result"])
     
     if exchange_name == "Bitget": exchange = ccxt.bitget({'apiKey': api_key, 'secret': secret, 'password': pwd, 'enableRateLimit': True, 'options': {'defaultType': 'swap'}})
     elif exchange_name == "Binance": exchange = ccxt.binance({'apiKey': api_key, 'secret': secret, 'enableRateLimit': True, 'options': {'defaultType': 'future'}})
     elif exchange_name == "Bybit": exchange = ccxt.bybit({'apiKey': api_key, 'secret': secret, 'enableRateLimit': True, 'options': {'defaultType': 'linear'}})
     
     markets = exchange.load_markets()
-    # 활성화된 선물/스왑 마켓 심볼만 동적으로 수집 (하드코딩 제거)
     active_symbols = [s for s in markets.keys() if markets[s].get('swap') or markets[s].get('future')]
     
     since_ts = int(datetime.strptime(DASHBOARD_START_DATE, "%Y-%m-%d").replace(tzinfo=timezone.utc).timestamp() * 1000)
     trade_records = []
     
-    for sym in active_symbols[:20]: # 속도 제한을 위해 최대 20개 종목만 순회
+    for sym in active_symbols[:20]: 
         try:
             trades = exchange.fetch_my_trades(symbol=sym, since=since_ts, limit=500)
             for t in trades:
@@ -144,7 +147,7 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
                 
                 info = t.get("info", {})
                 fee = safe_float(t.get("fee", {}).get("cost", 0))
-                # 바이낸스/바이비트/비트겟 통합 호환 PNL 추출 및 수수료 차감
+                
                 raw_pnl = safe_float(info.get("profit") or info.get("realizedPnl") or info.get("closedPnl") or 0)
                 net_pnl = raw_pnl - fee if raw_pnl != 0 else 0 
                 
@@ -152,7 +155,7 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
                 mapped_side = "LONG" if "long" in info_side else ("SHORT" if "short" in info_side else ("LONG" if t["side"].upper() == "BUY" else "SHORT"))
                 
                 trade_records.append({
-                    "order_id": t.get("order") or t.get("id"), # 분할 체결 병합을 위한 ID
+                    "order_id": str(t.get("order") or t.get("id") or t["timestamp"]), 
                     "datetime": t_kst, "date": t_kst.strftime("%Y-%m-%d"),
                     "symbol": t["symbol"].replace(":USDT", ""), "side": mapped_side, 
                     "pnl": net_pnl
@@ -161,14 +164,12 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
         
     df = pd.DataFrame(trade_records)
     if not df.empty:
-        # 분할 체결(하나의 오더가 여러 번 쪼개짐)로 인한 승률 뻥튀기 방지를 위해 order_id 기준으로 합산
         df = df.groupby(["order_id", "symbol", "side", "date"]).agg({"pnl": "sum", "datetime": "last"}).reset_index()
-        # 합산된 최종 PNL을 기준으로 결과를 도출
         df["result"] = df["pnl"].apply(lambda p: "익절" if p > 0.001 else ("손절" if p < -0.001 else "진입"))
         df = df.sort_values("datetime", ascending=False)
         df = df[df["date"] >= DASHBOARD_START_DATE]
         
-    return df if not df.empty else pd.DataFrame(columns=["datetime", "date", "symbol", "side", "pnl", "result"])
+    return df if not df.empty else pd.DataFrame(columns=["order_id", "datetime", "date", "symbol", "side", "pnl", "result"])
 
 # -----------------------------------------------------------------------------
 # 5. 사이드바 세팅
@@ -186,12 +187,12 @@ if st.sidebar.button("🔄 수동 새로고침"):
     fetch_slow_data.clear()
     st.rerun()
 
-# 에러가 발생해도 사이트가 멈추지 않도록 밖에서 예외 처리 (에러 캐싱 방지)
+# 에러가 발생해도 사이트가 멈추지 않도록 예외 처리
 try:
     df_trades = fetch_slow_data(exchange_choice, API_KEY, SECRET_KEY, PASSPHRASE)
 except Exception as e:
     st.error(f"데이터를 불러오는 중 문제가 발생했습니다: {e}")
-    df_trades = pd.DataFrame(columns=["datetime", "date", "symbol", "side", "pnl", "result"])
+    df_trades = pd.DataFrame(columns=["order_id", "datetime", "date", "symbol", "side", "pnl", "result"])
 
 # -----------------------------------------------------------------------------
 # 6. 🎯 메인 타이틀
@@ -213,7 +214,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 7. [FRAGMENT] 🎯 현재 보유 포지션 (10초만 갱신!)
+# 7. [FRAGMENT] 🎯 현재 보유 포지션 (10초 갱신)
 # -----------------------------------------------------------------------------
 st.markdown("<div style='font-size: 16px; font-weight: 800; color: #111827; margin-bottom: 10px;'>🎯 현재 보유 포지션</div>", unsafe_allow_html=True)
 
@@ -260,11 +261,10 @@ def show_live_positions():
                 </div>
             </div>
             """, unsafe_allow_html=True)
-
 show_live_positions()
 
 # -----------------------------------------------------------------------------
-# 8. 상단 PNL 카드 (Fragment는 실시간 PNL에만 적용하여 꼬임 방지)
+# 8. 상단 PNL 카드
 # -----------------------------------------------------------------------------
 st.markdown("<div style='font-size: 11px; color: #9ca3af; margin-bottom: 10px; margin-top: -10px;'>미실현손익은 일별·월별 추정 PNL 합계에 포함하지 않습니다.</div>", unsafe_allow_html=True)
 col_s1, col_s2, col_s3 = st.columns(3)
@@ -298,7 +298,7 @@ with col_s3:
 st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 9. 수익 히스토리 필터 (Session State 활용하여 버튼 버그 픽스)
+# 9. 수익 히스토리 필터
 # -----------------------------------------------------------------------------
 st.markdown("<div style='display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px;'><span style='font-size:20px; font-weight:800; color:#111827;'>수익 히스토리</span></div>", unsafe_allow_html=True)
 
@@ -383,7 +383,6 @@ with col_t2:
     """, unsafe_allow_html=True)
 
 with col_t3:
-    # ★ 가짜 데이터 하드코딩 제거: 진짜 7일간의 날짜별 승률 데이터 추출
     trend_vals = []
     now_kst = datetime.now(KST)
     for i in range(6, -1, -1):
