@@ -28,11 +28,9 @@ st.markdown("""
     .pos-divider { border-left: 1px solid #f3f4f6; }
     @media (max-width: 768px) { .pos-divider { border-left: none !important; border-top: 1px solid #f3f4f6 !important; padding-top: 15px !important; margin-top: 5px !important; } }
     
-    /* 🎯 필터 버튼을 날짜 입력창보다 약간 작게 튜닝 */
     .stButton>button { height: 32px !important; padding: 0 10px !important; border-radius: 6px !important; border: 1px solid #d1d5db; background-color: #ffffff; color: #374151; font-weight: 500; font-size: 13px !important; white-space: nowrap; margin-top: 4px; }
     .stButton>button:hover { border-color: #2563eb; color: #2563eb; }
     
-    /* 🎯 10초 갱신 시 흐려짐(깜빡임) 강제 차단 CSS */
     [data-testid="stFragment"] { opacity: 1 !important; transition: none !important; filter: none !important; }
     div[data-testid="stVerticalBlock"] > div[style*="opacity"] { opacity: 1 !important; transition: none !important; }
 </style>
@@ -336,7 +334,7 @@ else:
     filtered_df = df_trades
 
 # -----------------------------------------------------------------------------
-# 10. 매매 동향
+# 10. 매매 동향 (★ 토스증권 스타일 승률 추이 그래프 적용 완료)
 # -----------------------------------------------------------------------------
 st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
 st.markdown("<div style='display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px;'><span style='font-size:16px; font-weight:800; color:#111827; margin-left:5px;'>매매 동향</span><span style='font-size:12px; color:#9ca3af;'>선택된 기간 기준</span></div>", unsafe_allow_html=True)
@@ -351,7 +349,6 @@ entries = len(filtered_df[filtered_df["result"] == "진입"]) if total > 0 else 
 closed_trades = wins + losses
 rate = (wins / closed_trades * 100) if closed_trades > 0 else 0
 
-# ★ 요청 반영: 롱/숏 비율을 '부분 축소 및 전체 종료(청산)'된 건들(익절+손절) 기준으로 계산하도록 변경!
 closed_df = filtered_df[filtered_df["result"].isin(["익절", "손절"])] if not filtered_df.empty else filtered_df
 closed_total = len(closed_df)
 
@@ -386,29 +383,86 @@ with col_t2:
     """, unsafe_allow_html=True)
 
 with col_t3:
-    trend_vals = []
+    # 7일간의 진짜 날짜별 데이터 수집
+    trend_dates, trend_vals = [], []
+    total_wins_7d, total_losses_7d = 0, 0
     now_utc = datetime.now(timezone.utc)
+    
     for i in range(6, -1, -1):
-        target_date = (now_utc - timedelta(days=i)).strftime("%Y-%m-%d")
+        target_date_utc = now_utc - timedelta(days=i)
+        target_date_str = target_date_utc.strftime("%Y-%m-%d")
+        trend_dates.append(target_date_utc.strftime("%m/%d"))
+        
         if not df_trades.empty:
-            day_df = df_trades[df_trades["date"] == target_date]
+            day_df = df_trades[df_trades["date"] == target_date_str]
             d_w = len(day_df[day_df["result"] == "익절"])
             d_l = len(day_df[day_df["result"] == "손절"])
+            total_wins_7d += d_w
+            total_losses_7d += d_l
             trend_vals.append(int(round(d_w / (d_w + d_l) * 100)) if (d_w + d_l) > 0 else 0)
         else:
             trend_vals.append(0)
 
-    svg_points, circles, texts = "", "", ""
-    for i, val in enumerate(trend_vals):
-        x = i * 50
-        y = 110 - (val / 100) * 85
-        svg_points += f"{x},{y} "
-        circles += f'<circle cx="{x}" cy="{y}" r="4" fill="#2563eb" />'
-        texts += f'<text x="{x}" y="{y-12}" font-size="12" font-weight="bold" fill="#2563eb" text-anchor="middle">{int(val)}%</text>'
-    
-    svg_html = f"""<svg viewBox="-15 -15 330 140" style="width:100%; height:130px; display:block;"><polyline points="{svg_points}" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />{circles}{texts}</svg>"""
+    total_7d_closed = total_wins_7d + total_losses_7d
+    overall_7d_rate = (total_wins_7d / total_7d_closed * 100) if total_7d_closed > 0 else 0
 
-    st.markdown(f"""<div style="{card_style}"><div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>승률 추이</span><span style='color:#9ca3af; font-weight:400;'>최근 7일 (오전 9시 기준)</span></div><div style="display:flex; align-items:baseline; gap:10px; margin-top:10px;"><span style="font-size:32px; font-weight:800; color:#2563eb;">{trend_vals[-1]}%</span><span style="font-size:12px; color:#6b7280;">오늘의 승률</span></div><div style="flex-grow:1; display:flex; flex-direction:column; justify-content:flex-end;">{svg_html}</div></div>""", unsafe_allow_html=True)
+    # Plotly를 이용한 토스증권 스타일 꺾은선 그래프 생성
+    fig_trend = go.Figure()
+    fig_trend.add_trace(go.Scatter(
+        x=trend_dates,
+        y=trend_vals,
+        mode="lines+text+markers",
+        text=[f"{v}%" for v in trend_vals],
+        textposition="top center",
+        textfont=dict(size=11, color="#374151", family="sans-serif"),
+        line=dict(color="#2563eb", width=2.5, shape="linear"),
+        marker=dict(size=7, color="#2563eb", line=dict(color="#ffffff", width=2)),
+        hoverinfo="skip"
+    ))
+
+    fig_trend.update_layout(
+        template="plotly_white",
+        margin=dict(t=25, b=10, l=10, r=10),
+        height=185,
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        xaxis=dict(
+            showgrid=False,
+            zeroline=False,
+            type='category',
+            tickfont=dict(size=11, color="#9ca3af")
+        ),
+        yaxis=dict(
+            range=[-10, 115], # 상단 텍스트가 잘리지 않도록 여유 공간 확보
+            tickvals=[0, 50, 100],
+            ticktext=["0%", "50%", "100%"],
+            showgrid=True,
+            gridcolor="#f3f4f6",
+            griddash="dash",
+            zeroline=False,
+            tickfont=dict(size=10, color="#9ca3af")
+        ),
+        showlegend=False
+    )
+
+    with st.container(border=False):
+        st.markdown(f"""
+        <div style="{card_style}">
+            <div>
+                <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'>
+                    <span>승률 추이</span>
+                    <span style='color:#9ca3af; font-weight:400;'>최근 7일 · 오늘 포함</span>
+                </div>
+                <div style='display:flex; align-items:baseline; gap:8px; margin-top:8px; margin-bottom:2px;'>
+                    <span style='font-size:28px; font-weight:800; color:#2563eb;'>{overall_7d_rate:.1f}%</span>
+                    <span style='font-size:12px; color:#9ca3af;'>익절 {total_wins_7d} · 손절 {total_losses_7d}</span>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        st.plotly_chart(fig_trend, use_container_width=True, config={"displayModeBar": False})
+        
+        st.markdown("</div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
 # 11. 선택 기간 PNL 박스
