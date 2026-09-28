@@ -343,200 +343,209 @@ else:
     filtered_df = df_trades
 
 # -----------------------------------------------------------------------------
-# 10. 매매 동향 (★ 3개의 카드가 모두 동일한 고정 흰색 배경 카드 스타일로 완벽 통일)
+# 10. 매매 동향 (두 번째 레퍼런스 이미지처럼 하나의 큰 흰색 패널 안에 3개 카드 배치)
 # -----------------------------------------------------------------------------
 st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
-st.markdown("<div style='display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px;'><span style='font-size:16px; font-weight:800; color:#111827; margin-left:5px;'>매매 동향</span><span style='font-size:12px; color:#9ca3af;'>선택된 기간 기준</span></div>", unsafe_allow_html=True)
 
-col_t1, col_t2, col_t3 = st.columns([1, 1, 1.2])
+# 전체 매매 동향 영역을 하나의 큰 흰색 패널로 묶음
+with st.container(border=True):
+    st.markdown("<div class='white-marker'></div>", unsafe_allow_html=True)
 
-# 전체 체결 건수와 실제 승률용 청산 건수를 분리
-total = len(filtered_df)
-entries = len(filtered_df[filtered_df["result"] == "진입"]) if total > 0 else 0
+    st.markdown(
+        "<div style='display:flex; justify-content:space-between; align-items:flex-end; "
+        "padding:4px 4px 16px 4px; border-bottom:1px solid #eef1f5; margin-bottom:18px;'>"
+        "<span style='font-size:18px; font-weight:800; color:#111827;'>매매 동향</span>"
+        "<span style='font-size:12px; color:#94a3b8;'>선택된 기간 기준</span>"
+        "</div>",
+        unsafe_allow_html=True
+    )
 
-# 승률은 실현 PNL이 확정된 익절/손절 청산만 대상으로 계산
-closed_df = (
-    filtered_df[filtered_df["result"].isin(["익절", "손절"])]
-    if not filtered_df.empty else filtered_df
-)
-wins = len(closed_df[closed_df["result"] == "익절"]) if not closed_df.empty else 0
-losses = len(closed_df[closed_df["result"] == "손절"]) if not closed_df.empty else 0
-closed_trades = wins + losses
-rate = (wins / closed_trades * 100) if closed_trades > 0 else 0
+    col_t1, col_t2, col_t3 = st.columns([1, 1, 1.2])
 
-closed_total = len(closed_df)
-longs = len(closed_df[closed_df["side"] == "LONG"]) if closed_total > 0 else 0
-shorts = len(closed_df[closed_df["side"] == "SHORT"]) if closed_total > 0 else 0
-long_p = (longs / closed_total * 100) if closed_total > 0 else 0
-short_p = (shorts / closed_total * 100) if closed_total > 0 else 0
+    # 전체 체결 건수와 실제 승률용 청산 건수를 분리
+    total = len(filtered_df)
+    entries = len(filtered_df[filtered_df["result"] == "진입"]) if total > 0 else 0
 
-# 완벽히 통일된 고정 흰색 배경 카드 스타일 (높이 320px)
-card_style = "background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); height: 320px; display:flex; flex-direction:column; justify-content:space-between;"
+    # 승률은 실현 PNL이 확정된 익절/손절 청산만 대상으로 계산
+    closed_df = (
+        filtered_df[filtered_df["result"].isin(["익절", "손절"])]
+        if not filtered_df.empty else filtered_df
+    )
+    wins = len(closed_df[closed_df["result"] == "익절"]) if not closed_df.empty else 0
+    losses = len(closed_df[closed_df["result"] == "손절"]) if not closed_df.empty else 0
+    closed_trades = wins + losses
+    rate = (wins / closed_trades * 100) if closed_trades > 0 else 0
 
-with col_t1:
-    st.markdown(f"""
-    <div style="{card_style}">
-        <div>
+    closed_total = len(closed_df)
+    longs = len(closed_df[closed_df["side"] == "LONG"]) if closed_total > 0 else 0
+    shorts = len(closed_df[closed_df["side"] == "SHORT"]) if closed_total > 0 else 0
+    long_p = (longs / closed_total * 100) if closed_total > 0 else 0
+    short_p = (shorts / closed_total * 100) if closed_total > 0 else 0
+
+    # 두 번째 레퍼런스처럼 '큰 흰색 패널 > 내부의 옅은 배경 카드' 구조
+    card_style = (
+        "background:#f8fafc; border:1px solid #e6ebf1; border-radius:12px; "
+        "padding:22px; min-height:320px; box-sizing:border-box; "
+        "box-shadow:none;"
+    )
+
+    with col_t1:
+        st.markdown(f"""
+        <div style="{card_style}">
+            <div>
+                <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'>
+                    <span>총 체결 건수 (분할병합 기준)</span>
+                    <span style='color:#94a3b8; font-weight:400;'>선택 기간</span>
+                </div>
+                <div style='font-size:36px; font-weight:800; color:#111827; margin:12px 0 18px 0;'>
+                    {total} <span style='font-size:14px; font-weight:500; color:#64748b;'>건</span>
+                </div>
+                <div style='font-size:12px; color:#64748b; margin-bottom:7px; display:flex; justify-content:space-between;'>
+                    <span>승·패 비율 (청산 기준)</span>
+                    <b style='color:#111827;'>{rate:.1f}% 승률</b>
+                </div>
+                <div style="display:flex; width:100%; height:8px; border-radius:5px; overflow:hidden; margin-bottom:17px; background:#e9eef4;">
+                    <div style="width:{rate}%; background:#00a86b;"></div>
+                    <div style="width:{100-rate if closed_trades > 0 else 0}%; background:#ef4444;"></div>
+                </div>
+                <div style='display:flex; justify-content:space-between; font-size:13px; color:#64748b; margin-bottom:10px; padding:0 2px;'>
+                    <div style='display:flex; align-items:center; gap:7px;'>
+                        <div style='width:8px; height:8px; border-radius:50%; background:#00a86b;'></div>
+                        <span>익절 청산</span>
+                    </div>
+                    <b style='color:#00a86b;'>{wins} 건</b>
+                </div>
+                <div style='display:flex; justify-content:space-between; font-size:13px; color:#64748b; padding:0 2px;'>
+                    <div style='display:flex; align-items:center; gap:7px;'>
+                        <div style='width:8px; height:8px; border-radius:50%; background:#ef4444;'></div>
+                        <span>손절 청산</span>
+                    </div>
+                    <b style='color:#ef4444;'>{losses} 건</b>
+                </div>
+            </div>
+            <div style='border-top:1px solid #e4e9ef; margin-top:28px; padding-top:13px; display:flex; justify-content:space-between; font-size:13px; color:#64748b;'>
+                <span>신규 진입 (단순 오더)</span>
+                <b style='color:#2563eb;'>{entries} 건</b>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col_t2:
+        bg_gradient = (
+            f"conic-gradient(#00a86b 0% {long_p}%, #ef4444 {long_p}% 100%)"
+            if closed_total > 0 else
+            "conic-gradient(#e2e8f0 0% 100%)"
+        )
+        st.markdown(f"""
+        <div style="{card_style}">
             <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'>
-                <span>총 체결 건수 (분할병합 기준)</span>
-                <span style='color:#9ca3af; font-weight:400;'>선택 기간</span>
+                <span>LONG / SHORT</span>
+                <span style='color:#94a3b8; font-weight:400;'>청산 횟수 기준</span>
             </div>
-            <div style='font-size:36px; font-weight:800; color:#111827; margin:12px 0;'>{total} <span style='font-size:14px; font-weight:500;'>건</span></div>
-            <div style='font-size:12px; color:#6b7280; margin-bottom:5px; display:flex; justify-content:space-between;'>
-                <span>승·패 비율 (청산 기준)</span>
-                <b style='color:#111827;'>{rate:.1f}% 승률</b>
+            <div style="display:flex; justify-content:center; align-items:center; min-height:218px; margin:0;">
+                <div style="width:110px; height:110px; border-radius:50%; background:{bg_gradient}; display:flex; justify-content:center; align-items:center;">
+                    <div style="width:78px; height:78px; background:#f8fafc; border-radius:50%; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                        <span style="font-size:11px; color:#64748b; font-weight:500;">총 청산</span>
+                        <b style="font-size:20px; color:#111827; margin-top:-2px;">{closed_total}건</b>
+                    </div>
+                </div>
             </div>
-            <div style="display:flex; width: 100%; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 15px; background-color:#f3f4f6;">
-                <div style="width: {rate}%; background-color: #00a86b;"></div>
-                <div style="width: {100-rate if closed_trades > 0 else 0}%; background-color: #ef4444;"></div>
-            </div>
-            <div style='display:flex; justify-content:space-between; font-size:13px; color:#6b7280; margin-bottom:8px; padding: 0 5px;'>
-                <div style='display:flex; align-items:center; gap:6px;'><div style='width:8px; height:8px; border-radius:50%; background-color:#00a86b;'></div><span>익절 청산</span></div>
-                <b style='color:#00a86b;'>{wins} 건</b>
-            </div>
-            <div style='display:flex; justify-content:space-between; font-size:13px; color:#6b7280; margin-bottom:8px; padding: 0 5px;'>
-                <div style='display:flex; align-items:center; gap:6px;'><div style='width:8px; height:8px; border-radius:50%; background-color:#ef4444;'></div><span>손절 청산</span></div>
-                <b style='color:#ef4444;'>{losses} 건</b>
-            </div>
-        </div>
-        <div style='border-top:1px solid #f3f4f6; padding-top:12px; display:flex; justify-content:space-between; font-size:13px; color:#6b7280;'>
-            <span>신규 진입 (단순 오더)</span>
-            <b style='color:#2563eb;'>{entries} 건</b>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-with col_t2:
-    bg_gradient = f"conic-gradient(#00a86b 0% {long_p}%, #ef4444 {long_p}% 100%)" if closed_total > 0 else "conic-gradient(#e5e7eb 0% 100%)"
-    st.markdown(f"""
-    <div style="{card_style}">
-        <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'>
-            <span>LONG / SHORT</span>
-            <span style='color:#9ca3af; font-weight:400;'>청산 횟수 기준</span>
-        </div>
-        <div style="display:flex; justify-content:center; align-items:center; flex-grow:1; margin: 5px 0;">
-            <div style="width: 110px; height: 110px; border-radius: 50%; background: {bg_gradient}; display:flex; justify-content:center; align-items:center;">
-                <div style="width: 78px; height: 78px; background-color: #ffffff; border-radius: 50%; display:flex; flex-direction:column; justify-content:center; align-items:center; box-shadow: inset 0 0 5px rgba(0,0,0,0.02);">
-                    <span style="font-size:11px; color:#6b7280; font-weight:500;">총 청산</span>
-                    <b style="font-size:20px; color:#111827; margin-top:-2px;">{closed_total}건</b>
+            <div>
+                <div style='display:flex; justify-content:space-between; font-size:13px; margin-bottom:7px;'>
+                    <span style='color:#00a86b; font-weight:700;'>LONG</span>
+                    <b style='color:#00a86b;'>{longs}건 · {long_p:.1f}%</b>
+                </div>
+                <div style='display:flex; justify-content:space-between; font-size:13px;'>
+                    <span style='color:#ef4444; font-weight:700;'>SHORT</span>
+                    <b style='color:#ef4444;'>{shorts}건 · {short_p:.1f}%</b>
                 </div>
             </div>
         </div>
-        <div>
-            <div style='display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px;'><span style='color:#00a86b; font-weight:700;'>LONG</span><b style='color:#00a86b;'>{longs}건 · {long_p:.1f}%</b></div>
-            <div style='display:flex; justify-content:space-between; font-size:13px;'><span style='color:#ef4444; font-weight:700;'>SHORT</span><b style='color:#ef4444;'>{shorts}건 · {short_p:.1f}%</b></div>
+        """, unsafe_allow_html=True)
+
+    with col_t3:
+        # 최근 7일 승률 집계 — 모든 날짜는 UTC 기준
+        trend_dates, trend_vals = [], []
+        total_wins_7d, total_losses_7d = 0, 0
+        now_utc = datetime.now(UTC)
+
+        for i in range(6, -1, -1):
+            target_date = (now_utc - timedelta(days=i)).date()
+            target_date_str = target_date.strftime("%Y-%m-%d")
+            trend_dates.append(target_date.strftime("%m/%d"))
+
+            if not df_trades.empty:
+                day_df = df_trades[
+                    (df_trades["date"] == target_date_str) &
+                    (df_trades["result"].isin(["익절", "손절"]))
+                ]
+                d_w = int((day_df["result"] == "익절").sum())
+                d_l = int((day_df["result"] == "손절").sum())
+                total_wins_7d += d_w
+                total_losses_7d += d_l
+                day_closed = d_w + d_l
+                trend_vals.append(round(d_w / day_closed * 100, 1) if day_closed > 0 else None)
+            else:
+                trend_vals.append(None)
+
+        total_7d_closed = total_wins_7d + total_losses_7d
+        overall_7d_rate = (total_wins_7d / total_7d_closed * 100) if total_7d_closed > 0 else 0
+
+        st.markdown(f"""
+        <div style="{card_style}; padding-bottom:10px;">
+            <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'>
+                <span>승률 추이</span>
+                <span style='color:#94a3b8; font-weight:400;'>최근 7일 · 오늘 포함</span>
+            </div>
+            <div style='display:flex; align-items:baseline; gap:8px; margin-top:6px; margin-bottom:0;'>
+                <span style='font-size:28px; font-weight:800; color:#2563eb;'>{overall_7d_rate:.1f}%</span>
+                <span style='font-size:12px; color:#94a3b8;'>익절 {total_wins_7d} · 손절 {total_losses_7d}</span>
+            </div>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
-with col_t3:
-    # 최근 7일 승률 집계 — 모든 날짜는 UTC 기준
-    trend_dates, trend_vals = [], []
-    total_wins_7d, total_losses_7d = 0, 0
-    now_utc = datetime.now(UTC)
-    
-    for i in range(6, -1, -1):
-        target_date = (now_utc - timedelta(days=i)).date()
-        target_date_str = target_date.strftime("%Y-%m-%d")
-        trend_dates.append(target_date.strftime("%m/%d"))
-        
-        if not df_trades.empty:
-            day_df = df_trades[
-                (df_trades["date"] == target_date_str) &
-                (df_trades["result"].isin(["익절", "손절"]))
-            ]
-            d_w = (day_df["result"] == "익절").sum()
-            d_l = (day_df["result"] == "손절").sum()
-            total_wins_7d += int(d_w)
-            total_losses_7d += int(d_l)
-            day_closed = int(d_w + d_l)
-            # 거래가 없는 날은 0%가 아니라 None으로 표시하여 오해 방지
-            trend_vals.append(round(d_w / day_closed * 100, 1) if day_closed > 0 else None)
-        else:
-            trend_vals.append(None)
-
-    total_7d_closed = total_wins_7d + total_losses_7d
-    overall_7d_rate = (total_wins_7d / total_7d_closed * 100) if total_7d_closed > 0 else 0
-
-    # 승률 추이 카드는 raw HTML/SVG 대신 Streamlit + Plotly로 렌더링
-    # -> 일부 Streamlit 환경에서 SVG/HTML이 코드처럼 노출되는 문제 방지
-    with st.container(border=True):
-        st.markdown(
-            "<div style='font-size:13px; font-weight:600; color:#111827;'>"
-            "<span>승률 추이</span>"
-            "<span style='float:right; color:#9ca3af; font-weight:400;'>최근 7일 · 오늘 포함</span>"
-            "</div>",
-            unsafe_allow_html=True
-        )
-
-        st.markdown(
-            f"<div style='display:flex; align-items:baseline; gap:8px; margin-top:6px; margin-bottom:2px;'>"
-            f"<span style='font-size:28px; font-weight:800; color:#2563eb;'>{overall_7d_rate:.1f}%</span>"
-            f"<span style='font-size:12px; color:#9ca3af;'>익절 {total_wins_7d} · 손절 {total_losses_7d}</span>"
-            f"</div>",
-            unsafe_allow_html=True
-        )
-
-        trend_df = pd.DataFrame({
-            "날짜": trend_dates,
-            "승률": trend_vals
-        })
-
+        trend_df = pd.DataFrame({"날짜": trend_dates, "승률": trend_vals})
         fig_trend = go.Figure()
-
         fig_trend.add_trace(go.Scatter(
             x=trend_df["날짜"],
             y=trend_df["승률"],
             mode="lines+markers+text",
-            text=[f"{v:.1f}%" if pd.notna(v) else "" for v in trend_df["승률"]],
+            text=[f"{v:.0f}%" if pd.notna(v) else "" for v in trend_df["승률"]],
             textposition="top center",
-            textfont=dict(size=10, color="#374151"),
+            textfont=dict(size=10, color="#334155"),
             line=dict(color="#2563eb", width=2.5),
-            marker=dict(
-                size=7,
-                color="#2563eb",
-                line=dict(color="#ffffff", width=2)
-            ),
+            marker=dict(size=7, color="#2563eb", line=dict(color="#ffffff", width=2)),
             connectgaps=False,
             hovertemplate="<b>%{x}</b><br>승률 %{y:.1f}%<extra></extra>"
         ))
-
         fig_trend.update_layout(
-            height=175,
-            margin=dict(t=22, b=18, l=0, r=0),
+            height=195,
+            margin=dict(t=18, b=10, l=28, r=8),
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)",
             showlegend=False,
             hovermode="x unified",
             xaxis=dict(
-                type="category",
-                showgrid=False,
-                showline=False,
-                zeroline=False,
-                tickfont=dict(size=10, color="#9ca3af"),
-                fixedrange=True
+                type="category", showgrid=False, showline=False, zeroline=False,
+                tickfont=dict(size=10, color="#94a3b8"), fixedrange=True
             ),
             yaxis=dict(
-                range=[0, 105],
-                showgrid=True,
-                gridcolor="#f3f4f6",
-                griddash="dash",
-                showline=False,
-                zeroline=False,
-                tickmode="array",
-                tickvals=[0, 50, 100],
-                ticktext=["0%", "50%", "100%"],
-                tickfont=dict(size=9, color="#9ca3af"),
-                fixedrange=True
+                range=[0, 105], showgrid=True, gridcolor="#e8edf2", griddash="dash",
+                showline=False, zeroline=False, tickmode="array", tickvals=[0, 50, 100],
+                ticktext=["0%", "50%", "100%"], tickfont=dict(size=9, color="#94a3b8"), fixedrange=True
             ),
             font=dict(family="Arial, sans-serif")
         )
+        st.plotly_chart(fig_trend, use_container_width=True, config={"displayModeBar": False, "responsive": True})
 
-        st.plotly_chart(
-            fig_trend,
-            use_container_width=True,
-            config={"displayModeBar": False, "responsive": True}
-        )
+    st.markdown(
+        "<div style='border-top:1px solid #eef1f5; margin-top:20px; padding:14px 2px 0 2px; "
+        "font-size:11px; line-height:1.8; color:#94a3b8;'>"
+        "총 체결 횟수는 수집된 포지션 변화 기준으로, 승률은 익절 · 손절 청산 건수 기준으로 계산합니다. "
+        "거래가 없는 날은 그래프에서 0%가 아닌 공백으로 표시합니다. 모든 날짜 기준은 UTC입니다."
+        "</div>",
+        unsafe_allow_html=True
+    )
 
 
 # -----------------------------------------------------------------------------
