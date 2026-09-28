@@ -334,7 +334,7 @@ else:
     filtered_df = df_trades
 
 # -----------------------------------------------------------------------------
-# 10. 매매 동향 (★ 3개의 카드가 완벽한 대칭과 높이로 나란히 정렬됨)
+# 10. 매매 동향 (★ 완벽한 흰색 박스 대칭 정렬)
 # -----------------------------------------------------------------------------
 st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
 st.markdown("<div style='display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px;'><span style='font-size:16px; font-weight:800; color:#111827; margin-left:5px;'>매매 동향</span><span style='font-size:12px; color:#9ca3af;'>선택된 기간 기준</span></div>", unsafe_allow_html=True)
@@ -383,7 +383,7 @@ with col_t2:
     """, unsafe_allow_html=True)
 
 with col_t3:
-    # 7일간의 날짜별 승률 데이터 집계
+    # 7일간 승률 집계
     trend_dates, trend_vals = [], []
     total_wins_7d, total_losses_7d = 0, 0
     now_utc = datetime.now(timezone.utc)
@@ -406,55 +406,65 @@ with col_t3:
     total_7d_closed = total_wins_7d + total_losses_7d
     overall_7d_rate = (total_wins_7d / total_7d_closed * 100) if total_7d_closed > 0 else 0
 
-    # SVG 좌표 계산
-    svg_points = ""
-    circles_html = ""
-    texts_html = ""
-    max_w, max_h = 260, 105
-    step_x = max_w / 6 if 6 > 0 else max_w
-    
-    for idx, val in enumerate(trend_vals):
-        cx = idx * step_x + 10
-        cy = max_h - 15 - (val / 100.0) * (max_h - 35)
-        svg_points += f"{cx},{cy} "
-        circles_html += f'<circle cx="{cx}" cy="{cy}" r="4" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>'
-        texts_html += f'<text x="{cx}" y="{cy - 8}" font-size="10" font-weight="bold" fill="#374151" text-anchor="middle">{val}%</text>'
+    # Plotly 차트 객체 생성 (스트림릿 st.plotly_chart를 사용하므로 코드 노출 원천 차단)
+    fig_trend = go.Figure()
+    fig_trend.add_trace(go.Scatter(
+        x=trend_dates,
+        y=trend_vals,
+        mode="lines+text+markers",
+        text=[f"{v}%" for v in trend_vals],
+        textposition="top center",
+        textfont=dict(size=10, color="#374151", family="sans-serif"),
+        line=dict(color="#2563eb", width=2.5, shape="linear"),
+        marker=dict(size=6, color="#2563eb", line=dict(color="#ffffff", width=2)),
+        hoverinfo="skip"
+    ))
 
-    grid_html = '''
-        <line x1="0" y1="15" x2="280" y2="15" stroke="#f3f4f6" stroke-dasharray="3,3" />
-        <line x1="0" y1="55" x2="280" y2="55" stroke="#f3f4f6" stroke-dasharray="3,3" />
-        <line x1="0" y1="95" x2="280" y2="95" stroke="#f3f4f6" stroke-dasharray="3,3" />
-    '''
-    
-    labels_html = "".join([f'<div style="flex:1; text-align:center; font-size:10px; color:#9ca3af;">{d}</div>' for d in trend_dates])
+    fig_trend.update_layout(
+        template="plotly_white",
+        margin=dict(t=25, b=0, l=5, r=5),
+        height=185,
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        xaxis=dict(
+            showgrid=False,
+            zeroline=False,
+            type='category',
+            tickfont=dict(size=10, color="#9ca3af")
+        ),
+        yaxis=dict(
+            range=[-15, 120],
+            tickvals=[0, 50, 100],
+            ticktext=["0%", "50%", "100%"],
+            showgrid=True,
+            gridcolor="#f3f4f6",
+            griddash="dash",
+            zeroline=False,
+            tickfont=dict(size=9, color="#9ca3af")
+        ),
+        showlegend=False
+    )
 
-    # 3번째 카드 출력 (텍스트와 SVG를 하나의 f-string 박스에 온전히 밀봉)
-    st.markdown(f"""
-    <div style="{card_style}">
-        <div>
-            <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'>
-                <span>승률 추이</span>
-                <span style='color:#9ca3af; font-weight:400;'>최근 7일 · 오늘 포함</span>
+    # 3번째 카드 컨테이너를 정확한 높이와 스타일의 흰색 박스로 감싸기
+    with st.container(border=True):
+        st.markdown("<div class='white-marker'></div>", unsafe_allow_html=True)
+        st.markdown(f"""
+        <div style="height: 275px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+                <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'>
+                    <span>승률 추이</span>
+                    <span style='color:#9ca3af; font-weight:400;'>최근 7일 · 오늘 포함</span>
+                </div>
+                <div style='display:flex; align-items:baseline; gap:8px; margin-top:6px;'>
+                    <span style='font-size:28px; font-weight:800; color:#2563eb;'>{overall_7d_rate:.1f}%</span>
+                    <span style='font-size:12px; color:#9ca3af;'>익절 {total_wins_7d} · 손절 {total_losses_7d}</span>
+                </div>
             </div>
-            <div style='display:flex; align-items:baseline; gap:8px; margin-top:6px;'>
-                <span style='font-size:28px; font-weight:800; color:#2563eb;'>{overall_7d_rate:.1f}%</span>
-                <span style='font-size:12px; color:#9ca3af;'>익절 {total_wins_7d} · 손절 {total_losses_7d}</span>
-            </div>
-        </div>
+        """, unsafe_allow_html=True)
         
-        <div style="margin-top: auto; width: 100%;">
-            <svg viewBox="0 0 280 110" style="width:100%; height:100px; overflow:visible;">
-                {grid_html}
-                <polyline points="{svg_points.strip()}" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
-                {circles_html}
-                {texts_html}
-            </svg>
-            <div style="display:flex; justify-content:space-between; margin-top:2px; padding:0 2px;">
-                {labels_html}
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+        st.plotly_chart(fig_trend, use_container_width=True, config={"displayModeBar": False})
+        
+        st.markdown("</div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
 # 11. 선택 기간 PNL 박스
