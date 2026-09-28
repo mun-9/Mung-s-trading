@@ -334,7 +334,7 @@ else:
     filtered_df = df_trades
 
 # -----------------------------------------------------------------------------
-# 10. 매매 동향 (★ 3개의 카드가 완전히 동일한 높이와 흰색 카드 박스로 나란히 정렬됨)
+# 10. 매매 동향 (★ 3개의 카드가 완전히 동일한 높이와 흰색 카드 박스 안으로 통합 정렬)
 # -----------------------------------------------------------------------------
 st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
 st.markdown("<div style='display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px;'><span style='font-size:16px; font-weight:800; color:#111827; margin-left:5px;'>매매 동향</span><span style='font-size:12px; color:#9ca3af;'>선택된 기간 기준</span></div>", unsafe_allow_html=True)
@@ -357,7 +357,6 @@ shorts = len(closed_df[closed_df["side"] == "SHORT"]) if closed_total > 0 else 0
 long_p = (longs / closed_total * 100) if closed_total > 0 else 0
 short_p = (shorts / closed_total * 100) if closed_total > 0 else 0
 
-# 공통 카드 디자인 (높이 320px로 3개 모두 완전 대칭 일치)
 card_style = "background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); height: 320px; display:flex; flex-direction:column; justify-content:space-between;"
 
 with col_t1:
@@ -384,7 +383,7 @@ with col_t2:
     """, unsafe_allow_html=True)
 
 with col_t3:
-    # 7일간의 날짜별 데이터 동적 집계
+    # 7일간의 날짜별 승률 데이터 집계
     trend_dates, trend_vals = [], []
     total_wins_7d, total_losses_7d = 0, 0
     now_utc = datetime.now(timezone.utc)
@@ -407,48 +406,32 @@ with col_t3:
     total_7d_closed = total_wins_7d + total_losses_7d
     overall_7d_rate = (total_wins_7d / total_7d_closed * 100) if total_7d_closed > 0 else 0
 
-    # 토스증권 스타일 Plotly 그래프
-    fig_trend = go.Figure()
-    fig_trend.add_trace(go.Scatter(
-        x=trend_dates,
-        y=trend_vals,
-        mode="lines+text+markers",
-        text=[f"{v}%" for v in trend_vals],
-        textposition="top center",
-        textfont=dict(size=11, color="#374151", family="sans-serif"),
-        line=dict(color="#2563eb", width=2.5, shape="linear"),
-        marker=dict(size=7, color="#2563eb", line=dict(color="#ffffff", width=2)),
-        hoverinfo="skip"
-    ))
+    # 3번째 카드 내부 전용 SVG 라인 차트 생성 (스트림릿 레이아웃 이탈 방지용 100% 안전 HTML)
+    svg_points = ""
+    circles_html = ""
+    texts_html = ""
+    
+    # SVG 내부 좌표 계산 (너비 260px, 높이 110px 기준)
+    max_w, max_h = 260, 110
+    step_x = max_w / 6 if 6 > 0 else max_w
+    
+    for idx, val in enumerate(trend_vals):
+        cx = idx * step_x + 15
+        # 0%일 때 아래쪽, 100%일 때 위쪽에 위치하도록 매핑
+        cy = max_h - 15 - (val / 100.0) * (max_h - 35)
+        svg_points += f"{cx},{cy} "
+        circles_html += f'<circle cx="{cx}" cy="{cy}" r="4" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>'
+        texts_html += f'<text x="{cx}" y="{cy - 10}" font-size="10" font-weight="bold" fill="#374151" text-anchor="middle">{val}%</text>'
 
-    fig_trend.update_layout(
-        template="plotly_white",
-        margin=dict(t=20, b=0, l=5, r=5),
-        height=195,
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        xaxis=dict(
-            showgrid=False,
-            zeroline=False,
-            type='category',
-            tickfont=dict(size=10, color="#9ca3af")
-        ),
-        yaxis=dict(
-            range=[-15, 120],
-            tickvals=[0, 50, 100],
-            ticktext=["0%", "50%", "100%"],
-            showgrid=True,
-            gridcolor="#f3f4f6",
-            griddash="dash",
-            zeroline=False,
-            tickfont=dict(size=9, color="#9ca3af")
-        ),
-        showlegend=False
-    )
-
-    # ★ 3번째 카드도 1, 2번 카드와 완벽하게 대칭되는 동일한 card_style 내부로 그래프를 집어넣음
-    import plotly.io as pio
-    chart_html = pio.to_html(fig_trend, include_plotlyjs='cdn', config={'displayModeBar': False})
+    # 배경 그리드 라인 생성
+    grid_html = f'''
+        <line x1="0" y1="15" x2="280" y2="15" stroke="#f3f4f6" stroke-dasharray="3,3" />
+        <line x1="0" y1="60" x2="280" y2="60" stroke="#f3f4f6" stroke-dasharray="3,3" />
+        <line x1="0" y1="105" x2="280" y2="105" stroke="#f3f4f6" stroke-dasharray="3,3" />
+    '''
+    
+    # X축 날짜 라벨 HTML
+    labels_html = "".join([f'<div style="flex:1; text-align:center; font-size:10px; color:#9ca3af;">{d}</div>' for d in trend_dates])
 
     st.markdown(f"""
     <div style="{card_style}">
@@ -457,17 +440,25 @@ with col_t3:
                 <span>승률 추이</span>
                 <span style='color:#9ca3af; font-weight:400;'>최근 7일 · 오늘 포함</span>
             </div>
-            <div style='display:flex; align-items:baseline; gap:8px; margin-top:6px; margin-bottom:2px;'>
+            <div style='display:flex; align-items:baseline; gap:8px; margin-top:8px;'>
                 <span style='font-size:28px; font-weight:800; color:#2563eb;'>{overall_7d_rate:.1f}%</span>
                 <span style='font-size:12px; color:#9ca3af;'>익절 {total_wins_7d} · 손절 {total_losses_7d}</span>
             </div>
         </div>
+        
         <div style="margin-top: auto; width: 100%;">
+            <svg viewBox="0 0 280 120" style="width:100%; height:110px; overflow:visible;">
+                {grid_html}
+                <polyline points="{svg_points.strip()}" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                {circles_html}
+                {texts_html}
+            </svg>
+            <div style="display:flex; justify-content:space-between; margin-top:4px; padding:0 2px;">
+                {labels_html}
+            </div>
+        </div>
+    </div>
     """, unsafe_allow_html=True)
-    
-    st.plotly_chart(fig_trend, use_container_width=True, config={"displayModeBar": False})
-    
-    st.markdown("</div></div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
 # 11. 선택 기간 PNL 박스
