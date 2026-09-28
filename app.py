@@ -334,7 +334,7 @@ else:
     filtered_df = df_trades
 
 # -----------------------------------------------------------------------------
-# 10. 매매 동향 (★ 3개의 카드가 완전히 동일한 높이와 흰색 카드 박스 안으로 통합 정렬)
+# 10. 매매 동향 (★ 3개의 카드가 완벽한 대칭과 높이로 나란히 정렬됨)
 # -----------------------------------------------------------------------------
 st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
 st.markdown("<div style='display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px;'><span style='font-size:16px; font-weight:800; color:#111827; margin-left:5px;'>매매 동향</span><span style='font-size:12px; color:#9ca3af;'>선택된 기간 기준</span></div>", unsafe_allow_html=True)
@@ -406,33 +406,29 @@ with col_t3:
     total_7d_closed = total_wins_7d + total_losses_7d
     overall_7d_rate = (total_wins_7d / total_7d_closed * 100) if total_7d_closed > 0 else 0
 
-    # 3번째 카드 내부 전용 SVG 라인 차트 생성 (스트림릿 레이아웃 이탈 방지용 100% 안전 HTML)
+    # SVG 좌표 계산
     svg_points = ""
     circles_html = ""
     texts_html = ""
-    
-    # SVG 내부 좌표 계산 (너비 260px, 높이 110px 기준)
-    max_w, max_h = 260, 110
+    max_w, max_h = 260, 105
     step_x = max_w / 6 if 6 > 0 else max_w
     
     for idx, val in enumerate(trend_vals):
-        cx = idx * step_x + 15
-        # 0%일 때 아래쪽, 100%일 때 위쪽에 위치하도록 매핑
+        cx = idx * step_x + 10
         cy = max_h - 15 - (val / 100.0) * (max_h - 35)
         svg_points += f"{cx},{cy} "
         circles_html += f'<circle cx="{cx}" cy="{cy}" r="4" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>'
-        texts_html += f'<text x="{cx}" y="{cy - 10}" font-size="10" font-weight="bold" fill="#374151" text-anchor="middle">{val}%</text>'
+        texts_html += f'<text x="{cx}" y="{cy - 8}" font-size="10" font-weight="bold" fill="#374151" text-anchor="middle">{val}%</text>'
 
-    # 배경 그리드 라인 생성
-    grid_html = f'''
+    grid_html = '''
         <line x1="0" y1="15" x2="280" y2="15" stroke="#f3f4f6" stroke-dasharray="3,3" />
-        <line x1="0" y1="60" x2="280" y2="60" stroke="#f3f4f6" stroke-dasharray="3,3" />
-        <line x1="0" y1="105" x2="280" y2="105" stroke="#f3f4f6" stroke-dasharray="3,3" />
+        <line x1="0" y1="55" x2="280" y2="55" stroke="#f3f4f6" stroke-dasharray="3,3" />
+        <line x1="0" y1="95" x2="280" y2="95" stroke="#f3f4f6" stroke-dasharray="3,3" />
     '''
     
-    # X축 날짜 라벨 HTML
     labels_html = "".join([f'<div style="flex:1; text-align:center; font-size:10px; color:#9ca3af;">{d}</div>' for d in trend_dates])
 
+    # 3번째 카드 출력 (텍스트와 SVG를 하나의 f-string 박스에 온전히 밀봉)
     st.markdown(f"""
     <div style="{card_style}">
         <div>
@@ -440,20 +436,20 @@ with col_t3:
                 <span>승률 추이</span>
                 <span style='color:#9ca3af; font-weight:400;'>최근 7일 · 오늘 포함</span>
             </div>
-            <div style='display:flex; align-items:baseline; gap:8px; margin-top:8px;'>
+            <div style='display:flex; align-items:baseline; gap:8px; margin-top:6px;'>
                 <span style='font-size:28px; font-weight:800; color:#2563eb;'>{overall_7d_rate:.1f}%</span>
                 <span style='font-size:12px; color:#9ca3af;'>익절 {total_wins_7d} · 손절 {total_losses_7d}</span>
             </div>
         </div>
         
         <div style="margin-top: auto; width: 100%;">
-            <svg viewBox="0 0 280 120" style="width:100%; height:110px; overflow:visible;">
+            <svg viewBox="0 0 280 110" style="width:100%; height:100px; overflow:visible;">
                 {grid_html}
                 <polyline points="{svg_points.strip()}" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
                 {circles_html}
                 {texts_html}
             </svg>
-            <div style="display:flex; justify-content:space-between; margin-top:4px; padding:0 2px;">
+            <div style="display:flex; justify-content:space-between; margin-top:2px; padding:0 2px;">
                 {labels_html}
             </div>
         </div>
