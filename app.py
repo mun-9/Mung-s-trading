@@ -51,7 +51,7 @@ st.markdown("""
         padding: 20px !important;
     }
 
-    /* 🔥 모바일 다크모드 등에서 탭(일별 손익, 기간 누적) 글씨 안 보이는 버그 완벽 수정 */
+    /* 🔥 모바일 다크모드 등에서 탭 글씨 안 보이는 버그 완벽 수정 */
     button[data-baseweb="tab"] p { color: #6b7280 !important; font-weight: 600 !important; font-size: 15px !important; }
     button[data-baseweb="tab"][aria-selected="true"] p { color: #2563eb !important; font-weight: 800 !important; }
     div[data-baseweb="tab-highlight"] { background-color: #2563eb !important; }
@@ -245,15 +245,15 @@ if st.sidebar.button("🔄 수동 새로고침"):
 df_trades = fetch_slow_data(exchange_choice, MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
 
 # -----------------------------------------------------------------------------
-# 5. 🎯 메인 타이틀 (멍그 삭제 및 텍스트 간소화)
+# 5. 🎯 메인 타이틀 (토스 스타일 디자인 적용 & 멍그 삭제)
 # -----------------------------------------------------------------------------
 st.markdown("""<div style="margin-top: -10px; margin-bottom: 25px;"><h1 style="font-size: 32px; font-weight: 900; color: #111827; margin: 0; padding: 0; letter-spacing: -0.5px;">Trading History</h1><div style="width: 40px; height: 4px; background-color: #2563eb; margin-top: 10px; border-radius: 2px;"></div></div>""", unsafe_allow_html=True)
-st.markdown("""<div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 15px; border-bottom: 2px solid #e5e7eb; margin-bottom: 25px;"><div style="display: flex; align-items: center;"><span style="font-size: 22px; font-weight: 900; color: #111827; letter-spacing: -0.5px;">Trading Journal</span></div></div>""", unsafe_allow_html=True)
+st.markdown("""<div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 15px; border-bottom: 2px solid #e5e7eb; margin-bottom: 25px;"><div style="display: flex; align-items: center; gap: 10px;"><div style="width: 32px; height: 32px; background: linear-gradient(135deg, #3182f6, #1b64da); border-radius: 10px; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 6px rgba(49,130,246,0.3); font-size: 16px;">📈</div><span style="font-size: 22px; font-weight: 900; color: #111827; letter-spacing: -0.5px;">Trading Journal</span></div></div>""", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 6. [FRAGMENT] 🎯 현재 보유 포지션
+# 6. [FRAGMENT] 🎯 현재 보유 포지션 (글씨 크기 확대)
 # -----------------------------------------------------------------------------
-st.markdown("<div style='font-size: 16px; font-weight: 800; color: #111827; margin-bottom: 10px;'>🎯 현재 보유 포지션</div>", unsafe_allow_html=True)
+st.markdown("<div style='font-size: 20px; font-weight: 800; color: #111827; margin-bottom: 10px;'>🎯 현재 보유 포지션</div>", unsafe_allow_html=True)
 
 @st.fragment(run_every=10)
 def show_live_positions():
@@ -307,13 +307,13 @@ with col_s3:
     def render_unrealized_pnl():
         pos, bal = fetch_fast_data(exchange_choice, MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
         unrealized = sum([p.get("unrealized_pnl", 0.0) for p in pos]) if pos else 0.0
-        st.markdown(make_top_card("현재 미실현손익", unrealized, "전체 포지션의 미실현손익 합계", "Updated every 10s"), unsafe_allow_html=True)
+        st.markdown(make_top_card("현재 미실현손익", unrealized, "전체 포지션의 미실현손익 합계", "10초마다 갱신"), unsafe_allow_html=True)
     render_unrealized_pnl()
 
 st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 8. 수익 히스토리 필터
+# 8. 수익 히스토리 필터 (집계 드롭다운 완전 삭제)
 # -----------------------------------------------------------------------------
 st.markdown("<div style='display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px;'><span style='font-size:20px; font-weight:800; color:#111827;'>수익 히스토리</span></div>", unsafe_allow_html=True)
 
@@ -324,13 +324,12 @@ else:
     df_trades["date_obj"] = pd.Series(dtype=object)
     oldest_date = datetime.strptime(DASHBOARD_START_DATE, "%Y-%m-%d").date()
 
-c_d1, c_d2, c_btn1, c_btn2, c_btn3, c_space, c_drop = st.columns([1.5, 1.5, 0.8, 0.9, 1.1, 4, 1.5])
+c_d1, c_d2, c_btn1, c_btn2, c_btn3, c_space = st.columns([1.5, 1.5, 0.8, 0.9, 1.1, 5.5])
 with c_d1: start_date = st.date_input("s", value=oldest_date, label_visibility="collapsed")
 with c_d2: end_date = st.date_input("e", value=datetime.now(UTC).date(), label_visibility="collapsed")
 with c_btn1: btn_today = st.button("오늘", use_container_width=True)
 with c_btn2: btn_month = st.button("이번 달", use_container_width=True)
 with c_btn3: btn_30d = st.button("최근 30일", use_container_width=True)
-with c_drop: agg_mode = st.selectbox("집계", ["일별 집계", "주별 집계", "월별 집계"], label_visibility="collapsed")
 
 if btn_today: start_date, end_date = datetime.now(UTC).date(), datetime.now(UTC).date()
 elif btn_month: start_date, end_date = datetime.now(UTC).date().replace(day=1), datetime.now(UTC).date()
@@ -340,9 +339,9 @@ filter_start_date = max(start_date, datetime.strptime(DASHBOARD_START_DATE, "%Y-
 filtered_df = df_trades[(df_trades["date_obj"] >= filter_start_date) & (df_trades["date_obj"] <= end_date)] if not df_trades.empty else df_trades
 
 # -----------------------------------------------------------------------------
-# 9. [FRAGMENT] 매매 동향 — 총 주문 횟수(증가/축소) · LONG-SHORT(청산 기준) · 승률 추이
+# 9. [FRAGMENT] 매매 동향 (수익히스토리와 공간 축소)
 # -----------------------------------------------------------------------------
-st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
+st.markdown("<div style='margin-top: 5px;'></div>", unsafe_allow_html=True)
 st.markdown("<div style='display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px;'><span style='font-size:16px; font-weight:800; color:#111827; margin-left:5px;'>매매 동향</span><span style='font-size:12px; color:#9ca3af;'>관측 기록 기준</span></div>", unsafe_allow_html=True)
 
 @st.fragment(run_every=3600)
@@ -367,13 +366,12 @@ def render_trade_stats(f_df):
     card_style = "background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); height: 320px; display:flex; flex-direction:column; justify-content:space-between;"
 
     with col_t1:
-        # 🔥 마크다운 버그 완벽 차단: 들여쓰기 1도 없는 1줄짜리 완벽 압축 HTML!
-        html_t1 = f"""<div style="{card_style}"><div><div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>총 주문 횟수</span><span style='color:#9ca3af; font-weight:400;'>선택 기간</span></div><div style='display:flex; align-items:baseline; margin:15px 0 24px;'><span style='font-size:36px; font-weight:800; color:#111827;'>{total}</span><span style='font-size:14px; font-weight:600; color:#6b7280; margin-left:4px;'>회</span></div><div style='display:flex; flex-direction:column; gap:14px;'><div style='display:flex; justify-content:space-between; font-size:13px;'><div style='flex:1; display:flex; justify-content:space-between; padding-right:15px; border-right:1px solid #e5e7eb;'><span style='color:#6b7280;'>증가 수</span><b style='color:#111827;'>{incr} 회</b></div><div style='flex:1; display:flex; justify-content:space-between; padding-left:15px;'><span style='color:#6b7280;'>축소 수</span><b style='color:#111827;'>{decr} 회</b></div></div><div style='display:flex; justify-content:space-between; font-size:13px;'><div style='flex:1; display:flex; justify-content:space-between; padding-right:15px; border-right:1px solid #e5e7eb;'><span style='color:#6b7280;'>익절 수</span><b style='color:{GREEN};'>{wins} 회</b></div><div style='flex:1; display:flex; justify-content:space-between; padding-left:15px;'><span style='color:#6b7280;'>손절 수</span><b style='color:{RED};'>{losses} 회</b></div></div></div></div><div style='border-top:1px solid #f3f4f6; padding-top:15px; margin-top:auto;'><div style='display:flex; justify-content:space-between; align-items:center;'><span style='font-size:13px; color:#6b7280; font-weight:600;'>기간 승률</span><b style='color:{BLUE}; font-size:18px;'>{rate:.1f}%</b></div></div></div>"""
+        # 🔥 4가지 통계를 맨 위와 분리해 아래쪽으로 내리면서 딱 좋은 여백 추가, 가로선 색깔을 눈에 띄게 더 진하게 변경 (#9ca3af)
+        html_t1 = f"""<div style="{card_style}"><div><div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>총 주문 횟수</span><span style='color:#9ca3af; font-weight:400;'>선택 기간</span></div><div style='display:flex; align-items:baseline; margin:15px 0 0;'><span style='font-size:36px; font-weight:800; color:#111827;'>{total}</span><span style='font-size:14px; font-weight:600; color:#6b7280; margin-left:4px;'>회</span></div></div><div style='display:flex; flex-direction:column; gap:14px; margin-top:auto; margin-bottom:15px;'><div style='display:flex; justify-content:space-between; font-size:13px;'><div style='flex:1; display:flex; justify-content:space-between; padding-right:15px; border-right:1px solid #e5e7eb;'><span style='color:#6b7280;'>증가 수</span><b style='color:#111827;'>{incr} 회</b></div><div style='flex:1; display:flex; justify-content:space-between; padding-left:15px;'><span style='color:#6b7280;'>축소 수</span><b style='color:#111827;'>{decr} 회</b></div></div><div style='display:flex; justify-content:space-between; font-size:13px;'><div style='flex:1; display:flex; justify-content:space-between; padding-right:15px; border-right:1px solid #e5e7eb;'><span style='color:#6b7280;'>익절 수</span><b style='color:{GREEN};'>{wins} 회</b></div><div style='flex:1; display:flex; justify-content:space-between; padding-left:15px;'><span style='color:#6b7280;'>손절 수</span><b style='color:{RED};'>{losses} 회</b></div></div></div><div style='border-top:1px solid #9ca3af; padding-top:15px;'><div style='display:flex; justify-content:space-between; align-items:center;'><span style='font-size:13px; color:#6b7280; font-weight:600;'>기간 승률</span><b style='color:{BLUE}; font-size:18px;'>{rate:.1f}%</b></div></div></div>"""
         st.markdown(html_t1, unsafe_allow_html=True)
 
     with col_t2:
         bg_gradient = f"conic-gradient({GREEN} 0% {lp}%, {RED} {lp}% 100%)" if (lg + sh) > 0 else "conic-gradient(#e5e7eb 0% 100%)"
-        # 🔥 마크다운 버그 완벽 차단: 들여쓰기 1도 없는 1줄짜리 완벽 압축 HTML!
         html_t2 = f"""<div style="{card_style}"><div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>LONG / SHORT</span><span style='color:#9ca3af; font-weight:400;'>청산 횟수 비율</span></div><div style="display:flex; justify-content:center; align-items:center; flex-grow:1;"><div style="width: 125px; height: 125px; border-radius: 50%; background: {bg_gradient}; display:flex; justify-content:center; align-items:center;"><div style="width: 90px; height: 90px; background-color: #ffffff; border-radius: 50%; display:flex; flex-direction:column; justify-content:center; align-items:center; box-shadow: inset 0 0 5px rgba(0,0,0,0.02);"><span style="font-size:12px; color:#6b7280; font-weight:500;">총 청산</span><b style="font-size:24px; color:#111827; margin-top:-2px;">{decr}건</b></div></div></div><div><div style='display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px;'><span style='color:{GREEN}; font-weight:700;'>LONG</span><b style='color:{GREEN};'>{lg}건 · {lp:.1f}%</b></div><div style='display:flex; justify-content:space-between; font-size:13px;'><span style='color:{RED}; font-weight:700;'>SHORT</span><b style='color:{RED};'>{sh}건 · {sp:.1f}%</b></div></div></div>"""
         st.markdown(html_t2, unsafe_allow_html=True)
 
@@ -413,7 +411,6 @@ def render_trade_stats(f_df):
         days = "".join(f"<text x='{i * step_x:.1f}' y='130' font-size='10' fill='#9ca3af' text-anchor='middle'>{day_labels[i]}</text>" for i in range(7))
         svg_html = f"<svg viewBox='-15 -15 310 150' style='width:100%; height:130px; display:block;'>{lines}{dots}{dashes}{days}</svg>"
 
-        # 🔥 마크다운 버그 완벽 차단: 들여쓰기 1도 없는 1줄짜리 완벽 압축 HTML!
         html_t3 = f"""<div style="{card_style}"><div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>승률 추이</span><span style='color:#9ca3af; font-weight:400;'>최근 7일 · 오늘 포함</span></div><div style="display:flex; align-items:baseline; gap:10px; margin-top:10px;"><span style="font-size:32px; font-weight:800; color:{BLUE};">{r_rate}%</span><span style="font-size:12px; color:#6b7280;">익절 {tot_w7} · 손절 {tot_l7}</span></div><div style="flex-grow:1; display:flex; flex-direction:column; justify-content:flex-end;">{svg_html}</div></div>"""
         st.markdown(html_t3, unsafe_allow_html=True)
 
@@ -450,7 +447,6 @@ def render_pnl_charts(f_df):
     last_sign = "+" if last_val >= 0 else ""
 
     with st.container(key="pnl_card"):
-        # 🔥 마크다운 버그 완벽 차단: 들여쓰기 1도 없는 1줄짜리 완벽 압축 HTML!
         html_pnl = f"""<div style='display:flex; justify-content:space-between; align-items:baseline;'><span style='font-size:12px; color:#9ca3af; font-weight:600;'>선택 기간 추정 PNL</span><span style='font-size:12px; color:#9ca3af;'>{last_date} <b style='color:{GREEN if last_val >= 0 else RED};'>{last_sign}${last_val:,.2f}</b></span></div><div style='font-size:32px; font-weight:800; color:{pnl_color}; margin-top:5px;'>{pnl_sign}${period_sum:,.2f} <span style='font-size:14px; color:#00a86b; font-weight:600;'>USDT</span></div><div style="border-bottom: 1px solid #e5e7eb; margin: 15px 0 5px 0;"></div>"""
         st.markdown(html_pnl, unsafe_allow_html=True)
 
