@@ -290,7 +290,7 @@ def show_live_positions():
 show_live_positions()
 
 # -----------------------------------------------------------------------------
-# 8. 상단 PNL 카드 (KRW 환산 가격 추가)
+# 8. 상단 PNL 카드 (괄호 제거 및 원화 기호/숫자 사이 띄어쓰기 적용)
 # -----------------------------------------------------------------------------
 st.markdown("<div style='font-size: 11px; color: #9ca3af; margin-bottom: 10px; margin-top: -10px;'>미실현손익은 일별·월별 추정 PNL 합계에 포함하지 않습니다.</div>", unsafe_allow_html=True)
 col_s1, col_s2, col_s3 = st.columns(3)
@@ -298,9 +298,12 @@ col_s1, col_s2, col_s3 = st.columns(3)
 def make_top_card(title, value, sub_left, sub_right="", krw_rate=1350.0):
     val_color, sign = (GREEN, "+") if value >= 0 else (RED, "")
     krw_val = value * krw_rate
-    krw_sign = "+" if krw_val >= 0 else ""
-    krw_str = f"({krw_sign}₩{krw_val:,.0f})"
-    # 🔥 코드 노출 방지를 위한 한 줄 압축 HTML (USDT 오른쪽 회색 소형 KRW 추가)
+    if krw_val >= 0:
+        krw_str = f"+ ₩ {krw_val:,.0f}"
+    else:
+        krw_str = f"- ₩ {abs(krw_val):,.0f}"
+    
+    # 🔥 괄호 제거 및 ₩와 숫자 사이 띄어쓰기 반영된 HTML
     return f"""<div style="background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:24px; min-height: 155px; display:flex; flex-direction:column; box-shadow: 0 1px 3px rgba(0,0,0,0.02);"><div><div style="display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;"><span>{title}</span> <span style="color:#9ca3af; font-weight:400;">{sub_right}</span></div><div style="font-size:32px; font-weight:800; color:{val_color}; margin:15px 0;">{sign}${value:,.2f} <span style="font-size:14px; font-weight:600; color:#00a86b;">USDT</span> <span style="font-size:14px; font-weight:500; color:#9ca3af;">{krw_str}</span></div></div><div style="font-size:12px; color:#9ca3af; margin-top:auto;">{sub_left}</div></div>"""
 
 with col_s1:
