@@ -336,7 +336,7 @@ with col_s2:
     def render_month_pnl():
         month_str = datetime.now(UTC).strftime("%Y-%m")
         month_pnl = df_trades[df_trades["date"].str.startswith(month_str)]["pnl"].sum() if not df_trades.empty else 0.0
-        st.markdown(make_top_card("이번 달 추정 PNL", month_pnl, "매월 1일 오전 9시 리셋 (KST)"), unsafe_allow_html=True)
+        st.markdown(make_top_card("이번 달 추정 PNL", month_pnl, "오전 9시 리셋 (KST)"), unsafe_allow_html=True)
     render_month_pnl()
 
 with col_s3:
