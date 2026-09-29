@@ -42,19 +42,14 @@ st.markdown("""
 <style>
     .stApp { background-color: #f4f5f7; }
 
-    div[data-testid="stVerticalBlockBorderWrapper"] {
+    /* 🔥 "선택 기간 추정 PNL" 카드 전용 — st.container(key=...) 가 만드는 클래스에 직접 스타일 적용
+       (border=True + stVerticalBlockBorderWrapper 방식은 이 환경에서 안 먹혀서 폐기) */
+    div.st-key-pnl_card, div[class*="st-key-pnl_card"] {
         background-color: #ffffff !important;
         border: 1px solid #e5e7eb !important;
         border-radius: 12px !important;
         box-shadow: 0 1px 3px rgba(0,0,0,0.02) !important;
         padding: 20px !important;
-    }
-
-    /* 🔥 10초·1시간 자동 새로고침(st.fragment) 때 화면이 하얗게 깜빡이는 현상 억제 */
-    div[data-testid="stVerticalBlock"], div[data-testid="element-container"],
-    div[data-testid="stMarkdownContainer"] {
-        opacity: 1 !important;
-        transition: none !important;
     }
 
     .pos-box { padding: 10px; flex: 1 1 200px; }
@@ -68,7 +63,6 @@ st.markdown("""
 
     /* 매매 동향 카드 통계 그리드 */
     .note-text { font-size:11.5px; line-height:1.7; color:#9ca3af; margin:14px 2px 0; }
-    .pnl-box { padding: 0 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -531,7 +525,7 @@ def render_pnl_charts(f_df):
 
     last_sign = "+" if last_val >= 0 else ""
 
-    with st.container(border=True):
+    with st.container(key="pnl_card"):
         st.markdown(f"""
         <div style='display:flex; justify-content:space-between; align-items:baseline;'>
             <span style='font-size:12px; color:#9ca3af; font-weight:600;'>선택 기간 추정 PNL</span>
