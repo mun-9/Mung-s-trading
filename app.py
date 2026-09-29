@@ -32,7 +32,7 @@ GREEN, RED, BLUE, GRAY = "#00a86b", "#ef4444", "#2563eb", "#9ca3af"
 # 1. 페이지 설정 & 모바일 완벽 대응 CSS
 # -----------------------------------------------------------------------------
 st.set_page_config(
-    page_title="멍그 Trading Journal",
+    page_title="Trading Journal",
     page_icon="📈",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -42,7 +42,7 @@ st.markdown("""
 <style>
     .stApp { background-color: #f4f5f7; }
 
-    /* 🔥 "선택 기간 추정 PNL" 카드 전용 — st.container(key=...) 가 만드는 클래스에 직접 스타일 적용 */
+    /* 🔥 PNL 카드 배경 완벽 고정 */
     div.st-key-pnl_card, div[class*="st-key-pnl_card"] {
         background-color: #ffffff !important;
         border: 1px solid #e5e7eb !important;
@@ -50,6 +50,11 @@ st.markdown("""
         box-shadow: 0 1px 3px rgba(0,0,0,0.02) !important;
         padding: 20px !important;
     }
+
+    /* 🔥 모바일 다크모드 등에서 탭(일별 손익, 기간 누적) 글씨 안 보이는 버그 완벽 수정 */
+    button[data-baseweb="tab"] p { color: #6b7280 !important; font-weight: 600 !important; font-size: 15px !important; }
+    button[data-baseweb="tab"][aria-selected="true"] p { color: #2563eb !important; font-weight: 800 !important; }
+    div[data-baseweb="tab-highlight"] { background-color: #2563eb !important; }
 
     .pos-box { padding: 10px; flex: 1 1 200px; }
     .pos-divider { border-left: 1px solid #f3f4f6; }
@@ -60,7 +65,6 @@ st.markdown("""
     .stButton>button { height: 38px; padding: 0 8px; border-radius: 8px; border: 1px solid #d1d5db; background-color: #ffffff; color: #374151; font-weight: 500; white-space: nowrap; }
     .stButton>button:hover { border-color: #2563eb; color: #2563eb; }
 
-    /* 매매 동향 카드 통계 그리드 */
     .note-text { font-size:11.5px; line-height:1.7; color:#9ca3af; margin:14px 2px 0; }
 </style>
 """, unsafe_allow_html=True)
@@ -228,7 +232,7 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
 # -----------------------------------------------------------------------------
 # 4. 사이드바 메뉴
 # -----------------------------------------------------------------------------
-st.sidebar.title("⚙️ 멍그 대시보드 설정")
+st.sidebar.title("⚙️ 대시보드 설정")
 exchange_choice = st.sidebar.selectbox("거래소 선택", ["Bitget", "Binance", "Bybit", "Demo (샘플 데이터)"])
 st.sidebar.markdown(f"<div style='font-size:13px; color:{GREEN}; margin-bottom:15px;'>✅ API 보안 금고 연동 완료</div>", unsafe_allow_html=True)
 st.sidebar.markdown(f"<div style='font-size:12px; color:{BLUE}; margin-bottom:15px;'>🟢 실시간 자동 업데이트 작동 중 (10초 단위)</div>", unsafe_allow_html=True)
@@ -241,10 +245,10 @@ if st.sidebar.button("🔄 수동 새로고침"):
 df_trades = fetch_slow_data(exchange_choice, MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
 
 # -----------------------------------------------------------------------------
-# 5. 🎯 메인 타이틀
+# 5. 🎯 메인 타이틀 (멍그 삭제 및 텍스트 간소화)
 # -----------------------------------------------------------------------------
 st.markdown("""<div style="margin-top: -10px; margin-bottom: 25px;"><h1 style="font-size: 32px; font-weight: 900; color: #111827; margin: 0; padding: 0; letter-spacing: -0.5px;">Trading History</h1><div style="width: 40px; height: 4px; background-color: #2563eb; margin-top: 10px; border-radius: 2px;"></div></div>""", unsafe_allow_html=True)
-st.markdown("""<div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 15px; border-bottom: 2px solid #e5e7eb; margin-bottom: 25px;"><div style="display: flex; align-items: center; gap: 12px;"><span style="background: linear-gradient(135deg, #00a86b, #059669); color: white; font-weight: 900; padding: 6px 14px; border-radius: 8px; font-size: 18px; box-shadow: 0 2px 4px rgba(0,168,107,0.3);">멍그</span><span style="font-size: 22px; font-weight: 900; color: #111827; letter-spacing: -0.5px;">MUNGGE TRADING JOURNAL</span></div></div>""", unsafe_allow_html=True)
+st.markdown("""<div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 15px; border-bottom: 2px solid #e5e7eb; margin-bottom: 25px;"><div style="display: flex; align-items: center;"><span style="font-size: 22px; font-weight: 900; color: #111827; letter-spacing: -0.5px;">Trading Journal</span></div></div>""", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
 # 6. [FRAGMENT] 🎯 현재 보유 포지션
@@ -272,7 +276,7 @@ def show_live_positions():
 show_live_positions()
 
 # -----------------------------------------------------------------------------
-# 7. 상단 PNL 카드 (날짜 기준: UTC = KST 오전 9시 전환)
+# 7. 상단 PNL 카드 (갱신 문구 변경 적용)
 # -----------------------------------------------------------------------------
 st.markdown("<div style='font-size: 11px; color: #9ca3af; margin-bottom: 10px; margin-top: -10px;'>미실현손익은 일별·월별 추정 PNL 합계에 포함하지 않습니다.</div>", unsafe_allow_html=True)
 col_s1, col_s2, col_s3 = st.columns(3)
@@ -287,7 +291,7 @@ with col_s1:
     def render_today_pnl():
         today_str = datetime.now(UTC).strftime("%Y-%m-%d")
         today_pnl = df_trades[df_trades["date"] == today_str]["pnl"].sum() if not df_trades.empty else 0.0
-        st.markdown(make_top_card("오늘 추정 PNL", today_pnl, "매일 오전 9시 리셋 (KST)"), unsafe_allow_html=True)
+        st.markdown(make_top_card("오늘 추정 PNL", today_pnl, "1시간 마다 갱신(KST)"), unsafe_allow_html=True)
     render_today_pnl()
 
 with col_s2:
@@ -295,7 +299,7 @@ with col_s2:
     def render_month_pnl():
         month_str = datetime.now(UTC).strftime("%Y-%m")
         month_pnl = df_trades[df_trades["date"].str.startswith(month_str)]["pnl"].sum() if not df_trades.empty else 0.0
-        st.markdown(make_top_card("이번 달 추정 PNL", month_pnl, "오전 9시 리셋 (KST)"), unsafe_allow_html=True)
+        st.markdown(make_top_card("이번 달 추정 PNL", month_pnl, "1시간 마다 갱신(KST)"), unsafe_allow_html=True)
     render_month_pnl()
 
 with col_s3:
@@ -303,7 +307,7 @@ with col_s3:
     def render_unrealized_pnl():
         pos, bal = fetch_fast_data(exchange_choice, MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
         unrealized = sum([p.get("unrealized_pnl", 0.0) for p in pos]) if pos else 0.0
-        st.markdown(make_top_card("현재 미실현손익", unrealized, "전체 포지션의 미실현손익 합계", "10초마다 갱신"), unsafe_allow_html=True)
+        st.markdown(make_top_card("현재 미실현손익", unrealized, "전체 포지션의 미실현손익 합계", "Updated every 10s"), unsafe_allow_html=True)
     render_unrealized_pnl()
 
 st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
