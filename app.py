@@ -3,7 +3,6 @@ import time
 from datetime import datetime, timedelta, timezone
 import pandas as pd
 import streamlit as st
-import plotly.graph_objects as go
 
 # =============================================================================
 # 🔑 웹사이트 비밀 금고에서 API 키를 뒤에서 몰래 꺼내옵니다
@@ -20,7 +19,7 @@ except:
 # 🎯 [초기화 설정] 여기서 설정한 날짜 이전의 과거 데이터는 싹 다 날립니다! 
 DASHBOARD_START_DATE = "2026-09-28"
 
-# 🇰🇷 한국 시간(KST) 고정 설정 (UTC+9)
+# 🇰🇷 한국시간 고정 (UTC+9)
 KST = timezone(timedelta(hours=9))
 
 # -----------------------------------------------------------------------------
@@ -38,17 +37,12 @@ st.markdown("""
     /* 전체 배경색 */
     .stApp { background-color: #f4f5f7; }
     
-    /* 🔥 핵심 수정: st.container(border=True)로 만든 모든 박스를 강제로 투명도 없이 완전한 흰색으로 만듭니다 */
+    /* 🔥 PNL 및 st.container 테두리 박스를 강제로 깔끔한 흰색 배경으로 통일합니다 */
     div[data-testid="stVerticalBlockBorderWrapper"] {
         background-color: #ffffff !important;
         border: 1px solid #e5e7eb !important;
         border-radius: 12px !important;
         box-shadow: 0 1px 3px rgba(0,0,0,0.02) !important;
-    }
-    
-    /* 탭(Tabs) 배경도 흰색으로 통일 */
-    div[data-testid="stTabs"] {
-        background-color: #ffffff !important;
     }
     
     /* 모바일 가로/세로선 반응형 */
@@ -100,13 +94,12 @@ def fetch_fast_data(exchange_name, api_key, secret, pwd):
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_slow_data(exchange_name, api_key, secret, pwd):
-    # 데모 모드일 경우 KST 기준으로 가짜 데이터 생성
     if not api_key or not secret or exchange_name == "Demo (샘플 데이터)":
         import random
         random.seed(42)
         records = []
         now_kst = datetime.now(KST)
-        for _ in range(45): 
+        for _ in range(35): 
             t_kst = now_kst - timedelta(hours=random.randint(1, 150))
             pnl = random.choice([0, 0, random.uniform(100, 2500), random.uniform(-1500, -50)])
             records.append({
@@ -118,12 +111,12 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
                 "pnl": round(pnl, 2)
             })
         df = pd.DataFrame(records)
+        # 가상 데이터도 분할 체결 그룹화 적용
         df = df.groupby(["order_id", "symbol", "side", "date"]).agg({"pnl": "sum", "datetime": "last"}).reset_index()
         df["result"] = df["pnl"].apply(lambda p: "익절" if p > 0 else ("손절" if p < 0 else "진입"))
         df = df.sort_values("datetime", ascending=False)
         return df[df["date"] >= DASHBOARD_START_DATE]
     
-    # 실제 API 연동 시
     try:
         if exchange_name == "Bitget": exchange = ccxt.bitget({'apiKey': api_key, 'secret': secret, 'password': pwd, 'enableRateLimit': True, 'options': {'defaultType': 'swap'}})
         elif exchange_name == "Binance": exchange = ccxt.binance({'apiKey': api_key, 'secret': secret, 'enableRateLimit': True, 'options': {'defaultType': 'future'}})
@@ -135,13 +128,13 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
             try:
                 if sym in exchange.markets:
                     for t in exchange.fetch_my_trades(symbol=sym, limit=200):
-                        # 🔥 시간 버그 완벽 수정: UTC로 받아와 무조건 한국시간(KST)으로 변환
+                        # 🔥 UTC -> KST 완벽 변환
                         t_utc = datetime.fromtimestamp(t["timestamp"] / 1000, tz=timezone.utc)
                         t_kst = t_utc.astimezone(KST)
                         
                         pnl = float(t.get("info", {}).get("profit", 0) or t.get("info", {}).get("realizedPnl", 0) or 0)
                         
-                        # 🔥 분할 체결 버그 완벽 수정: 주문번호(order_id) 추출
+                        # 🔥 분할 체결 병합을 위한 주문번호 추출
                         order_id = str(t.get("order") or t.get("id") or t["timestamp"])
                         
                         info_side = str(t.get("info", {}).get("tradeSide", "")).lower()
@@ -158,9 +151,8 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
             
         if trade_records:
             df = pd.DataFrame(trade_records)
-            # 🔥 주문번호를 기준으로 분할 체결된 기록을 하나로 병합 (pnl은 합산, 시간은 마지막 시간 기준)
+            # 🔥 분할 체결된 동일 주문을 1건으로 묶어줍니다 (pnl은 합산, 시간은 마지막 체결 기준)
             df = df.groupby(["order_id", "symbol", "side", "date"]).agg({"pnl": "sum", "datetime": "last"}).reset_index()
-            # 병합된 총 PNL을 기준으로 최종 결과를 판정
             df["result"] = df["pnl"].apply(lambda p: "익절" if p > 0 else ("손절" if p < 0 else "진입"))
             
             df = df.sort_values("datetime", ascending=False)
@@ -223,7 +215,7 @@ def show_live_positions():
             pos_usdt_value = pos['size'] * pos['entry_price']
             margin_ratio = (pos['margin'] / wallet_balance * 100) if wallet_balance > 0 else 0
 
-            # 🔥 ROE 부분을 ROI로 텍스트 교체
+            # 🔥 ROE -> ROI 로 단어 변경 완료!
             st.markdown(f"""
             <div style="background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:15px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); display: flex; flex-wrap: wrap; margin-bottom: 15px;">
                 <div class="pos-box">
@@ -317,7 +309,7 @@ filter_start_date = max(start_date, datetime.strptime(DASHBOARD_START_DATE, "%Y-
 filtered_df = df_trades[(df_trades["date_obj"] >= filter_start_date) & (df_trades["date_obj"] <= end_date)] if not df_trades.empty else df_trades
 
 # -----------------------------------------------------------------------------
-# 8. [FRAGMENT] 매매 동향 (승률 추이 실제 데이터 + 코드 숨김 완벽 적용)
+# 8. [FRAGMENT] 매매 동향 (원래 예쁜 디자인 복구 + 코드 유출 없는 승률 그래프)
 # -----------------------------------------------------------------------------
 st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
 st.markdown("<div style='display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px;'><span style='font-size:16px; font-weight:800; color:#111827; margin-left:5px;'>매매 동향</span><span style='font-size:12px; color:#9ca3af;'>관측 기록 기준</span></div>", unsafe_allow_html=True)
@@ -339,33 +331,34 @@ def render_trade_stats(f_df):
     long_p = (longs/(longs+shorts)*100) if (longs+shorts)>0 else 0
     short_p = (shorts/(longs+shorts)*100) if (longs+shorts)>0 else 0
 
+    # 원본 그대로의 예쁜 HTML 스타일 복구!
+    card_style = "background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); height: 320px; display:flex; flex-direction:column; justify-content:space-between;"
+
     with col_t1:
-        with st.container(border=True):
-            st.markdown(f"""<div style="height: 280px; display:flex; flex-direction:column; justify-content:space-between;"><div><div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>총 체결 건수 (분할병합 기준)</span><span style='color:#9ca3af; font-weight:400;'>선택 기간</span></div><div style='font-size:36px; font-weight:800; color:#111827; margin:15px 0;'>{total} <span style='font-size:14px; font-weight:500;'>건</span></div><div style='font-size:12px; color:#6b7280; margin-bottom:5px; display:flex; justify-content:space-between;'><span>승·패 비율 (청산 기준)</span><b style='color:#111827;'>{rate:.1f}% 승률</b></div><div style="display:flex; width: 100%; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 20px; background-color:#f3f4f6;"><div style="width: {rate}%; background-color: #00a86b;"></div><div style="width: {100-rate if closed_trades > 0 else 0}%; background-color: #ef4444;"></div></div><div style='display:flex; justify-content:space-between; font-size:13px; color:#6b7280; margin-bottom:10px; padding: 0 5px;'><div style='display:flex; align-items:center; gap:6px;'><div style='width:8px; height:8px; border-radius:50%; background-color:#00a86b;'></div><span>익절 청산</span></div><b style='color:#00a86b;'>{wins} 건</b></div><div style='display:flex; justify-content:space-between; font-size:13px; color:#6b7280; margin-bottom:10px; padding: 0 5px;'><div style='display:flex; align-items:center; gap:6px;'><div style='width:8px; height:8px; border-radius:50%; background-color:#ef4444;'></div><span>손절 청산</span></div><b style='color:#ef4444;'>{losses} 건</b></div></div><div style='border-top:1px solid #f3f4f6; padding-top:15px; margin-top:auto; display:flex; justify-content:space-between; font-size:13px; color:#6b7280;'><span>신규 진입 (단순 오더)</span><b style='color:#2563eb;'>{entries} 건</b></div></div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div style="{card_style}"><div><div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>총 체결 건수</span><span style='color:#9ca3af; font-weight:400;'>선택 기간</span></div><div style='font-size:36px; font-weight:800; color:#111827; margin:15px 0;'>{total} <span style='font-size:14px; font-weight:500;'>건</span></div><div style='font-size:12px; color:#6b7280; margin-bottom:5px; display:flex; justify-content:space-between;'><span>승·패 비율 (청산 기준)</span><b style='color:#111827;'>{rate:.1f}% 승률</b></div><div style="display:flex; width: 100%; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 20px; background-color:#f3f4f6;"><div style="width: {rate}%; background-color: #00a86b;"></div><div style="width: {100-rate if closed_trades > 0 else 0}%; background-color: #ef4444;"></div></div><div style='display:flex; justify-content:space-between; font-size:13px; color:#6b7280; margin-bottom:10px; padding: 0 5px;'><div style='display:flex; align-items:center; gap:6px;'><div style='width:8px; height:8px; border-radius:50%; background-color:#00a86b;'></div><span>익절 청산</span></div><b style='color:#00a86b;'>{wins} 건</b></div><div style='display:flex; justify-content:space-between; font-size:13px; color:#6b7280; margin-bottom:10px; padding: 0 5px;'><div style='display:flex; align-items:center; gap:6px;'><div style='width:8px; height:8px; border-radius:50%; background-color:#ef4444;'></div><span>손절 청산</span></div><b style='color:#ef4444;'>{losses} 건</b></div></div><div style='border-top:1px solid #f3f4f6; padding-top:15px; display:flex; justify-content:space-between; font-size:13px; color:#6b7280;'><span>신규 진입 (단순 오더)</span><b style='color:#2563eb;'>{entries} 건</b></div></div>""", unsafe_allow_html=True)
 
     with col_t2:
-        with st.container(border=True):
-            bg_gradient = f"conic-gradient(#00a86b 0% {long_p}%, #ef4444 {long_p}% 100%)" if (longs+shorts)>0 else "conic-gradient(#e5e7eb 0% 100%)"
-            st.markdown(f"""
-            <div style="height: 280px; display:flex; flex-direction:column; justify-content:space-between;">
-                <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>LONG / SHORT</span><span style='color:#9ca3af; font-weight:400;'>총 진입/청산</span></div>
-                <div style="display:flex; justify-content:center; align-items:center; flex-grow:1;">
-                    <div style="width: 125px; height: 125px; border-radius: 50%; background: {bg_gradient}; display:flex; justify-content:center; align-items:center;">
-                        <div style="width: 90px; height: 90px; background-color: #ffffff; border-radius: 50%; display:flex; flex-direction:column; justify-content:center; align-items:center; box-shadow: inset 0 0 5px rgba(0,0,0,0.02);">
-                            <span style="font-size:12px; color:#6b7280; font-weight:500;">총 체결</span>
-                            <b style="font-size:24px; color:#111827; margin-top:-2px;">{longs+shorts}건</b>
-                        </div>
+        bg_gradient = f"conic-gradient(#00a86b 0% {long_p}%, #ef4444 {long_p}% 100%)" if (longs+shorts)>0 else "conic-gradient(#e5e7eb 0% 100%)"
+        st.markdown(f"""
+        <div style="{card_style}">
+            <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>LONG / SHORT</span><span style='color:#9ca3af; font-weight:400;'>총 진입/청산</span></div>
+            <div style="display:flex; justify-content:center; align-items:center; flex-grow:1;">
+                <div style="width: 125px; height: 125px; border-radius: 50%; background: {bg_gradient}; display:flex; justify-content:center; align-items:center;">
+                    <div style="width: 90px; height: 90px; background-color: #ffffff; border-radius: 50%; display:flex; flex-direction:column; justify-content:center; align-items:center; box-shadow: inset 0 0 5px rgba(0,0,0,0.02);">
+                        <span style="font-size:12px; color:#6b7280; font-weight:500;">총 체결</span>
+                        <b style="font-size:24px; color:#111827; margin-top:-2px;">{longs+shorts}건</b>
                     </div>
                 </div>
-                <div>
-                    <div style='display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px;'><span style='color:#00a86b; font-weight:700;'>LONG</span><b style='color:#00a86b;'>{longs}건 · {long_p:.1f}%</b></div>
-                    <div style='display:flex; justify-content:space-between; font-size:13px;'><span style='color:#ef4444; font-weight:700;'>SHORT</span><b style='color:#ef4444;'>{shorts}건 · {short_p:.1f}%</b></div>
-                </div>
             </div>
-            """, unsafe_allow_html=True)
+            <div>
+                <div style='display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px;'><span style='color:#00a86b; font-weight:700;'>LONG</span><b style='color:#00a86b;'>{longs}건 · {long_p:.1f}%</b></div>
+                <div style='display:flex; justify-content:space-between; font-size:13px;'><span style='color:#ef4444; font-weight:700;'>SHORT</span><b style='color:#ef4444;'>{shorts}건 · {short_p:.1f}%</b></div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     with col_t3:
-        # 🔥 실제 7일 승률 계산 (과거 데이터를 기반으로 정확하게)
+        # 🔥 실제 7일 승률 계산
         trend_dates, trend_vals = [], []
         total_wins_7d, total_losses_7d = 0, 0
         now_kst = datetime.now(KST)
@@ -374,7 +367,7 @@ def render_trade_stats(f_df):
             target_date = (now_kst - timedelta(days=i)).strftime("%Y-%m-%d")
             trend_dates.append((now_kst - timedelta(days=i)).strftime("%m/%d"))
             
-            day_df = df_trades[df_trades["date"] == target_date] if not df_trades.empty else pd.DataFrame()
+            day_df = f_df[f_df["date"] == target_date] if not f_df.empty else pd.DataFrame()
             d_w = len(day_df[day_df["result"] == "익절"])
             d_l = len(day_df[day_df["result"] == "손절"])
             
@@ -382,46 +375,30 @@ def render_trade_stats(f_df):
             total_losses_7d += d_l
             trend_vals.append(int(round(d_w / (d_w + d_l) * 100)) if (d_w + d_l) > 0 else 0)
 
-        overall_7d_rate = (total_wins_7d / (total_wins_7d + total_losses_7d) * 100) if (total_wins_7d + total_losses_7d) > 0 else 0
+        r_rate = int(round(total_wins_7d / (total_wins_7d + total_losses_7d) * 100)) if (total_wins_7d + total_losses_7d) > 0 else 0
+        r_wins = total_wins_7d
+        r_losses = total_losses_7d
 
-        # 🔥 코드가 화면에 노출되지 않도록 Plotly 라이브러리로 투명 차트 생성 (두 번째 사진 완벽 복원)
-        fig_trend = go.Figure()
-        fig_trend.add_trace(go.Scatter(
-            x=trend_dates, y=trend_vals, mode="lines+text+markers", text=[f"{v}%" for v in trend_vals],
-            textposition="top center", textfont=dict(size=10, color="#374151"),
-            line=dict(color="#2563eb", width=2.5, shape="linear"),
-            marker=dict(size=6, color="#2563eb", line=dict(color="#ffffff", width=2)),
-            hoverinfo="skip"
-        ))
+        # 🔥 코드가 노출되지 않도록(마크다운 엔진 꼬임 방지) 모든 줄바꿈을 제거한 '단일 줄 문자열'로 SVG 생성
+        svg_points, circles, texts = "", "", ""
+        step_x = 280 / 6
+        for i, val in enumerate(trend_vals):
+            x = i * step_x
+            y = 110 - (val / 100) * 85
+            svg_points += f"{x},{y} "
+            circles += f'<circle cx="{x}" cy="{y}" r="4" fill="#2563eb" />'
+            texts += f'<text x="{x}" y="{y-12}" font-size="12" font-weight="bold" fill="#2563eb" text-anchor="middle">{int(val)}%</text>'
+            texts += f'<text x="{x}" y="130" font-size="10" fill="#9ca3af" text-anchor="middle">{trend_dates[i]}</text>'
+        
+        # 줄바꿈(\n) 없이 한 줄로 묶어 코드가 노출되는 현상을 완벽 차단!
+        svg_html = f'<svg viewBox="-15 -15 310 150" style="width:100%; height:130px; display:block;"><polyline points="{svg_points.strip()}" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />{circles}{texts}</svg>'
 
-        fig_trend.update_layout(
-            template="plotly_white", margin=dict(t=15, b=0, l=5, r=5), height=170,
-            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-            xaxis=dict(showgrid=False, zeroline=False, type='category', tickfont=dict(size=10, color="#9ca3af")),
-            yaxis=dict(range=[-15, 120], tickvals=[0, 50, 100], ticktext=["0%", "50%", "100%"], showgrid=True, gridcolor="#f3f4f6", griddash="dash", zeroline=False, tickfont=dict(size=9, color="#9ca3af")),
-            showlegend=False
-        )
-
-        with st.container(border=True):
-            st.markdown(f"""
-            <div style="display: flex; flex-direction: column; justify-content: space-between;">
-                <div>
-                    <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'>
-                        <span>승률 추이</span><span style='color:#9ca3af; font-weight:400;'>최근 7일 · 오늘 포함</span>
-                    </div>
-                    <div style='display:flex; align-items:baseline; gap:8px; margin-top:6px; margin-bottom: 5px;'>
-                        <span style='font-size:28px; font-weight:800; color:#2563eb;'>{overall_7d_rate:.1f}%</span>
-                        <span style='font-size:12px; color:#9ca3af;'>익절 {total_wins_7d} · 손절 {total_losses_7d}</span>
-                    </div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            st.plotly_chart(fig_trend, use_container_width=True, config={"displayModeBar": False})
+        st.markdown(f"""<div style="{card_style}"><div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>승률 추이</span><span style='color:#9ca3af; font-weight:400;'>최근 7일 · 오늘 포함</span></div><div style="display:flex; align-items:baseline; gap:10px; margin-top:10px;"><span style="font-size:32px; font-weight:800; color:#2563eb;">{r_rate}%</span><span style="font-size:12px; color:#6b7280;">익절 {r_wins} · 손절 {r_losses}</span></div><div style="flex-grow:1; display:flex; flex-direction:column; justify-content:flex-end;">{svg_html}</div></div>""", unsafe_allow_html=True)
 
 render_trade_stats(filtered_df)
 
 # -----------------------------------------------------------------------------
-# 9. [FRAGMENT] 선택 기간 PNL 박스 (거래 없는 빈 날짜 꽉 채우기 해결 & 강제 흰색 배경 적용)
+# 9. [FRAGMENT] 선택 기간 PNL 박스 (거래 없는 날짜 강제 채우기 + 오류 방지)
 # -----------------------------------------------------------------------------
 st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
 
@@ -430,8 +407,10 @@ def render_pnl_charts(f_df):
     period_sum = f_df["pnl"].sum() if not f_df.empty else 0.0
     pnl_color, pnl_sign = ("#00a86b", "+") if period_sum >= 0 else ("#ef4444", "")
 
-    # 전체를 st.container로 묶어 CSS 강제 통일을 통해 완벽한 흰색 박스로 제작
+    # 위에 추가된 전역 CSS (stVerticalBlockBorderWrapper) 덕분에 st.container가 강제로 예쁜 흰색 배경을 갖게 됩니다.
     with st.container(border=True):
+        st.markdown("<div class='white-marker'></div>", unsafe_allow_html=True)
+        
         st.markdown(f"""
         <div style="padding: 10px 10px 0 10px;">
             <div style='display:flex; justify-content:space-between;'>
@@ -448,14 +427,14 @@ def render_pnl_charts(f_df):
         
         if not f_df.empty:
             daily_pnl = f_df.groupby("date")["pnl"].sum().reset_index()
-            daily_pnl["date"] = pd.to_datetime(daily_pnl["date"]).dt.date
+            daily_pnl["date_obj"] = pd.to_datetime(daily_pnl["date"]).dt.date
             
-            # 🔥 핵심 수정: 거래가 없는 비어있는 날짜도 빈 공간으로 나오도록 '0' 데이터 강제 삽입
+            # 🔥 핵심 수정: 시작일부터 종료일까지 빈 날짜를 생성해서 PNL을 0으로 꽉 채웁니다!
             full_dates = pd.date_range(start=filter_start_date, end=end_date).date
-            full_df = pd.DataFrame({"date": full_dates})
+            full_df = pd.DataFrame({"date_obj": full_dates})
             
-            daily_pnl = pd.merge(full_df, daily_pnl, on="date", how="left").fillna({"pnl": 0})
-            daily_pnl["date_str"] = pd.to_datetime(daily_pnl["date"]).dt.strftime("%Y-%m-%d")
+            daily_pnl = pd.merge(full_df, daily_pnl, on="date_obj", how="left").fillna({"pnl": 0})
+            daily_pnl["date_str"] = pd.to_datetime(daily_pnl["date_obj"]).dt.strftime("%Y-%m-%d")
             
             daily_pnl["cum"] = daily_pnl["pnl"].cumsum()
             daily_pnl["color"] = daily_pnl["pnl"].apply(lambda x: "#00a86b" if x >= 0 else "#ef4444")
@@ -464,6 +443,7 @@ def render_pnl_charts(f_df):
 
         with tab1:
             if not daily_pnl.empty:
+                import plotly.graph_objects as go
                 fig1 = go.Figure(go.Bar(
                     x=daily_pnl["date_str"], y=daily_pnl["pnl"], marker_color=daily_pnl["color"],
                     name="일별 수익", hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT<extra></extra>"
