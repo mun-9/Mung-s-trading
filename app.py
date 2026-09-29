@@ -1,7 +1,9 @@
 import ccxt
 import time
+import random
 from datetime import datetime, timedelta, timezone
 import pandas as pd
+import plotly.graph_objects as go
 import streamlit as st
 
 # =============================================================================
@@ -11,16 +13,20 @@ try:
     MY_API_KEY = st.secrets["API_KEY"]
     MY_SECRET_KEY = st.secrets["SECRET_KEY"]
     MY_PASSPHRASE = st.secrets["PASSPHRASE"]
-except:
+except Exception:
     MY_API_KEY = ""
     MY_SECRET_KEY = ""
     MY_PASSPHRASE = ""
 
-# 🎯 [초기화 설정] 여기서 설정한 날짜 이전의 과거 데이터는 싹 다 날립니다! 
+# 🎯 [초기화 설정] 여기서 설정한 날짜 이전의 과거 데이터는 싹 다 날립니다!
 DASHBOARD_START_DATE = "2026-09-28"
 
-# 🇰🇷 한국시간 고정 (UTC+9)
+# 🇰🇷 표시용 한국시간 (UTC+9) / 날짜 구분은 UTC 기준 (= KST 오전 9시에 날짜가 바뀜)
 KST = timezone(timedelta(hours=9))
+UTC = timezone.utc
+
+# 🎨 색상 상수 (여기만 바꾸면 전체 톤이 바뀜)
+GREEN, RED, BLUE, GRAY = "#00a86b", "#ef4444", "#2563eb", "#9ca3af"
 
 # -----------------------------------------------------------------------------
 # 1. 페이지 설정 & 모바일 완벽 대응 CSS
@@ -34,32 +40,123 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-    /* 전체 배경색 */
     .stApp { background-color: #f4f5f7; }
-    
-    /* 🔥 PNL 및 st.container 테두리 박스를 강제로 깔끔한 흰색 배경으로 통일합니다 */
+
     div[data-testid="stVerticalBlockBorderWrapper"] {
         background-color: #ffffff !important;
         border: 1px solid #e5e7eb !important;
         border-radius: 12px !important;
         box-shadow: 0 1px 3px rgba(0,0,0,0.02) !important;
     }
-    
-    /* 모바일 가로/세로선 반응형 */
+
     .pos-box { padding: 10px; flex: 1 1 200px; }
     .pos-divider { border-left: 1px solid #f3f4f6; }
     @media (max-width: 768px) {
         .pos-divider { border-left: none !important; border-top: 1px solid #f3f4f6 !important; padding-top: 15px !important; margin-top: 5px !important; }
     }
-    
-    /* 버튼 디자인 */
+
     .stButton>button { height: 38px; padding: 0 8px; border-radius: 8px; border: 1px solid #d1d5db; background-color: #ffffff; color: #374151; font-weight: 500; white-space: nowrap; }
     .stButton>button:hover { border-color: #2563eb; color: #2563eb; }
+
+    /* 매매 동향 카드 통계 그리드 */
+    .stat-grid { display:grid; grid-template-columns:1fr 1fr; row-gap:10px; font-size:13px; color:#6b7280;
+                 padding:12px 0; border-top:1px solid #f3f4f6; border-bottom:1px solid #f3f4f6; margin-bottom:12px; }
+    .stat-grid b { color:#111827; font-weight:700; }
+    .note-text { font-size:11.5px; line-height:1.7; color:#9ca3af; margin:14px 2px 0; }
 </style>
 """, unsafe_allow_html=True)
 
+
 # -----------------------------------------------------------------------------
-# 2. 캐싱된 API 데이터 로드 (빠른 놈 10초 / 느린 놈 1시간 분리!)
+# 2. 체결 분류 유틸 — 증가(신규·추가 진입) / 축소(부분·전체 청산)
+# -----------------------------------------------------------------------------
+def classify_fill(t):
+    """거래소 원본 필드로 증가/축소, 승·패를 판별합니다.
+    Bitget: info.tradeSide 에 open/close 가 그대로 들어와 정확히 판별됩니다.
+    Binance/Bybit: reduceOnly 가 없으면 realizedPnl 유무로 추정합니다(참고용)."""
+    info = t.get("info", {}) or {}
+    ts = str(info.get("tradeSide", "")).lower()
+    ro = info.get("reduceOnly", t.get("reduceOnly"))
+    raw = info.get("profit", info.get("realizedPnl"))
+    has_pnl = raw not in (None, "")
+    pnl = float(raw or 0)
+
+    if "open" in ts:
+        is_close = False
+    elif "close" in ts:
+        is_close = True
+    elif ro is True:
+        is_close = True
+    elif ro is False:
+        is_close = False
+    else:
+        is_close = has_pnl and pnl != 0  # 마지막 수단: 실현손익이 찍히면 축소로 간주
+
+    if "long" in ts:
+        side = "LONG"
+    elif "short" in ts:
+        side = "SHORT"
+    else:
+        side = "LONG" if t["side"].upper() == "BUY" else "SHORT"
+
+    return side, is_close, has_pnl, pnl
+
+
+def result_of(bucket, has_pnl, pnl):
+    if bucket == "증가":
+        return "진입"
+    if not has_pnl:
+        return "미확인"
+    if pnl > 0:
+        return "익절"
+    if pnl < 0:
+        return "손절"
+    return "본전"
+
+
+TRADE_COLS = ["order_id", "datetime", "date", "symbol", "side", "bucket", "has_pnl", "pnl", "result"]
+
+
+def finalize(rows):
+    """분할 체결을 주문 단위로 묶어서 승률 왜곡을 막습니다."""
+    if not rows:
+        return pd.DataFrame(columns=TRADE_COLS)
+    df = pd.DataFrame(rows)
+    g = df.groupby(["order_id", "symbol", "side", "date"], as_index=False).agg(
+        pnl=("pnl", "sum"),
+        datetime=("datetime", "last"),
+        bucket=("bucket", lambda s: s.mode().iat[0]),
+        has_pnl=("has_pnl", "max"),
+    )
+    g["result"] = g.apply(lambda r: result_of(r.bucket, r.has_pnl, r.pnl), axis=1)
+    return g.sort_values("datetime", ascending=False)
+
+
+def demo_trades():
+    rnd = random.Random(42)
+    now = datetime.now(UTC)
+    rows = []
+    for i in range(300):
+        t = now - timedelta(hours=rnd.randint(1, 900))
+        is_close = rnd.random() < 0.55
+        pnl = (rnd.choice([rnd.uniform(50, 900), rnd.uniform(50, 900), rnd.uniform(-700, -40), 0.0])
+               if is_close else 0.0)
+        rows.append({
+            "order_id": f"DEMO_{i}",
+            "datetime": (t + timedelta(hours=9)).replace(tzinfo=None),
+            "date": t.strftime("%Y-%m-%d"),
+            "symbol": rnd.choice(["BTC/USDT", "ETH/USDT", "SOL/USDT"]),
+            "side": rnd.choice(["LONG", "SHORT"]),
+            "bucket": "축소" if is_close else "증가",
+            "has_pnl": True,
+            "pnl": round(pnl, 2),
+        })
+    df = finalize(rows)  # order_id 가 이미 고유해서 그룹핑은 통과만 시킴
+    return df[df["date"] >= DASHBOARD_START_DATE]
+
+
+# -----------------------------------------------------------------------------
+# 3. 캐싱된 API 데이터 로드 (포지션 10초 / 체결내역 1시간 분리)
 # -----------------------------------------------------------------------------
 @st.cache_data(ttl=5, show_spinner=False)
 def fetch_fast_data(exchange_name, api_key, secret, pwd):
@@ -73,101 +170,73 @@ def fetch_fast_data(exchange_name, api_key, secret, pwd):
         if exchange_name == "Bitget": exchange = ccxt.bitget({'apiKey': api_key, 'secret': secret, 'password': pwd, 'enableRateLimit': True, 'options': {'defaultType': 'swap'}})
         elif exchange_name == "Binance": exchange = ccxt.binance({'apiKey': api_key, 'secret': secret, 'enableRateLimit': True, 'options': {'defaultType': 'future'}})
         elif exchange_name == "Bybit": exchange = ccxt.bybit({'apiKey': api_key, 'secret': secret, 'enableRateLimit': True, 'options': {'defaultType': 'linear'}})
-        
+
         bal = exchange.fetch_balance({'type': 'swap'}) if exchange_name == "Bitget" else exchange.fetch_balance()
         total_balance = float(bal.get('USDT', {}).get('total', 0))
-        
-        active_positions = [] 
+
+        active_positions = []
         for p in exchange.fetch_positions():
-            if float(p.get("contracts", 0)) > 0:
-                pos_side = p.get("side", "LONG").upper()
-                entry, mark, size, margin = float(p.get("entryPrice", 0)), float(p.get("markPrice", 0)), float(p.get("contracts", 0)), float(p.get("initialMargin", 0))
-                unreal_pnl = (mark - entry) * size if pos_side == "LONG" else (entry - mark) * size
+            if float(p.get("contracts", 0) or 0) > 0:
+                pos_side = (p.get("side") or "LONG").upper()
+                entry, mark = float(p.get("entryPrice", 0) or 0), float(p.get("markPrice", 0) or 0)
+                size, margin = float(p.get("contracts", 0) or 0), float(p.get("initialMargin", 0) or 0)
+                unreal_pnl = float(p.get("unrealizedPnl") or ((mark - entry) * size if pos_side == "LONG" else (entry - mark) * size))
                 roe = (unreal_pnl / margin * 100) if margin > 0 else 0
                 active_positions.append({
-                    "symbol": p.get("symbol", "").replace(":USDT", ""), "side": pos_side, "leverage": int(p.get("leverage", 1)),
+                    "symbol": (p.get("symbol") or "").replace(":USDT", ""), "side": pos_side, "leverage": int(p.get("leverage", 1) or 1),
                     "entry_price": entry, "mark_price": mark, "size": size, "margin": margin,
-                    "liq_price": float(p.get("liquidationPrice", 0)), "unrealized_pnl": unreal_pnl, "roe": roe,
+                    "liq_price": float(p.get("liquidationPrice") or 0), "unrealized_pnl": unreal_pnl, "roe": roe,
                 })
         return active_positions, total_balance
-    except: return [], 0.0
+    except Exception:
+        return [], 0.0
 
-@st.cache_data(ttl=3600, show_spinner=False)
+
+@st.cache_data(ttl=3600, show_spinner="거래 내역 불러오는 중...")
 def fetch_slow_data(exchange_name, api_key, secret, pwd):
     if not api_key or not secret or exchange_name == "Demo (샘플 데이터)":
-        import random
-        random.seed(42)
-        records = []
-        now_kst = datetime.now(KST)
-        for _ in range(35): 
-            t_kst = now_kst - timedelta(hours=random.randint(1, 150))
-            pnl = random.choice([0, 0, random.uniform(100, 2500), random.uniform(-1500, -50)])
-            records.append({
-                "order_id": f"DEMO_{random.randint(1000, 9999)}",
-                "datetime": t_kst,
-                "date": t_kst.strftime("%Y-%m-%d"),
-                "symbol": random.choice(["BTC/USDT", "ETH/USDT", "SOL/USDT"]),
-                "side": random.choice(["LONG", "SHORT"]),
-                "pnl": round(pnl, 2)
-            })
-        df = pd.DataFrame(records)
-        # 가상 데이터도 분할 체결 그룹화 적용
-        df = df.groupby(["order_id", "symbol", "side", "date"]).agg({"pnl": "sum", "datetime": "last"}).reset_index()
-        df["result"] = df["pnl"].apply(lambda p: "익절" if p > 0 else ("손절" if p < 0 else "진입"))
-        df = df.sort_values("datetime", ascending=False)
-        return df[df["date"] >= DASHBOARD_START_DATE]
-    
+        return demo_trades()
+
     try:
         if exchange_name == "Bitget": exchange = ccxt.bitget({'apiKey': api_key, 'secret': secret, 'password': pwd, 'enableRateLimit': True, 'options': {'defaultType': 'swap'}})
         elif exchange_name == "Binance": exchange = ccxt.binance({'apiKey': api_key, 'secret': secret, 'enableRateLimit': True, 'options': {'defaultType': 'future'}})
         elif exchange_name == "Bybit": exchange = ccxt.bybit({'apiKey': api_key, 'secret': secret, 'enableRateLimit': True, 'options': {'defaultType': 'linear'}})
-        
+
         exchange.load_markets()
-        trade_records = []
+        rows = []
         for sym in ["BTC/USDT:USDT", "ETH/USDT:USDT", "SOL/USDT:USDT", "XRP/USDT:USDT", "DOGE/USDT:USDT", "ADA/USDT:USDT", "BCH/USDT:USDT", "BNB/USDT:USDT", "PEPE/USDT:USDT", "LINK/USDT:USDT"]:
+            if sym not in exchange.markets:
+                continue
             try:
-                if sym in exchange.markets:
-                    for t in exchange.fetch_my_trades(symbol=sym, limit=200):
-                        # 🔥 UTC -> KST 완벽 변환
-                        t_utc = datetime.fromtimestamp(t["timestamp"] / 1000, tz=timezone.utc)
-                        t_kst = t_utc.astimezone(KST)
-                        
-                        pnl = float(t.get("info", {}).get("profit", 0) or t.get("info", {}).get("realizedPnl", 0) or 0)
-                        
-                        # 🔥 분할 체결 병합을 위한 주문번호 추출
-                        order_id = str(t.get("order") or t.get("id") or t["timestamp"])
-                        
-                        info_side = str(t.get("info", {}).get("tradeSide", "")).lower()
-                        mapped_side = "LONG" if "long" in info_side else ("SHORT" if "short" in info_side else ("LONG" if t["side"].upper() == "BUY" else "SHORT"))
-                        
-                        trade_records.append({
-                            "order_id": order_id,
-                            "datetime": t_kst, 
-                            "date": t_kst.strftime("%Y-%m-%d"),
-                            "symbol": t["symbol"].replace(":USDT", ""), "side": mapped_side, 
-                            "pnl": pnl
-                        })
-            except: continue
-            
-        if trade_records:
-            df = pd.DataFrame(trade_records)
-            # 🔥 분할 체결된 동일 주문을 1건으로 묶어줍니다 (pnl은 합산, 시간은 마지막 체결 기준)
-            df = df.groupby(["order_id", "symbol", "side", "date"]).agg({"pnl": "sum", "datetime": "last"}).reset_index()
-            df["result"] = df["pnl"].apply(lambda p: "익절" if p > 0 else ("손절" if p < 0 else "진입"))
-            
-            df = df.sort_values("datetime", ascending=False)
-            return df[df["date"] >= DASHBOARD_START_DATE]
-        else:
-            return pd.DataFrame(columns=["datetime", "date", "symbol", "side", "pnl", "result", "order_id"])
-    except: return pd.DataFrame(columns=["datetime", "date", "symbol", "side", "pnl", "result", "order_id"])
+                for t in exchange.fetch_my_trades(symbol=sym, limit=200):
+                    t_utc = datetime.fromtimestamp(t["timestamp"] / 1000, tz=UTC)
+                    t_kst = t_utc.astimezone(KST)
+                    side, is_close, has_pnl, pnl = classify_fill(t)
+                    order_id = str(t.get("order") or t.get("id") or t["timestamp"])
+                    rows.append({
+                        "order_id": order_id,
+                        "datetime": t_kst.replace(tzinfo=None),
+                        "date": t_utc.strftime("%Y-%m-%d"),  # UTC 날짜 = KST 오전 9시에 날짜 전환
+                        "symbol": t["symbol"].replace(":USDT", ""), "side": side,
+                        "bucket": "축소" if is_close else "증가",
+                        "has_pnl": has_pnl, "pnl": pnl,
+                    })
+            except Exception:
+                continue
+
+        df = finalize(rows)
+        return df[df["date"] >= DASHBOARD_START_DATE] if not df.empty else df
+    except Exception:
+        return pd.DataFrame(columns=TRADE_COLS)
+
 
 # -----------------------------------------------------------------------------
-# 3. 사이드바 메뉴 
+# 4. 사이드바 메뉴
 # -----------------------------------------------------------------------------
 st.sidebar.title("⚙️ 멍그 대시보드 설정")
 exchange_choice = st.sidebar.selectbox("거래소 선택", ["Bitget", "Binance", "Bybit", "Demo (샘플 데이터)"])
-st.sidebar.markdown("<div style='font-size:13px; color:#00a86b; margin-bottom:15px;'>✅ API 보안 금고 연동 완료</div>", unsafe_allow_html=True)
-st.sidebar.markdown("<div style='font-size:12px; color:#2563eb; margin-bottom:15px;'>🟢 실시간 자동 업데이트 작동 중 (10초 단위)</div>", unsafe_allow_html=True)
+st.sidebar.markdown(f"<div style='font-size:13px; color:{GREEN}; margin-bottom:15px;'>✅ API 보안 금고 연동 완료</div>", unsafe_allow_html=True)
+st.sidebar.markdown(f"<div style='font-size:12px; color:{BLUE}; margin-bottom:15px;'>🟢 실시간 자동 업데이트 작동 중 (10초 단위)</div>", unsafe_allow_html=True)
 
 if st.sidebar.button("🔄 수동 새로고침"):
     fetch_fast_data.clear()
@@ -177,7 +246,7 @@ if st.sidebar.button("🔄 수동 새로고침"):
 df_trades = fetch_slow_data(exchange_choice, MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
 
 # -----------------------------------------------------------------------------
-# 4. 🎯 메인 타이틀
+# 5. 🎯 메인 타이틀
 # -----------------------------------------------------------------------------
 st.markdown("""
 <div style="margin-top: -10px; margin-bottom: 25px;">
@@ -196,7 +265,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 5. [FRAGMENT] 🎯 현재 보유 포지션 
+# 6. [FRAGMENT] 🎯 현재 보유 포지션
 # -----------------------------------------------------------------------------
 st.markdown("<div style='font-size: 16px; font-weight: 800; color: #111827; margin-bottom: 10px;'>🎯 현재 보유 포지션</div>", unsafe_allow_html=True)
 
@@ -208,14 +277,13 @@ def show_live_positions():
     else:
         for pos in current_positions:
             pos_side = pos["side"]
-            side_color, side_bg = ("#00a86b", "rgba(0,168,107,0.1)") if pos_side == "LONG" else ("#ef4444", "rgba(239,68,68,0.1)")
+            side_color, side_bg = (GREEN, "rgba(0,168,107,0.1)") if pos_side == "LONG" else (RED, "rgba(239,68,68,0.1)")
             pnl_val, roe_val = pos["unrealized_pnl"], pos["roe"]
-            pnl_color, pnl_sign = ("#00a86b", "+") if pnl_val >= 0 else ("#ef4444", "")
+            pnl_color, pnl_sign = (GREEN, "+") if pnl_val >= 0 else (RED, "")
             base_coin = pos['symbol'].split('/')[0] if '/' in pos['symbol'] else pos['symbol']
             pos_usdt_value = pos['size'] * pos['entry_price']
             margin_ratio = (pos['margin'] / wallet_balance * 100) if wallet_balance > 0 else 0
 
-            # 🔥 ROE -> ROI 로 단어 변경 완료!
             st.markdown(f"""
             <div style="background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:15px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); display: flex; flex-wrap: wrap; margin-bottom: 15px;">
                 <div class="pos-box">
@@ -243,13 +311,13 @@ def show_live_positions():
 show_live_positions()
 
 # -----------------------------------------------------------------------------
-# 6. 상단 PNL 카드
+# 7. 상단 PNL 카드 (날짜 기준: UTC = KST 오전 9시 전환)
 # -----------------------------------------------------------------------------
 st.markdown("<div style='font-size: 11px; color: #9ca3af; margin-bottom: 10px; margin-top: -10px;'>미실현손익은 일별·월별 추정 PNL 합계에 포함하지 않습니다.</div>", unsafe_allow_html=True)
 col_s1, col_s2, col_s3 = st.columns(3)
 
 def make_top_card(title, value, sub_left, sub_right=""):
-    val_color, sign = ("#00a86b", "+") if value >= 0 else ("#ef4444", "")
+    val_color, sign = (GREEN, "+") if value >= 0 else (RED, "")
     return f"""<div style="background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:24px; min-height: 155px; display:flex; flex-direction:column; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
         <div><div style="display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;"><span>{title}</span> <span style="color:#9ca3af; font-weight:400;">{sub_right}</span></div>
         <div style="font-size:32px; font-weight:800; color:{val_color}; margin:15px 0;">{sign}${value:,.2f} <span style="font-size:14px; font-weight:600; color:#00a86b;">USDT</span></div></div>
@@ -258,7 +326,7 @@ def make_top_card(title, value, sub_left, sub_right=""):
 with col_s1:
     @st.fragment(run_every=3600)
     def render_today_pnl():
-        today_str = datetime.now(KST).strftime("%Y-%m-%d")
+        today_str = datetime.now(UTC).strftime("%Y-%m-%d")
         today_pnl = df_trades[df_trades["date"] == today_str]["pnl"].sum() if not df_trades.empty else 0.0
         st.markdown(make_top_card("오늘 추정 PNL", today_pnl, "매일 오전 9시 리셋 (KST)"), unsafe_allow_html=True)
     render_today_pnl()
@@ -266,7 +334,7 @@ with col_s1:
 with col_s2:
     @st.fragment(run_every=3600)
     def render_month_pnl():
-        month_str = datetime.now(KST).strftime("%Y-%m")
+        month_str = datetime.now(UTC).strftime("%Y-%m")
         month_pnl = df_trades[df_trades["date"].str.startswith(month_str)]["pnl"].sum() if not df_trades.empty else 0.0
         st.markdown(make_top_card("이번 달 추정 PNL", month_pnl, "매월 1일 오전 9시 리셋 (KST)"), unsafe_allow_html=True)
     render_month_pnl()
@@ -282,7 +350,7 @@ with col_s3:
 st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 7. 수익 히스토리 필터 
+# 8. 수익 히스토리 필터
 # -----------------------------------------------------------------------------
 st.markdown("<div style='display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px;'><span style='font-size:20px; font-weight:800; color:#111827;'>수익 히스토리</span></div>", unsafe_allow_html=True)
 
@@ -295,126 +363,164 @@ else:
 
 c_d1, c_d2, c_btn1, c_btn2, c_btn3, c_space, c_drop = st.columns([1.5, 1.5, 0.8, 0.9, 1.1, 4, 1.5])
 with c_d1: start_date = st.date_input("s", value=oldest_date, label_visibility="collapsed")
-with c_d2: end_date = st.date_input("e", value=datetime.now(KST).date(), label_visibility="collapsed")
+with c_d2: end_date = st.date_input("e", value=datetime.now(UTC).date(), label_visibility="collapsed")
 with c_btn1: btn_today = st.button("오늘", use_container_width=True)
 with c_btn2: btn_month = st.button("이번 달", use_container_width=True)
 with c_btn3: btn_30d = st.button("최근 30일", use_container_width=True)
-with c_drop: st.selectbox("집계", ["일별 집계", "주별 집계", "월별 집계"], label_visibility="collapsed")
+with c_drop: agg_mode = st.selectbox("집계", ["일별 집계", "주별 집계", "월별 집계"], label_visibility="collapsed")
 
-if btn_today: start_date, end_date = datetime.now(KST).date(), datetime.now(KST).date()
-elif btn_month: start_date, end_date = datetime.now(KST).date().replace(day=1), datetime.now(KST).date()
-elif btn_30d: start_date, end_date = datetime.now(KST).date() - timedelta(days=30), datetime.now(KST).date()
+if btn_today: start_date, end_date = datetime.now(UTC).date(), datetime.now(UTC).date()
+elif btn_month: start_date, end_date = datetime.now(UTC).date().replace(day=1), datetime.now(UTC).date()
+elif btn_30d: start_date, end_date = datetime.now(UTC).date() - timedelta(days=30), datetime.now(UTC).date()
 
 filter_start_date = max(start_date, datetime.strptime(DASHBOARD_START_DATE, "%Y-%m-%d").date())
 filtered_df = df_trades[(df_trades["date_obj"] >= filter_start_date) & (df_trades["date_obj"] <= end_date)] if not df_trades.empty else df_trades
 
 # -----------------------------------------------------------------------------
-# 8. [FRAGMENT] 매매 동향 (원래 예쁜 디자인 복구 + 코드 유출 없는 승률 그래프)
+# 9. [FRAGMENT] 매매 동향 — 총 주문 횟수(증가/축소) · LONG-SHORT(청산 기준) · 승률 추이
 # -----------------------------------------------------------------------------
 st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
 st.markdown("<div style='display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px;'><span style='font-size:16px; font-weight:800; color:#111827; margin-left:5px;'>매매 동향</span><span style='font-size:12px; color:#9ca3af;'>관측 기록 기준</span></div>", unsafe_allow_html=True)
 
 @st.fragment(run_every=3600)
 def render_trade_stats(f_df):
+    # 최근 7일 승률 추이는 상단 기간 필터와 무관하게 항상 '지금'을 기준으로 고정 (캐시라 추가 API 호출 없음)
+    all_df = fetch_slow_data(exchange_choice, MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
+
     col_t1, col_t2, col_t3 = st.columns([1, 1, 1.2])
 
     total = len(f_df)
-    wins = len(f_df[f_df["result"] == "익절"]) if total > 0 else 0
-    losses = len(f_df[f_df["result"] == "손절"]) if total > 0 else 0
-    entries = len(f_df[f_df["result"] == "진입"]) if total > 0 else 0
-    
-    closed_trades = wins + losses
-    rate = (wins / closed_trades * 100) if closed_trades > 0 else 0
-    
-    longs = len(f_df[f_df["side"] == "LONG"]) if total > 0 else 0
-    shorts = len(f_df[f_df["side"] == "SHORT"]) if total > 0 else 0
-    long_p = (longs/(longs+shorts)*100) if (longs+shorts)>0 else 0
-    short_p = (shorts/(longs+shorts)*100) if (longs+shorts)>0 else 0
+    incr = int((f_df["bucket"] == "증가").sum()) if total else 0
+    closes = f_df[f_df["bucket"] == "축소"] if total else f_df
+    decr = len(closes)
+    wins = int((closes["result"] == "익절").sum())
+    losses = int((closes["result"] == "손절").sum())
+    rate = (wins / (wins + losses) * 100) if (wins + losses) else 0
 
-    # 원본 그대로의 예쁜 HTML 스타일 복구!
+    lg = int((closes["side"] == "LONG").sum())
+    sh = int((closes["side"] == "SHORT").sum())
+    lp = (lg / (lg + sh) * 100) if (lg + sh) else 0
+    sp = 100 - lp if (lg + sh) else 0
+
     card_style = "background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); height: 320px; display:flex; flex-direction:column; justify-content:space-between;"
 
     with col_t1:
-        st.markdown(f"""<div style="{card_style}"><div><div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>총 체결 건수</span><span style='color:#9ca3af; font-weight:400;'>선택 기간</span></div><div style='font-size:36px; font-weight:800; color:#111827; margin:15px 0;'>{total} <span style='font-size:14px; font-weight:500;'>건</span></div><div style='font-size:12px; color:#6b7280; margin-bottom:5px; display:flex; justify-content:space-between;'><span>승·패 비율 (청산 기준)</span><b style='color:#111827;'>{rate:.1f}% 승률</b></div><div style="display:flex; width: 100%; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 20px; background-color:#f3f4f6;"><div style="width: {rate}%; background-color: #00a86b;"></div><div style="width: {100-rate if closed_trades > 0 else 0}%; background-color: #ef4444;"></div></div><div style='display:flex; justify-content:space-between; font-size:13px; color:#6b7280; margin-bottom:10px; padding: 0 5px;'><div style='display:flex; align-items:center; gap:6px;'><div style='width:8px; height:8px; border-radius:50%; background-color:#00a86b;'></div><span>익절 청산</span></div><b style='color:#00a86b;'>{wins} 건</b></div><div style='display:flex; justify-content:space-between; font-size:13px; color:#6b7280; margin-bottom:10px; padding: 0 5px;'><div style='display:flex; align-items:center; gap:6px;'><div style='width:8px; height:8px; border-radius:50%; background-color:#ef4444;'></div><span>손절 청산</span></div><b style='color:#ef4444;'>{losses} 건</b></div></div><div style='border-top:1px solid #f3f4f6; padding-top:15px; display:flex; justify-content:space-between; font-size:13px; color:#6b7280;'><span>신규 진입 (단순 오더)</span><b style='color:#2563eb;'>{entries} 건</b></div></div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div style="{card_style}">
+            <div>
+                <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>총 주문 횟수</span><span style='color:#9ca3af; font-weight:400;'>선택 기간</span></div>
+                <div style='font-size:36px; font-weight:800; color:#111827; margin:15px 0;'>{total} <span style='font-size:14px; font-weight:500;'>회</span></div>
+                <div class="stat-grid">
+                    <div>증가 수 <b>{incr}회</b></div><div>축소 수 <b>{decr}회</b></div>
+                    <div>익절 수 <b>{wins}회</b></div><div>손절 수 <b>{losses}회</b></div>
+                </div>
+            </div>
+            <div style='display:flex; justify-content:space-between; font-size:13px; color:#6b7280;'><span>기간 승률</span><b style='color:{BLUE}; font-size:15px;'>{rate:.1f}%</b></div>
+        </div>""", unsafe_allow_html=True)
 
     with col_t2:
-        bg_gradient = f"conic-gradient(#00a86b 0% {long_p}%, #ef4444 {long_p}% 100%)" if (longs+shorts)>0 else "conic-gradient(#e5e7eb 0% 100%)"
+        bg_gradient = f"conic-gradient({GREEN} 0% {lp}%, {RED} {lp}% 100%)" if (lg + sh) > 0 else "conic-gradient(#e5e7eb 0% 100%)"
         st.markdown(f"""
         <div style="{card_style}">
-            <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>LONG / SHORT</span><span style='color:#9ca3af; font-weight:400;'>총 진입/청산</span></div>
+            <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>LONG / SHORT</span><span style='color:#9ca3af; font-weight:400;'>청산 횟수 비율</span></div>
             <div style="display:flex; justify-content:center; align-items:center; flex-grow:1;">
                 <div style="width: 125px; height: 125px; border-radius: 50%; background: {bg_gradient}; display:flex; justify-content:center; align-items:center;">
                     <div style="width: 90px; height: 90px; background-color: #ffffff; border-radius: 50%; display:flex; flex-direction:column; justify-content:center; align-items:center; box-shadow: inset 0 0 5px rgba(0,0,0,0.02);">
-                        <span style="font-size:12px; color:#6b7280; font-weight:500;">총 체결</span>
-                        <b style="font-size:24px; color:#111827; margin-top:-2px;">{longs+shorts}건</b>
+                        <span style="font-size:12px; color:#6b7280; font-weight:500;">총 청산</span>
+                        <b style="font-size:24px; color:#111827; margin-top:-2px;">{decr}건</b>
                     </div>
                 </div>
             </div>
             <div>
-                <div style='display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px;'><span style='color:#00a86b; font-weight:700;'>LONG</span><b style='color:#00a86b;'>{longs}건 · {long_p:.1f}%</b></div>
-                <div style='display:flex; justify-content:space-between; font-size:13px;'><span style='color:#ef4444; font-weight:700;'>SHORT</span><b style='color:#ef4444;'>{shorts}건 · {short_p:.1f}%</b></div>
+                <div style='display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px;'><span style='color:{GREEN}; font-weight:700;'>LONG</span><b style='color:{GREEN};'>{lg}건 · {lp:.1f}%</b></div>
+                <div style='display:flex; justify-content:space-between; font-size:13px;'><span style='color:{RED}; font-weight:700;'>SHORT</span><b style='color:{RED};'>{sh}건 · {sp:.1f}%</b></div>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
     with col_t3:
-        # 🔥 실제 7일 승률 계산
-        trend_dates, trend_vals = [], []
-        total_wins_7d, total_losses_7d = 0, 0
-        now_kst = datetime.now(KST)
-        
+        now_utc = datetime.now(UTC)
+        day_labels, vals = [], []
+        tot_w7, tot_l7 = 0, 0
         for i in range(6, -1, -1):
-            target_date = (now_kst - timedelta(days=i)).strftime("%Y-%m-%d")
-            trend_dates.append((now_kst - timedelta(days=i)).strftime("%m/%d"))
-            
-            day_df = f_df[f_df["date"] == target_date] if not f_df.empty else pd.DataFrame()
-            d_w = len(day_df[day_df["result"] == "익절"])
-            d_l = len(day_df[day_df["result"] == "손절"])
-            
-            total_wins_7d += d_w
-            total_losses_7d += d_l
-            trend_vals.append(int(round(d_w / (d_w + d_l) * 100)) if (d_w + d_l) > 0 else 0)
+            d = now_utc - timedelta(days=i)
+            ds = d.strftime("%Y-%m-%d")
+            day_labels.append(d.strftime("%m/%d"))
+            day_closes = all_df[(all_df["date"] == ds) & (all_df["bucket"] == "축소")] if not all_df.empty else pd.DataFrame()
+            w, l = int((day_closes["result"] == "익절").sum()), int((day_closes["result"] == "손절").sum())
+            tot_w7 += w; tot_l7 += l
+            vals.append(w / (w + l) * 100 if (w + l) else None)
+        r_rate = round(tot_w7 / (tot_w7 + tot_l7) * 100) if (tot_w7 + tot_l7) else 0
 
-        r_rate = int(round(total_wins_7d / (total_wins_7d + total_losses_7d) * 100)) if (total_wins_7d + total_losses_7d) > 0 else 0
-        r_wins = total_wins_7d
-        r_losses = total_losses_7d
-
-        # 🔥 코드가 노출되지 않도록(마크다운 엔진 꼬임 방지) 모든 줄바꿈을 제거한 '단일 줄 문자열'로 SVG 생성
-        svg_points, circles, texts = "", "", ""
         step_x = 280 / 6
-        for i, val in enumerate(trend_vals):
-            x = i * step_x
-            y = 110 - (val / 100) * 85
-            svg_points += f"{x},{y} "
-            circles += f'<circle cx="{x}" cy="{y}" r="4" fill="#2563eb" />'
-            texts += f'<text x="{x}" y="{y-12}" font-size="12" font-weight="bold" fill="#2563eb" text-anchor="middle">{int(val)}%</text>'
-            texts += f'<text x="{x}" y="130" font-size="10" fill="#9ca3af" text-anchor="middle">{trend_dates[i]}</text>'
-        
-        # 줄바꿈(\n) 없이 한 줄로 묶어 코드가 노출되는 현상을 완벽 차단!
-        svg_html = f'<svg viewBox="-15 -15 310 150" style="width:100%; height:130px; display:block;"><polyline points="{svg_points.strip()}" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />{circles}{texts}</svg>'
+        runs, cur = [], []
+        for i, v in enumerate(vals):
+            if v is None:
+                if cur: runs.append(cur); cur = []
+            else:
+                cur.append((i * step_x, 110 - (v / 100) * 85, v))
+        if cur: runs.append(cur)
 
-        st.markdown(f"""<div style="{card_style}"><div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>승률 추이</span><span style='color:#9ca3af; font-weight:400;'>최근 7일 · 오늘 포함</span></div><div style="display:flex; align-items:baseline; gap:10px; margin-top:10px;"><span style="font-size:32px; font-weight:800; color:#2563eb;">{r_rate}%</span><span style="font-size:12px; color:#6b7280;">익절 {r_wins} · 손절 {r_losses}</span></div><div style="flex-grow:1; display:flex; flex-direction:column; justify-content:flex-end;">{svg_html}</div></div>""", unsafe_allow_html=True)
+        lines = "".join(
+            f"<polyline points='{' '.join(f'{x:.1f},{y:.1f}' for x, y, _ in run)}' fill='none' stroke='{BLUE}' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/>"
+            for run in runs if len(run) > 1
+        )
+        dots = "".join(
+            f"<circle cx='{x:.1f}' cy='{y:.1f}' r='4' fill='{BLUE}'/><text x='{x:.1f}' y='{y-12:.1f}' font-size='12' font-weight='bold' fill='{BLUE}' text-anchor='middle'>{v:.0f}%</text>"
+            for run in runs for x, y, v in run
+        )
+        empty_x = {i * step_x for i, v in enumerate(vals) if v is None}
+        dashes = "".join(f"<text x='{x:.1f}' y='60' font-size='13' fill='#d1d5db' text-anchor='middle'>―</text>" for x in empty_x)
+        days = "".join(f"<text x='{i * step_x:.1f}' y='130' font-size='10' fill='#9ca3af' text-anchor='middle'>{day_labels[i]}</text>" for i in range(7))
+        svg_html = f"<svg viewBox='-15 -15 310 150' style='width:100%; height:130px; display:block;'>{lines}{dots}{dashes}{days}</svg>"
+
+        st.markdown(f"""<div style="{card_style}">
+            <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>승률 추이</span><span style='color:#9ca3af; font-weight:400;'>최근 7일 · 오늘 포함</span></div>
+            <div style="display:flex; align-items:baseline; gap:10px; margin-top:10px;"><span style="font-size:32px; font-weight:800; color:{BLUE};">{r_rate}%</span><span style="font-size:12px; color:#6b7280;">익절 {tot_w7} · 손절 {tot_l7}</span></div>
+            <div style="flex-grow:1; display:flex; flex-direction:column; justify-content:flex-end;">{svg_html}</div>
+        </div>""", unsafe_allow_html=True)
+
+    st.markdown(
+        "<div class='note-text'>총 주문 횟수는 포지션 증가(신규·추가 진입)와 축소(부분·전체 청산) 이벤트의 합계이며, "
+        "분할 체결은 같은 주문으로 묶어서 1건으로 셉니다. 거래소가 표시하는 주문 건수와 다를 수 있습니다. "
+        "익절·손절·본전·미확인은 모두 축소 이벤트에 포함되고, 승률은 익절 ÷ (익절 + 손절)로 계산해 본전·미확인은 제외합니다. "
+        "LONG/SHORT 비율은 축소(청산) 이벤트 기준입니다. 익절·손절이 없는 날은 그래프에 ―로 표시합니다.</div>",
+        unsafe_allow_html=True,
+    )
 
 render_trade_stats(filtered_df)
 
 # -----------------------------------------------------------------------------
-# 9. [FRAGMENT] 선택 기간 PNL 박스 (거래 없는 날짜 강제 채우기 + 오류 방지)
+# 10. [FRAGMENT] 선택 기간 PNL 박스
 # -----------------------------------------------------------------------------
 st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
 
 @st.fragment(run_every=3600)
 def render_pnl_charts(f_df):
     period_sum = f_df["pnl"].sum() if not f_df.empty else 0.0
-    pnl_color, pnl_sign = ("#00a86b", "+") if period_sum >= 0 else ("#ef4444", "")
+    pnl_color, pnl_sign = (GREEN, "+") if period_sum >= 0 else (RED, "")
 
-    # 위에 추가된 전역 CSS (stVerticalBlockBorderWrapper) 덕분에 st.container가 강제로 예쁜 흰색 배경을 갖게 됩니다.
+    if not f_df.empty:
+        daily_pnl = f_df.groupby("date")["pnl"].sum().reset_index()
+        daily_pnl["date_obj"] = pd.to_datetime(daily_pnl["date"]).dt.date
+        full_dates = pd.date_range(start=filter_start_date, end=end_date).date
+        daily_pnl = pd.merge(pd.DataFrame({"date_obj": full_dates}), daily_pnl, on="date_obj", how="left").fillna({"pnl": 0})
+        daily_pnl["date_str"] = pd.to_datetime(daily_pnl["date_obj"]).dt.strftime("%Y-%m-%d")
+        daily_pnl["cum"] = daily_pnl["pnl"].cumsum()
+        daily_pnl["color"] = daily_pnl["pnl"].apply(lambda x: GREEN if x >= 0 else RED)
+        last_date, last_val = daily_pnl["date_str"].iloc[-1], daily_pnl["pnl"].iloc[-1]
+    else:
+        daily_pnl = pd.DataFrame()
+        last_date, last_val = end_date.strftime("%Y-%m-%d"), 0.0
+
+    last_sign = "+" if last_val >= 0 else ""
+
     with st.container(border=True):
         st.markdown("<div class='white-marker'></div>", unsafe_allow_html=True)
-        
         st.markdown(f"""
         <div style="padding: 10px 10px 0 10px;">
-            <div style='display:flex; justify-content:space-between;'>
-                <span style='font-size:12px; color:#9ca3af; font-weight:600;'>선택 기간 추정 PNL (오전 9시 갱신 기준)</span>
+            <div style='display:flex; justify-content:space-between; align-items:baseline;'>
+                <span style='font-size:12px; color:#9ca3af; font-weight:600;'>선택 기간 추정 PNL</span>
+                <span style='font-size:12px; color:#9ca3af;'>{last_date} <b style='color:{GREEN if last_val >= 0 else RED};'>{last_sign}${last_val:,.2f}</b></span>
             </div>
             <div style='font-size:32px; font-weight:800; color:{pnl_color}; margin-top:5px;'>
                 {pnl_sign}${period_sum:,.2f} <span style='font-size:14px; color:#00a86b; font-weight:600;'>USDT</span>
@@ -424,68 +530,63 @@ def render_pnl_charts(f_df):
         """, unsafe_allow_html=True)
 
         tab1, tab2 = st.tabs(["일별 손익", "기간 누적"])
-        
-        if not f_df.empty:
-            daily_pnl = f_df.groupby("date")["pnl"].sum().reset_index()
-            daily_pnl["date_obj"] = pd.to_datetime(daily_pnl["date"]).dt.date
-            
-            # 🔥 핵심 수정: 시작일부터 종료일까지 빈 날짜를 생성해서 PNL을 0으로 꽉 채웁니다!
-            full_dates = pd.date_range(start=filter_start_date, end=end_date).date
-            full_df = pd.DataFrame({"date_obj": full_dates})
-            
-            daily_pnl = pd.merge(full_df, daily_pnl, on="date_obj", how="left").fillna({"pnl": 0})
-            daily_pnl["date_str"] = pd.to_datetime(daily_pnl["date_obj"]).dt.strftime("%Y-%m-%d")
-            
-            daily_pnl["cum"] = daily_pnl["pnl"].cumsum()
-            daily_pnl["color"] = daily_pnl["pnl"].apply(lambda x: "#00a86b" if x >= 0 else "#ef4444")
-        else:
-            daily_pnl = pd.DataFrame()
+
+        tickvals = []
+        if not daily_pnl.empty:
+            n = len(daily_pnl)
+            idxs = sorted({0, n // 2, n - 1})
+            tickvals = [daily_pnl["date_str"].iloc[i] for i in idxs]
+
+        def style(fig):
+            fig.update_layout(
+                template="plotly_white", margin=dict(t=20, b=10, l=10, r=10), height=350,
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", hovermode="x unified",
+                xaxis=dict(showgrid=False, zeroline=False, type='category', tickmode='array', tickvals=tickvals),
+                yaxis=dict(showgrid=True, gridcolor="#f3f4f6", griddash="dash", zeroline=True, zerolinecolor="#d1d5db", zerolinewidth=1.5, nticks=5),
+            )
+            return fig
 
         with tab1:
             if not daily_pnl.empty:
-                import plotly.graph_objects as go
                 fig1 = go.Figure(go.Bar(
                     x=daily_pnl["date_str"], y=daily_pnl["pnl"], marker_color=daily_pnl["color"],
                     name="일별 수익", hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT<extra></extra>"
                 ))
-                fig1.update_layout(
-                    template="plotly_white", margin=dict(t=20, b=10, l=10, r=10), height=350, 
-                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                    hovermode="x unified",
-                    xaxis=dict(showgrid=False, zeroline=False, type='category'),
-                    yaxis=dict(showgrid=True, gridcolor="#f3f4f6", griddash="dash", zeroline=True, zerolinecolor="#d1d5db", zerolinewidth=1.5)
-                )
-                st.plotly_chart(fig1, use_container_width=True, config={"displayModeBar": False})
+                st.plotly_chart(style(fig1), use_container_width=True, config={"displayModeBar": False})
+            else:
+                st.caption("선택한 기간에 거래가 없습니다.")
 
         with tab2:
             if not daily_pnl.empty:
                 fig2 = go.Figure(go.Scatter(
-                    x=daily_pnl["date_str"], y=daily_pnl["cum"], mode="lines+markers", 
-                    line=dict(color="#2563eb", width=3), fill="tozeroy", fillcolor="rgba(37, 99, 235, 0.08)",
+                    x=daily_pnl["date_str"], y=daily_pnl["cum"], mode="lines+markers",
+                    line=dict(color=BLUE, width=3), fill="tozeroy", fillcolor="rgba(37, 99, 235, 0.08)",
                     name="누적 수익", hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT<extra></extra>"
                 ))
-                fig2.update_layout(
-                    template="plotly_white", margin=dict(t=20, b=10, l=10, r=10), height=350, 
-                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                    hovermode="x unified",
-                    xaxis=dict(showgrid=False, zeroline=False, type='category'),
-                    yaxis=dict(showgrid=True, gridcolor="#f3f4f6", griddash="dash", zeroline=True, zerolinecolor="#d1d5db", zerolinewidth=1.5)
-                )
-                st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False})
+                st.plotly_chart(style(fig2), use_container_width=True, config={"displayModeBar": False})
 
 render_pnl_charts(filtered_df)
 
-st.markdown("<div style='font-size:11px; color:#9ca3af; margin: 10px 0 30px 0;'>추정 PNL · USDT · 한국시간 기준 · 기간 누적은 선택한 기간의 시작을 0으로 계산합니다.</div>", unsafe_allow_html=True)
+st.markdown("<div style='font-size:11px; color:#9ca3af; margin: 10px 0 30px 0;'>추정 PNL · USDT · UTC 기준 (한국시간 오전 9시 날짜 전환) · 기간 누적은 선택한 기간의 시작을 0으로 계산합니다.</div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 10. 매매 상세 내역 로그
+# 11. 매매 상세 내역 로그
 # -----------------------------------------------------------------------------
 st.markdown("<div style='font-size: 18px; font-weight: 800; color: #111827; margin-bottom: 15px;'>📝 상세 매매 내역</div>", unsafe_allow_html=True)
 
 @st.fragment(run_every=3600)
 def render_trade_logs(f_df):
     if not f_df.empty:
-        st.dataframe(f_df[["datetime", "symbol", "side", "pnl", "result"]], use_container_width=True, hide_index=True, height=400)
+        st.dataframe(
+            f_df[["datetime", "symbol", "side", "bucket", "pnl", "result"]],
+            use_container_width=True, hide_index=True, height=400,
+            column_config={
+                "datetime": st.column_config.DatetimeColumn("시간 (KST)", format="YYYY-MM-DD HH:mm"),
+                "symbol": "종목", "side": "방향", "bucket": "구분",
+                "pnl": st.column_config.NumberColumn("PNL (USDT)", format="%.2f"),
+                "result": "결과",
+            },
+        )
     else:
         st.info("새로운 출발을 응원합니다! (아직 등록된 거래 내역이 없습니다)")
 
