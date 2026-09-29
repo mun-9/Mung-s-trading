@@ -243,21 +243,8 @@ df_trades = fetch_slow_data(exchange_choice, MY_API_KEY, MY_SECRET_KEY, MY_PASSP
 # -----------------------------------------------------------------------------
 # 5. 🎯 메인 타이틀
 # -----------------------------------------------------------------------------
-st.markdown("""
-<div style="margin-top: -10px; margin-bottom: 25px;">
-    <h1 style="font-size: 32px; font-weight: 900; color: #111827; margin: 0; padding: 0; letter-spacing: -0.5px;">Trading History</h1>
-    <div style="width: 40px; height: 4px; background-color: #2563eb; margin-top: 10px; border-radius: 2px;"></div>
-</div>
-""", unsafe_allow_html=True)
-
-st.markdown("""
-<div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 15px; border-bottom: 2px solid #e5e7eb; margin-bottom: 25px;">
-    <div style="display: flex; align-items: center; gap: 12px;">
-        <span style="background: linear-gradient(135deg, #00a86b, #059669); color: white; font-weight: 900; padding: 6px 14px; border-radius: 8px; font-size: 18px; box-shadow: 0 2px 4px rgba(0,168,107,0.3);">멍그</span>
-        <span style="font-size: 22px; font-weight: 900; color: #111827; letter-spacing: -0.5px;">MUNGGE TRADING JOURNAL</span>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+st.markdown("""<div style="margin-top: -10px; margin-bottom: 25px;"><h1 style="font-size: 32px; font-weight: 900; color: #111827; margin: 0; padding: 0; letter-spacing: -0.5px;">Trading History</h1><div style="width: 40px; height: 4px; background-color: #2563eb; margin-top: 10px; border-radius: 2px;"></div></div>""", unsafe_allow_html=True)
+st.markdown("""<div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 15px; border-bottom: 2px solid #e5e7eb; margin-bottom: 25px;"><div style="display: flex; align-items: center; gap: 12px;"><span style="background: linear-gradient(135deg, #00a86b, #059669); color: white; font-weight: 900; padding: 6px 14px; border-radius: 8px; font-size: 18px; box-shadow: 0 2px 4px rgba(0,168,107,0.3);">멍그</span><span style="font-size: 22px; font-weight: 900; color: #111827; letter-spacing: -0.5px;">MUNGGE TRADING JOURNAL</span></div></div>""", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
 # 6. [FRAGMENT] 🎯 현재 보유 포지션
@@ -279,30 +266,9 @@ def show_live_positions():
             pos_usdt_value = pos['size'] * pos['entry_price']
             margin_ratio = (pos['margin'] / wallet_balance * 100) if wallet_balance > 0 else 0
 
-            st.markdown(f"""
-            <div style="background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:15px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); display: flex; flex-wrap: wrap; margin-bottom: 15px;">
-                <div class="pos-box">
-                    <div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 8px;'>종목 / 방향 및 규모</div>
-                    <div style='font-size: 24px; font-weight: 800; color: #111827;'>{pos['symbol']} <span style='font-size: 13px; font-weight: 700; color: {side_color}; background-color: {side_bg}; padding: 4px 8px; border-radius: 6px; margin-left: 5px; vertical-align: middle;'>{pos_side} {pos['leverage']}x</span></div>
-                    <div style='font-size: 14px; color: #4b5563; font-weight: 600; margin-top: 8px;'>{pos['size']} {base_coin} ≈ ${pos_usdt_value:,.2f}</div>
-                </div>
-                <div class="pos-box pos-divider">
-                    <div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 12px;'>진입가 / 현재가</div>
-                    <div style='display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px;'><span style='width: 45px; font-size: 12px; color: #9ca3af;'>진입가</span><span style='font-size: 18px; font-weight: 700; color: #111827;'>${pos['entry_price']:,.2f}</span></div>
-                    <div style='display: flex; align-items: baseline; gap: 8px;'><span style='width: 45px; font-size: 12px; color: #9ca3af;'>현재가</span><span style='font-size: 18px; font-weight: 700; color: #2563eb;'>${pos['mark_price']:,.2f}</span></div>
-                </div>
-                <div class="pos-box pos-divider">
-                    <div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 12px;'>미실현 손익 / 수익률(ROI)</div>
-                    <div style='font-size: 26px; font-weight: 800; color: {pnl_color}; margin-bottom: -5px;'>{pnl_sign}${pnl_val:,.2f}</div>
-                    <div style='font-size: 15px; font-weight: 700; color: {pnl_color};'>({pnl_sign}{roe_val:.2f}%)</div>
-                </div>
-                <div class="pos-box pos-divider">
-                    <div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 12px;'>증거금 <span style="color:#2563eb;">(비중%)</span> / 청산가</div>
-                    <div style='display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px;'><span style='width: 45px; font-size: 12px; color: #9ca3af;'>증거금</span><span style='font-size: 18px; font-weight: 700; color: #111827;'>${pos['margin']:,.2f} <span style='font-size:14px; color:#2563eb;'>({margin_ratio:.1f}%)</span></span></div>
-                    <div style='display: flex; align-items: baseline; gap: 8px;'><span style='width: 45px; font-size: 12px; color: #9ca3af;'>청산가</span><span style='font-size: 18px; font-weight: 700; color: #4b5563;'>${pos['liq_price']:,.2f}</span></div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            # 🔥 코드 노출 방지를 위한 한 줄 압축 HTML
+            pos_html = f"""<div style="background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:15px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); display: flex; flex-wrap: wrap; margin-bottom: 15px;"><div class="pos-box"><div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 8px;'>종목 / 방향 및 규모</div><div style='font-size: 24px; font-weight: 800; color: #111827;'>{pos['symbol']} <span style='font-size: 13px; font-weight: 700; color: {side_color}; background-color: {side_bg}; padding: 4px 8px; border-radius: 6px; margin-left: 5px; vertical-align: middle;'>{pos_side} {pos['leverage']}x</span></div><div style='font-size: 14px; color: #4b5563; font-weight: 600; margin-top: 8px;'>{pos['size']} {base_coin} ≈ ${pos_usdt_value:,.2f}</div></div><div class="pos-box pos-divider"><div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 12px;'>진입가 / 현재가</div><div style='display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px;'><span style='width: 45px; font-size: 12px; color: #9ca3af;'>진입가</span><span style='font-size: 18px; font-weight: 700; color: #111827;'>${pos['entry_price']:,.2f}</span></div><div style='display: flex; align-items: baseline; gap: 8px;'><span style='width: 45px; font-size: 12px; color: #9ca3af;'>현재가</span><span style='font-size: 18px; font-weight: 700; color: #2563eb;'>${pos['mark_price']:,.2f}</span></div></div><div class="pos-box pos-divider"><div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 12px;'>미실현 손익 / 수익률(ROI)</div><div style='font-size: 26px; font-weight: 800; color: {pnl_color}; margin-bottom: -5px;'>{pnl_sign}${pnl_val:,.2f}</div><div style='font-size: 15px; font-weight: 700; color: {pnl_color};'>({pnl_sign}{roe_val:.2f}%)</div></div><div class="pos-box pos-divider"><div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 12px;'>증거금 <span style="color:#2563eb;">(비중%)</span> / 청산가</div><div style='display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px;'><span style='width: 45px; font-size: 12px; color: #9ca3af;'>증거금</span><span style='font-size: 18px; font-weight: 700; color: #111827;'>${pos['margin']:,.2f} <span style='font-size:14px; color:#2563eb;'>({margin_ratio:.1f}%)</span></span></div><div style='display: flex; align-items: baseline; gap: 8px;'><span style='width: 45px; font-size: 12px; color: #9ca3af;'>청산가</span><span style='font-size: 18px; font-weight: 700; color: #4b5563;'>${pos['liq_price']:,.2f}</span></div></div></div>"""
+            st.markdown(pos_html, unsafe_allow_html=True)
 show_live_positions()
 
 # -----------------------------------------------------------------------------
@@ -313,10 +279,8 @@ col_s1, col_s2, col_s3 = st.columns(3)
 
 def make_top_card(title, value, sub_left, sub_right=""):
     val_color, sign = (GREEN, "+") if value >= 0 else (RED, "")
-    return f"""<div style="background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:24px; min-height: 155px; display:flex; flex-direction:column; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-        <div><div style="display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;"><span>{title}</span> <span style="color:#9ca3af; font-weight:400;">{sub_right}</span></div>
-        <div style="font-size:32px; font-weight:800; color:{val_color}; margin:15px 0;">{sign}${value:,.2f} <span style="font-size:14px; font-weight:600; color:#00a86b;">USDT</span></div></div>
-        <div style="font-size:12px; color:#9ca3af; margin-top:auto;">{sub_left}</div></div>"""
+    # 🔥 코드 노출 방지를 위한 한 줄 압축 HTML
+    return f"""<div style="background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:24px; min-height: 155px; display:flex; flex-direction:column; box-shadow: 0 1px 3px rgba(0,0,0,0.02);"><div><div style="display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;"><span>{title}</span> <span style="color:#9ca3af; font-weight:400;">{sub_right}</span></div><div style="font-size:32px; font-weight:800; color:{val_color}; margin:15px 0;">{sign}${value:,.2f} <span style="font-size:14px; font-weight:600; color:#00a86b;">USDT</span></div></div><div style="font-size:12px; color:#9ca3af; margin-top:auto;">{sub_left}</div></div>"""
 
 with col_s1:
     @st.fragment(run_every=3600)
@@ -399,65 +363,15 @@ def render_trade_stats(f_df):
     card_style = "background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); height: 320px; display:flex; flex-direction:column; justify-content:space-between;"
 
     with col_t1:
-        # 🔥 디자인 리뉴얼: 2x2 그리드 배열 적용하여 깔끔하고 완벽한 비율로 수정 완료
-        st.markdown(f"""<div style="{card_style}">
-            <div>
-                <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'>
-                    <span>총 주문 횟수</span><span style='color:#9ca3af; font-weight:400;'>선택 기간</span>
-                </div>
-                <div style='display:flex; align-items:baseline; margin:15px 0 24px;'>
-                    <span style='font-size:36px; font-weight:800; color:#111827;'>{total}</span>
-                    <span style='font-size:14px; font-weight:600; color:#6b7280; margin-left:4px;'>회</span>
-                </div>
-                
-                <div style='display:flex; flex-direction:column; gap:14px;'>
-                    <div style='display:flex; justify-content:space-between; font-size:13px;'>
-                        <div style='flex:1; display:flex; justify-content:space-between; padding-right:15px; border-right:1px solid #e5e7eb;'>
-                            <span style='color:#6b7280;'>증가 수</span><b style='color:#111827;'>{incr} 회</b>
-                        </div>
-                        <div style='flex:1; display:flex; justify-content:space-between; padding-left:15px;'>
-                            <span style='color:#6b7280;'>축소 수</span><b style='color:#111827;'>{decr} 회</b>
-                        </div>
-                    </div>
-                    
-                    <div style='display:flex; justify-content:space-between; font-size:13px;'>
-                        <div style='flex:1; display:flex; justify-content:space-between; padding-right:15px; border-right:1px solid #e5e7eb;'>
-                            <span style='color:#6b7280;'>익절 수</span><b style='color:{GREEN};'>{wins} 회</b>
-                        </div>
-                        <div style='flex:1; display:flex; justify-content:space-between; padding-left:15px;'>
-                            <span style='color:#6b7280;'>손절 수</span><b style='color:{RED};'>{losses} 회</b>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div style='border-top:1px solid #f3f4f6; padding-top:15px; margin-top:auto;'>
-                <div style='display:flex; justify-content:space-between; align-items:center;'>
-                    <span style='font-size:13px; color:#6b7280; font-weight:600;'>기간 승률</span>
-                    <b style='color:{BLUE}; font-size:18px;'>{rate:.1f}%</b>
-                </div>
-            </div>
-        </div>""", unsafe_allow_html=True)
+        # 🔥 마크다운 버그 완벽 차단: 들여쓰기 1도 없는 1줄짜리 완벽 압축 HTML!
+        html_t1 = f"""<div style="{card_style}"><div><div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>총 주문 횟수</span><span style='color:#9ca3af; font-weight:400;'>선택 기간</span></div><div style='display:flex; align-items:baseline; margin:15px 0 24px;'><span style='font-size:36px; font-weight:800; color:#111827;'>{total}</span><span style='font-size:14px; font-weight:600; color:#6b7280; margin-left:4px;'>회</span></div><div style='display:flex; flex-direction:column; gap:14px;'><div style='display:flex; justify-content:space-between; font-size:13px;'><div style='flex:1; display:flex; justify-content:space-between; padding-right:15px; border-right:1px solid #e5e7eb;'><span style='color:#6b7280;'>증가 수</span><b style='color:#111827;'>{incr} 회</b></div><div style='flex:1; display:flex; justify-content:space-between; padding-left:15px;'><span style='color:#6b7280;'>축소 수</span><b style='color:#111827;'>{decr} 회</b></div></div><div style='display:flex; justify-content:space-between; font-size:13px;'><div style='flex:1; display:flex; justify-content:space-between; padding-right:15px; border-right:1px solid #e5e7eb;'><span style='color:#6b7280;'>익절 수</span><b style='color:{GREEN};'>{wins} 회</b></div><div style='flex:1; display:flex; justify-content:space-between; padding-left:15px;'><span style='color:#6b7280;'>손절 수</span><b style='color:{RED};'>{losses} 회</b></div></div></div></div><div style='border-top:1px solid #f3f4f6; padding-top:15px; margin-top:auto;'><div style='display:flex; justify-content:space-between; align-items:center;'><span style='font-size:13px; color:#6b7280; font-weight:600;'>기간 승률</span><b style='color:{BLUE}; font-size:18px;'>{rate:.1f}%</b></div></div></div>"""
+        st.markdown(html_t1, unsafe_allow_html=True)
 
     with col_t2:
         bg_gradient = f"conic-gradient({GREEN} 0% {lp}%, {RED} {lp}% 100%)" if (lg + sh) > 0 else "conic-gradient(#e5e7eb 0% 100%)"
-        st.markdown(f"""
-        <div style="{card_style}">
-            <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>LONG / SHORT</span><span style='color:#9ca3af; font-weight:400;'>청산 횟수 비율</span></div>
-            <div style="display:flex; justify-content:center; align-items:center; flex-grow:1;">
-                <div style="width: 125px; height: 125px; border-radius: 50%; background: {bg_gradient}; display:flex; justify-content:center; align-items:center;">
-                    <div style="width: 90px; height: 90px; background-color: #ffffff; border-radius: 50%; display:flex; flex-direction:column; justify-content:center; align-items:center; box-shadow: inset 0 0 5px rgba(0,0,0,0.02);">
-                        <span style="font-size:12px; color:#6b7280; font-weight:500;">총 청산</span>
-                        <b style="font-size:24px; color:#111827; margin-top:-2px;">{decr}건</b>
-                    </div>
-                </div>
-            </div>
-            <div>
-                <div style='display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px;'><span style='color:{GREEN}; font-weight:700;'>LONG</span><b style='color:{GREEN};'>{lg}건 · {lp:.1f}%</b></div>
-                <div style='display:flex; justify-content:space-between; font-size:13px;'><span style='color:{RED}; font-weight:700;'>SHORT</span><b style='color:{RED};'>{sh}건 · {sp:.1f}%</b></div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        # 🔥 마크다운 버그 완벽 차단: 들여쓰기 1도 없는 1줄짜리 완벽 압축 HTML!
+        html_t2 = f"""<div style="{card_style}"><div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>LONG / SHORT</span><span style='color:#9ca3af; font-weight:400;'>청산 횟수 비율</span></div><div style="display:flex; justify-content:center; align-items:center; flex-grow:1;"><div style="width: 125px; height: 125px; border-radius: 50%; background: {bg_gradient}; display:flex; justify-content:center; align-items:center;"><div style="width: 90px; height: 90px; background-color: #ffffff; border-radius: 50%; display:flex; flex-direction:column; justify-content:center; align-items:center; box-shadow: inset 0 0 5px rgba(0,0,0,0.02);"><span style="font-size:12px; color:#6b7280; font-weight:500;">총 청산</span><b style="font-size:24px; color:#111827; margin-top:-2px;">{decr}건</b></div></div></div><div><div style='display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px;'><span style='color:{GREEN}; font-weight:700;'>LONG</span><b style='color:{GREEN};'>{lg}건 · {lp:.1f}%</b></div><div style='display:flex; justify-content:space-between; font-size:13px;'><span style='color:{RED}; font-weight:700;'>SHORT</span><b style='color:{RED};'>{sh}건 · {sp:.1f}%</b></div></div></div>"""
+        st.markdown(html_t2, unsafe_allow_html=True)
 
     with col_t3:
         now_utc = datetime.now(UTC)
@@ -495,17 +409,12 @@ def render_trade_stats(f_df):
         days = "".join(f"<text x='{i * step_x:.1f}' y='130' font-size='10' fill='#9ca3af' text-anchor='middle'>{day_labels[i]}</text>" for i in range(7))
         svg_html = f"<svg viewBox='-15 -15 310 150' style='width:100%; height:130px; display:block;'>{lines}{dots}{dashes}{days}</svg>"
 
-        st.markdown(f"""<div style="{card_style}">
-            <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>승률 추이</span><span style='color:#9ca3af; font-weight:400;'>최근 7일 · 오늘 포함</span></div>
-            <div style="display:flex; align-items:baseline; gap:10px; margin-top:10px;"><span style="font-size:32px; font-weight:800; color:{BLUE};">{r_rate}%</span><span style="font-size:12px; color:#6b7280;">익절 {tot_w7} · 손절 {tot_l7}</span></div>
-            <div style="flex-grow:1; display:flex; flex-direction:column; justify-content:flex-end;">{svg_html}</div>
-        </div>""", unsafe_allow_html=True)
+        # 🔥 마크다운 버그 완벽 차단: 들여쓰기 1도 없는 1줄짜리 완벽 압축 HTML!
+        html_t3 = f"""<div style="{card_style}"><div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>승률 추이</span><span style='color:#9ca3af; font-weight:400;'>최근 7일 · 오늘 포함</span></div><div style="display:flex; align-items:baseline; gap:10px; margin-top:10px;"><span style="font-size:32px; font-weight:800; color:{BLUE};">{r_rate}%</span><span style="font-size:12px; color:#6b7280;">익절 {tot_w7} · 손절 {tot_l7}</span></div><div style="flex-grow:1; display:flex; flex-direction:column; justify-content:flex-end;">{svg_html}</div></div>"""
+        st.markdown(html_t3, unsafe_allow_html=True)
 
     st.markdown(
-        "<div class='note-text'>총 주문 횟수는 포지션 증가(신규·추가 진입)와 축소(부분·전체 청산) 이벤트의 합계이며, "
-        "분할 체결은 같은 주문으로 묶어서 1건으로 셉니다. 거래소가 표시하는 주문 건수와 다를 수 있습니다. "
-        "익절·손절·본전·미확인은 모두 축소 이벤트에 포함되고, 승률은 익절 ÷ (익절 + 손절)로 계산해 본전·미확인은 제외합니다. "
-        "LONG/SHORT 비율은 축소(청산) 이벤트 기준입니다. 익절·손절이 없는 날은 그래프에 ―로 표시합니다.</div>",
+        "<div class='note-text'>총 주문 횟수는 포지션 증가(신규·추가 진입)와 축소(부분·전체 청산) 이벤트의 합계이며, 분할 체결은 같은 주문으로 묶어서 1건으로 셉니다. 거래소가 표시하는 주문 건수와 다를 수 있습니다. 익절·손절·본전·미확인은 모두 축소 이벤트에 포함되고, 승률은 익절 ÷ (익절 + 손절)로 계산해 본전·미확인은 제외합니다. LONG/SHORT 비율은 축소(청산) 이벤트 기준입니다. 익절·손절이 없는 날은 그래프에 ―로 표시합니다.</div>",
         unsafe_allow_html=True,
     )
 
@@ -537,16 +446,9 @@ def render_pnl_charts(f_df):
     last_sign = "+" if last_val >= 0 else ""
 
     with st.container(key="pnl_card"):
-        st.markdown(f"""
-        <div style='display:flex; justify-content:space-between; align-items:baseline;'>
-            <span style='font-size:12px; color:#9ca3af; font-weight:600;'>선택 기간 추정 PNL</span>
-            <span style='font-size:12px; color:#9ca3af;'>{last_date} <b style='color:{GREEN if last_val >= 0 else RED};'>{last_sign}${last_val:,.2f}</b></span>
-        </div>
-        <div style='font-size:32px; font-weight:800; color:{pnl_color}; margin-top:5px;'>
-            {pnl_sign}${period_sum:,.2f} <span style='font-size:14px; color:#00a86b; font-weight:600;'>USDT</span>
-        </div>
-        <div style="border-bottom: 1px solid #e5e7eb; margin: 15px 0 5px 0;"></div>
-        """, unsafe_allow_html=True)
+        # 🔥 마크다운 버그 완벽 차단: 들여쓰기 1도 없는 1줄짜리 완벽 압축 HTML!
+        html_pnl = f"""<div style='display:flex; justify-content:space-between; align-items:baseline;'><span style='font-size:12px; color:#9ca3af; font-weight:600;'>선택 기간 추정 PNL</span><span style='font-size:12px; color:#9ca3af;'>{last_date} <b style='color:{GREEN if last_val >= 0 else RED};'>{last_sign}${last_val:,.2f}</b></span></div><div style='font-size:32px; font-weight:800; color:{pnl_color}; margin-top:5px;'>{pnl_sign}${period_sum:,.2f} <span style='font-size:14px; color:#00a86b; font-weight:600;'>USDT</span></div><div style="border-bottom: 1px solid #e5e7eb; margin: 15px 0 5px 0;"></div>"""
+        st.markdown(html_pnl, unsafe_allow_html=True)
 
         tab1, tab2 = st.tabs(["일별 손익", "기간 누적"])
 
