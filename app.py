@@ -42,8 +42,7 @@ st.markdown("""
 <style>
     .stApp { background-color: #f4f5f7; }
 
-    /* 🔥 "선택 기간 추정 PNL" 카드 전용 — st.container(key=...) 가 만드는 클래스에 직접 스타일 적용
-       (border=True + stVerticalBlockBorderWrapper 방식은 이 환경에서 안 먹혀서 폐기) */
+    /* 🔥 "선택 기간 추정 PNL" 카드 전용 — st.container(key=...) 가 만드는 클래스에 직접 스타일 적용 */
     div.st-key-pnl_card, div[class*="st-key-pnl_card"] {
         background-color: #ffffff !important;
         border: 1px solid #e5e7eb !important;
@@ -71,9 +70,6 @@ st.markdown("""
 # 2. 체결 분류 유틸 — 증가(신규·추가 진입) / 축소(부분·전체 청산)
 # -----------------------------------------------------------------------------
 def classify_fill(t):
-    """거래소 원본 필드로 증가/축소, 승·패를 판별합니다.
-    Bitget: info.tradeSide 에 open/close 가 그대로 들어와 정확히 판별됩니다.
-    Binance/Bybit: reduceOnly 가 없으면 realizedPnl 유무로 추정합니다(참고용)."""
     info = t.get("info", {}) or {}
     ts = str(info.get("tradeSide", "")).lower()
     ro = info.get("reduceOnly", t.get("reduceOnly"))
@@ -90,7 +86,7 @@ def classify_fill(t):
     elif ro is False:
         is_close = False
     else:
-        is_close = has_pnl and pnl != 0  # 마지막 수단: 실현손익이 찍히면 축소로 간주
+        is_close = has_pnl and pnl != 0 
 
     if "long" in ts:
         side = "LONG"
@@ -118,7 +114,6 @@ TRADE_COLS = ["order_id", "datetime", "date", "symbol", "side", "bucket", "has_p
 
 
 def finalize(rows):
-    """분할 체결을 주문 단위로 묶어서 승률 왜곡을 막습니다."""
     if not rows:
         return pd.DataFrame(columns=TRADE_COLS)
     df = pd.DataFrame(rows)
@@ -151,7 +146,7 @@ def demo_trades():
             "has_pnl": True,
             "pnl": round(pnl, 2),
         })
-    df = finalize(rows)  # order_id 가 이미 고유해서 그룹핑은 통과만 시킴
+    df = finalize(rows) 
     return df[df["date"] >= DASHBOARD_START_DATE]
 
 
@@ -216,7 +211,7 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
                     rows.append({
                         "order_id": order_id,
                         "datetime": t_kst.replace(tzinfo=None),
-                        "date": t_utc.strftime("%Y-%m-%d"),  # UTC 날짜 = KST 오전 9시에 날짜 전환
+                        "date": t_utc.strftime("%Y-%m-%d"), 
                         "symbol": t["symbol"].replace(":USDT", ""), "side": side,
                         "bucket": "축소" if is_close else "증가",
                         "has_pnl": has_pnl, "pnl": pnl,
@@ -384,7 +379,6 @@ st.markdown("<div style='display:flex; justify-content:space-between; align-item
 
 @st.fragment(run_every=3600)
 def render_trade_stats(f_df):
-    # 최근 7일 승률 추이는 상단 기간 필터와 무관하게 항상 '지금'을 기준으로 고정 (캐시라 추가 API 호출 없음)
     all_df = fetch_slow_data(exchange_choice, MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
 
     col_t1, col_t2, col_t3 = st.columns([1, 1, 1.2])
@@ -405,26 +399,43 @@ def render_trade_stats(f_df):
     card_style = "background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); height: 320px; display:flex; flex-direction:column; justify-content:space-between;"
 
     with col_t1:
-        incr_p = (incr / total * 100) if total else 0
-        decr_p = 100 - incr_p if total else 0
+        # 🔥 디자인 리뉴얼: 2x2 그리드 배열 적용하여 깔끔하고 완벽한 비율로 수정 완료
         st.markdown(f"""<div style="{card_style}">
             <div>
-                <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>총 주문 횟수</span><span style='color:#9ca3af; font-weight:400;'>선택 기간</span></div>
-                <div style='font-size:36px; font-weight:800; color:#111827; margin:15px 0 10px;'>{total} <span style='font-size:14px; font-weight:500;'>회</span></div>
-                <div style="display:flex; width:100%; height:8px; border-radius:4px; overflow:hidden; background-color:#eef0f4;">
-                    <div style="width:{incr_p}%; background-color:{BLUE};"></div>
-                    <div style="width:{decr_p}%; background-color:#c7ccd6;"></div>
+                <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'>
+                    <span>총 주문 횟수</span><span style='color:#9ca3af; font-weight:400;'>선택 기간</span>
                 </div>
-                <div style='display:flex; justify-content:space-between; font-size:12px; color:#6b7280; margin:8px 0 16px;'>
-                    <span><span style='display:inline-block;width:7px;height:7px;border-radius:50%;background:{BLUE};margin-right:5px;'></span>증가 <b style='color:#111827;'>{incr}건</b></span>
-                    <span><span style='display:inline-block;width:7px;height:7px;border-radius:50%;background:#c7ccd6;margin-right:5px;'></span>축소 <b style='color:#111827;'>{decr}건</b></span>
+                <div style='display:flex; align-items:baseline; margin:15px 0 24px;'>
+                    <span style='font-size:36px; font-weight:800; color:#111827;'>{total}</span>
+                    <span style='font-size:14px; font-weight:600; color:#6b7280; margin-left:4px;'>회</span>
+                </div>
+                
+                <div style='display:flex; flex-direction:column; gap:14px;'>
+                    <div style='display:flex; justify-content:space-between; font-size:13px;'>
+                        <div style='flex:1; display:flex; justify-content:space-between; padding-right:15px; border-right:1px solid #e5e7eb;'>
+                            <span style='color:#6b7280;'>증가 수</span><b style='color:#111827;'>{incr} 회</b>
+                        </div>
+                        <div style='flex:1; display:flex; justify-content:space-between; padding-left:15px;'>
+                            <span style='color:#6b7280;'>축소 수</span><b style='color:#111827;'>{decr} 회</b>
+                        </div>
+                    </div>
+                    
+                    <div style='display:flex; justify-content:space-between; font-size:13px;'>
+                        <div style='flex:1; display:flex; justify-content:space-between; padding-right:15px; border-right:1px solid #e5e7eb;'>
+                            <span style='color:#6b7280;'>익절 수</span><b style='color:{GREEN};'>{wins} 회</b>
+                        </div>
+                        <div style='flex:1; display:flex; justify-content:space-between; padding-left:15px;'>
+                            <span style='color:#6b7280;'>손절 수</span><b style='color:{RED};'>{losses} 회</b>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div style='border-top:1px solid #f3f4f6; padding-top:14px;'>
-                <div style='display:flex; justify-content:space-between; font-size:13px; color:#6b7280; margin-bottom:10px;'>
-                    <span>익절 <b style='color:{GREEN};'>{wins}건</b></span><span>손절 <b style='color:{RED};'>{losses}건</b></span>
+            
+            <div style='border-top:1px solid #f3f4f6; padding-top:15px; margin-top:auto;'>
+                <div style='display:flex; justify-content:space-between; align-items:center;'>
+                    <span style='font-size:13px; color:#6b7280; font-weight:600;'>기간 승률</span>
+                    <b style='color:{BLUE}; font-size:18px;'>{rate:.1f}%</b>
                 </div>
-                <div style='display:flex; justify-content:space-between; font-size:13px; color:#6b7280;'><span>기간 승률</span><b style='color:{BLUE}; font-size:16px;'>{rate:.1f}%</b></div>
             </div>
         </div>""", unsafe_allow_html=True)
 
