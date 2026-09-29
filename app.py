@@ -47,6 +47,14 @@ st.markdown("""
         border: 1px solid #e5e7eb !important;
         border-radius: 12px !important;
         box-shadow: 0 1px 3px rgba(0,0,0,0.02) !important;
+        padding: 20px !important;
+    }
+
+    /* 🔥 10초·1시간 자동 새로고침(st.fragment) 때 화면이 하얗게 깜빡이는 현상 억제 */
+    div[data-testid="stVerticalBlock"], div[data-testid="element-container"],
+    div[data-testid="stMarkdownContainer"] {
+        opacity: 1 !important;
+        transition: none !important;
     }
 
     .pos-box { padding: 10px; flex: 1 1 200px; }
@@ -59,10 +67,8 @@ st.markdown("""
     .stButton>button:hover { border-color: #2563eb; color: #2563eb; }
 
     /* 매매 동향 카드 통계 그리드 */
-    .stat-grid { display:grid; grid-template-columns:1fr 1fr; row-gap:10px; font-size:13px; color:#6b7280;
-                 padding:12px 0; border-top:1px solid #f3f4f6; border-bottom:1px solid #f3f4f6; margin-bottom:12px; }
-    .stat-grid b { color:#111827; font-weight:700; }
     .note-text { font-size:11.5px; line-height:1.7; color:#9ca3af; margin:14px 2px 0; }
+    .pnl-box { padding: 0 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -158,7 +164,7 @@ def demo_trades():
 # -----------------------------------------------------------------------------
 # 3. 캐싱된 API 데이터 로드 (포지션 10초 / 체결내역 1시간 분리)
 # -----------------------------------------------------------------------------
-@st.cache_data(ttl=5, show_spinner=False)
+@st.cache_data(ttl=10, show_spinner=False)
 def fetch_fast_data(exchange_name, api_key, secret, pwd):
     if not api_key or not secret or exchange_name == "Demo (샘플 데이터)":
         return [{
@@ -336,7 +342,7 @@ with col_s2:
     def render_month_pnl():
         month_str = datetime.now(UTC).strftime("%Y-%m")
         month_pnl = df_trades[df_trades["date"].str.startswith(month_str)]["pnl"].sum() if not df_trades.empty else 0.0
-        st.markdown(make_top_card("이번 달 추정 PNL", month_pnl, "오전 9시 리셋 (KST)"), unsafe_allow_html=True)
+        st.markdown(make_top_card("이번 달 추정 PNL", month_pnl, "매월 1일 오전 9시 리셋 (KST)"), unsafe_allow_html=True)
     render_month_pnl()
 
 with col_s3:
@@ -405,16 +411,27 @@ def render_trade_stats(f_df):
     card_style = "background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); height: 320px; display:flex; flex-direction:column; justify-content:space-between;"
 
     with col_t1:
+        incr_p = (incr / total * 100) if total else 0
+        decr_p = 100 - incr_p if total else 0
         st.markdown(f"""<div style="{card_style}">
             <div>
                 <div style='display:flex; justify-content:space-between; font-size:13px; font-weight:600; color:#111827;'><span>총 주문 횟수</span><span style='color:#9ca3af; font-weight:400;'>선택 기간</span></div>
-                <div style='font-size:36px; font-weight:800; color:#111827; margin:15px 0;'>{total} <span style='font-size:14px; font-weight:500;'>회</span></div>
-                <div class="stat-grid">
-                    <div>증가 수 <b>{incr}회</b></div><div>축소 수 <b>{decr}회</b></div>
-                    <div>익절 수 <b>{wins}회</b></div><div>손절 수 <b>{losses}회</b></div>
+                <div style='font-size:36px; font-weight:800; color:#111827; margin:15px 0 10px;'>{total} <span style='font-size:14px; font-weight:500;'>회</span></div>
+                <div style="display:flex; width:100%; height:8px; border-radius:4px; overflow:hidden; background-color:#eef0f4;">
+                    <div style="width:{incr_p}%; background-color:{BLUE};"></div>
+                    <div style="width:{decr_p}%; background-color:#c7ccd6;"></div>
+                </div>
+                <div style='display:flex; justify-content:space-between; font-size:12px; color:#6b7280; margin:8px 0 16px;'>
+                    <span><span style='display:inline-block;width:7px;height:7px;border-radius:50%;background:{BLUE};margin-right:5px;'></span>증가 <b style='color:#111827;'>{incr}건</b></span>
+                    <span><span style='display:inline-block;width:7px;height:7px;border-radius:50%;background:#c7ccd6;margin-right:5px;'></span>축소 <b style='color:#111827;'>{decr}건</b></span>
                 </div>
             </div>
-            <div style='display:flex; justify-content:space-between; font-size:13px; color:#6b7280;'><span>기간 승률</span><b style='color:{BLUE}; font-size:15px;'>{rate:.1f}%</b></div>
+            <div style='border-top:1px solid #f3f4f6; padding-top:14px;'>
+                <div style='display:flex; justify-content:space-between; font-size:13px; color:#6b7280; margin-bottom:10px;'>
+                    <span>익절 <b style='color:{GREEN};'>{wins}건</b></span><span>손절 <b style='color:{RED};'>{losses}건</b></span>
+                </div>
+                <div style='display:flex; justify-content:space-between; font-size:13px; color:#6b7280;'><span>기간 승률</span><b style='color:{BLUE}; font-size:16px;'>{rate:.1f}%</b></div>
+            </div>
         </div>""", unsafe_allow_html=True)
 
     with col_t2:
@@ -515,16 +532,13 @@ def render_pnl_charts(f_df):
     last_sign = "+" if last_val >= 0 else ""
 
     with st.container(border=True):
-        st.markdown("<div class='white-marker'></div>", unsafe_allow_html=True)
         st.markdown(f"""
-        <div style="padding: 10px 10px 0 10px;">
-            <div style='display:flex; justify-content:space-between; align-items:baseline;'>
-                <span style='font-size:12px; color:#9ca3af; font-weight:600;'>선택 기간 추정 PNL</span>
-                <span style='font-size:12px; color:#9ca3af;'>{last_date} <b style='color:{GREEN if last_val >= 0 else RED};'>{last_sign}${last_val:,.2f}</b></span>
-            </div>
-            <div style='font-size:32px; font-weight:800; color:{pnl_color}; margin-top:5px;'>
-                {pnl_sign}${period_sum:,.2f} <span style='font-size:14px; color:#00a86b; font-weight:600;'>USDT</span>
-            </div>
+        <div style='display:flex; justify-content:space-between; align-items:baseline;'>
+            <span style='font-size:12px; color:#9ca3af; font-weight:600;'>선택 기간 추정 PNL</span>
+            <span style='font-size:12px; color:#9ca3af;'>{last_date} <b style='color:{GREEN if last_val >= 0 else RED};'>{last_sign}${last_val:,.2f}</b></span>
+        </div>
+        <div style='font-size:32px; font-weight:800; color:{pnl_color}; margin-top:5px;'>
+            {pnl_sign}${period_sum:,.2f} <span style='font-size:14px; color:#00a86b; font-weight:600;'>USDT</span>
         </div>
         <div style="border-bottom: 1px solid #e5e7eb; margin: 15px 0 5px 0;"></div>
         """, unsafe_allow_html=True)
