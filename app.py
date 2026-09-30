@@ -71,7 +71,7 @@ st.markdown("""
 
 
 # -----------------------------------------------------------------------------
-# 2. 체결 분류 유틸 — 증가(신규·추가 진입) / 축소(부분·전체 청산)
+# 2. 체결 분류 유틸 — 증가(신규·추가 진입) / 축소(부분·전체 청산) / 가격 추출
 # -----------------------------------------------------------------------------
 def classify_fill(t):
     info = t.get("info", {}) or {}
@@ -80,6 +80,7 @@ def classify_fill(t):
     raw = info.get("profit", info.get("realizedPnl"))
     has_pnl = raw not in (None, "")
     pnl = float(raw or 0)
+    price = float(t.get("price") or t.get("average") or 0.0)
 
     if "open" in ts:
         is_close = False
@@ -99,7 +100,7 @@ def classify_fill(t):
     else:
         side = "LONG" if t["side"].upper() == "BUY" else "SHORT"
 
-    return side, is_close, has_pnl, pnl
+    return side, is_close, has_pnl, pnl, price
 
 
 def result_of(bucket, has_pnl, pnl):
@@ -114,7 +115,7 @@ def result_of(bucket, has_pnl, pnl):
     return "본전"
 
 
-TRADE_COLS = ["order_id", "datetime", "date", "symbol", "side", "bucket", "has_pnl", "pnl", "result"]
+TRADE_COLS = ["order_id", "datetime", "date", "symbol", "side", "bucket", "has_pnl", "pnl", "price", "result"]
 
 
 def finalize(rows):
@@ -123,6 +124,7 @@ def finalize(rows):
     df = pd.DataFrame(rows)
     g = df.groupby(["order_id", "symbol", "side", "date"], as_index=False).agg(
         pnl=("pnl", "sum"),
+        price=("price", "mean"),
         datetime=("datetime", "last"),
         bucket=("bucket", lambda s: s.mode().iat[0]),
         has_pnl=("has_pnl", "max"),
@@ -140,22 +142,24 @@ def demo_trades():
         is_close = rnd.random() < 0.55
         pnl = (rnd.choice([rnd.uniform(50, 900), rnd.uniform(50, 900), rnd.uniform(-700, -40), 0.0])
                if is_close else 0.0)
+        sym = rnd.choice(["BTC/USDT", "ETH/USDT", "SOL/USDT"])
         rows.append({
             "order_id": f"DEMO_{i}",
             "datetime": (t + timedelta(hours=9)).replace(tzinfo=None),
             "date": t.strftime("%Y-%m-%d"),
-            "symbol": rnd.choice(["BTC/USDT", "ETH/USDT", "SOL/USDT"]),
+            "symbol": sym,
             "side": rnd.choice(["LONG", "SHORT"]),
             "bucket": "축소" if is_close else "증가",
             "has_pnl": True,
             "pnl": round(pnl, 2),
+            "price": round(rnd.uniform(62000, 65000) if "BTC" in sym else rnd.uniform(100, 3000), 2)
         })
     df = finalize(rows) 
     return df[df["date"] >= DASHBOARD_START_DATE]
 
 
 # -----------------------------------------------------------------------------
-# 3. 실시간 USDT/KRW 환율 조회 유틸
+# 3. 실시간 유틸 (환율 및 OHLCV 캔들 차트 데이터)
 # -----------------------------------------------------------------------------
 @st.cache_data(ttl=300, show_spinner=False)
 def fetch_usdt_krw():
@@ -165,6 +169,45 @@ def fetch_usdt_krw():
         return float(ticker.get('last', 1350.0))
     except Exception:
         return 1350.0
+
+@st.cache_data(ttl=60, show_spinner=False)
+def fetch_live_ohlcv(exchange_name, symbol, limit=100):
+    if exchange_name == "Demo (샘플 데이터)":
+        now = datetime.now(UTC)
+        dates = [now - timedelta(minutes=15*i) for i in range(limit)]
+        dates.reverse()
+        base_p = 64800.0 if "BTC" in symbol else 3500.0
+        data = []
+        for d in dates:
+            o = base_p + random.uniform(-20, 20)
+            c = o + random.uniform(-40, 40)
+            h = max(o, c) + random.uniform(5, 30)
+            l = min(o, c) - random.uniform(5, 30)
+            data.append([int(d.timestamp()*1000), o, h, l, c, 100])
+            base_p = c
+        df = pd.DataFrame(data, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+        df['datetime'] = pd.to_datetime(df['timestamp'], unit='ms').dt.tz_localize('UTC').dt.tz_convert('Asia/Seoul').dt.tz_localize(None)
+        return df
+
+    try:
+        ex = None
+        if exchange_name == "Bitget": ex = ccxt.bitget({'enableRateLimit': True, 'options': {'defaultType': 'swap'}})
+        elif exchange_name == "Binance": ex = ccxt.binance({'enableRateLimit': True, 'options': {'defaultType': 'future'}})
+        elif exchange_name == "Bybit": ex = ccxt.bybit({'enableRateLimit': True, 'options': {'defaultType': 'linear'}})
+        
+        if not ex: return pd.DataFrame()
+        
+        fetch_sym = symbol + ":USDT" if exchange_name == "Bitget" else symbol
+        try:
+            bars = ex.fetch_ohlcv(fetch_sym, '15m', limit=limit)
+        except:
+            bars = ex.fetch_ohlcv(symbol, '15m', limit=limit)
+            
+        df = pd.DataFrame(bars, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+        df['datetime'] = pd.to_datetime(df['timestamp'], unit='ms').dt.tz_localize('UTC').dt.tz_convert('Asia/Seoul').dt.tz_localize(None)
+        return df
+    except Exception:
+        return pd.DataFrame()
 
 
 # -----------------------------------------------------------------------------
@@ -223,7 +266,7 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
                 for t in exchange.fetch_my_trades(symbol=sym, limit=200):
                     t_utc = datetime.fromtimestamp(t["timestamp"] / 1000, tz=UTC)
                     t_kst = t_utc.astimezone(KST)
-                    side, is_close, has_pnl, pnl = classify_fill(t)
+                    side, is_close, has_pnl, pnl, price = classify_fill(t)
                     order_id = str(t.get("order") or t.get("id") or t["timestamp"])
                     rows.append({
                         "order_id": order_id,
@@ -231,7 +274,7 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
                         "date": t_utc.strftime("%Y-%m-%d"), 
                         "symbol": t["symbol"].replace(":USDT", ""), "side": side,
                         "bucket": "축소" if is_close else "증가",
-                        "has_pnl": has_pnl, "pnl": pnl,
+                        "has_pnl": has_pnl, "pnl": pnl, "price": price
                     })
             except Exception:
                 continue
@@ -254,18 +297,19 @@ if st.sidebar.button("🔄 수동 새로고침"):
     fetch_fast_data.clear()
     fetch_slow_data.clear()
     fetch_usdt_krw.clear()
+    fetch_live_ohlcv.clear()
     st.rerun()
 
 df_trades = fetch_slow_data(exchange_choice, MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
 
 # -----------------------------------------------------------------------------
-# 6. 🎯 메인 타이틀 (토스 스타일 디자인 적용 & 멍그 삭제)
+# 6. 🎯 메인 타이틀
 # -----------------------------------------------------------------------------
 st.markdown("""<div style="margin-top: -10px; margin-bottom: 25px;"><h1 style="font-size: 32px; font-weight: 900; color: #111827; margin: 0; padding: 0; letter-spacing: -0.5px;">Trading History</h1><div style="width: 40px; height: 4px; background-color: #2563eb; margin-top: 10px; border-radius: 2px;"></div></div>""", unsafe_allow_html=True)
 st.markdown("""<div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 15px; border-bottom: 2px solid #e5e7eb; margin-bottom: 25px;"><div style="display: flex; align-items: center; gap: 10px;"><div style="width: 32px; height: 32px; background: linear-gradient(135deg, #3182f6, #1b64da); border-radius: 10px; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 6px rgba(49,130,246,0.3); font-size: 16px;">📈</div><span style="font-size: 22px; font-weight: 900; color: #111827; letter-spacing: -0.5px;">Trading Journal</span></div></div>""", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 7. [FRAGMENT] 🎯 현재 보유 포지션 (글씨 크기 확대)
+# 7. [FRAGMENT] 🎯 현재 보유 포지션 & 실시간 차트 (B&S 마커 포함 하나의 박스로 통합)
 # -----------------------------------------------------------------------------
 st.markdown("<div style='font-size: 20px; font-weight: 800; color: #111827; margin-bottom: 10px;'>🎯 현재 보유 포지션</div>", unsafe_allow_html=True)
 
@@ -284,9 +328,73 @@ def show_live_positions():
             pos_usdt_value = pos['size'] * pos['entry_price']
             margin_ratio = (pos['margin'] / wallet_balance * 100) if wallet_balance > 0 else 0
 
-            # 🔥 코드 노출 방지를 위한 한 줄 압축 HTML
-            pos_html = f"""<div style="background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:15px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); display: flex; flex-wrap: wrap; margin-bottom: 15px;"><div class="pos-box"><div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 8px;'>종목 / 방향 및 규모</div><div style='font-size: 24px; font-weight: 800; color: #111827;'>{pos['symbol']} <span style='font-size: 13px; font-weight: 700; color: {side_color}; background-color: {side_bg}; padding: 4px 8px; border-radius: 6px; margin-left: 5px; vertical-align: middle;'>{pos_side} {pos['leverage']}x</span></div><div style='font-size: 14px; color: #4b5563; font-weight: 600; margin-top: 8px;'>{pos['size']} {base_coin} ≈ ${pos_usdt_value:,.2f}</div></div><div class="pos-box pos-divider"><div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 12px;'>진입가 / 현재가</div><div style='display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px;'><span style='width: 45px; font-size: 12px; color: #9ca3af;'>진입가</span><span style='font-size: 18px; font-weight: 700; color: #111827;'>${pos['entry_price']:,.2f}</span></div><div style='display: flex; align-items: baseline; gap: 8px;'><span style='width: 45px; font-size: 12px; color: #9ca3af;'>현재가</span><span style='font-size: 18px; font-weight: 700; color: #2563eb;'>${pos['mark_price']:,.2f}</span></div></div><div class="pos-box pos-divider"><div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 12px;'>미실현 손익 / 수익률(ROI)</div><div style='font-size: 26px; font-weight: 800; color: {pnl_color}; margin-bottom: -5px;'>{pnl_sign}${pnl_val:,.2f}</div><div style='font-size: 15px; font-weight: 700; color: {pnl_color};'>({pnl_sign}{roe_val:.2f}%)</div></div><div class="pos-box pos-divider"><div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 12px;'>증거금 <span style="color:#2563eb;">(비중%)</span> / 청산가</div><div style='display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px;'><span style='width: 45px; font-size: 12px; color: #9ca3af;'>증거금</span><span style='font-size: 18px; font-weight: 700; color: #111827;'>${pos['margin']:,.2f} <span style='font-size:14px; color:#2563eb;'>({margin_ratio:.1f}%)</span></span></div><div style='display: flex; align-items: baseline; gap: 8px;'><span style='width: 45px; font-size: 12px; color: #9ca3af;'>청산가</span><span style='font-size: 18px; font-weight: 700; color: #4b5563;'>${pos['liq_price']:,.2f}</span></div></div></div>"""
+            # 🔥 [1단계] 포지션 정보 (하단 둥근 테두리 제거 & 여백 최소화하여 하나의 상자처럼 연출)
+            pos_html = f"""<div style="background-color:#ffffff; border:1px solid #e5e7eb; border-bottom:1px dashed #e5e7eb; border-radius:12px 12px 0 0; padding:15px; display: flex; flex-wrap: wrap; margin-bottom:-1rem; position: relative; z-index: 10;"><div class="pos-box"><div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 8px;'>종목 / 방향 및 규모</div><div style='font-size: 24px; font-weight: 800; color: #111827;'>{pos['symbol']} <span style='font-size: 13px; font-weight: 700; color: {side_color}; background-color: {side_bg}; padding: 4px 8px; border-radius: 6px; margin-left: 5px; vertical-align: middle;'>{pos_side} {pos['leverage']}x</span></div><div style='font-size: 14px; color: #4b5563; font-weight: 600; margin-top: 8px;'>{pos['size']} {base_coin} ≈ ${pos_usdt_value:,.2f}</div></div><div class="pos-box pos-divider"><div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 12px;'>진입가 / 현재가</div><div style='display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px;'><span style='width: 45px; font-size: 12px; color: #9ca3af;'>진입가</span><span style='font-size: 18px; font-weight: 700; color: #111827;'>${pos['entry_price']:,.2f}</span></div><div style='display: flex; align-items: baseline; gap: 8px;'><span style='width: 45px; font-size: 12px; color: #9ca3af;'>현재가</span><span style='font-size: 18px; font-weight: 700; color: #2563eb;'>${pos['mark_price']:,.2f}</span></div></div><div class="pos-box pos-divider"><div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 12px;'>미실현 손익 / 수익률(ROI)</div><div style='font-size: 26px; font-weight: 800; color: {pnl_color}; margin-bottom: -5px;'>{pnl_sign}${pnl_val:,.2f}</div><div style='font-size: 15px; font-weight: 700; color: {pnl_color};'>({pnl_sign}{roe_val:.2f}%)</div></div><div class="pos-box pos-divider"><div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 12px;'>증거금 <span style="color:#2563eb;">(비중%)</span> / 청산가</div><div style='display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px;'><span style='width: 45px; font-size: 12px; color: #9ca3af;'>증거금</span><span style='font-size: 18px; font-weight: 700; color: #111827;'>${pos['margin']:,.2f} <span style='font-size:14px; color:#2563eb;'>({margin_ratio:.1f}%)</span></span></div><div style='display: flex; align-items: baseline; gap: 8px;'><span style='width: 45px; font-size: 12px; color: #9ca3af;'>청산가</span><span style='font-size: 18px; font-weight: 700; color: #4b5563;'>${pos['liq_price']:,.2f}</span></div></div></div>"""
             st.markdown(pos_html, unsafe_allow_html=True)
+
+            # 🔥 [2단계] OHLCV 데이터 로드 및 차트 그리기
+            df_ohlcv = fetch_live_ohlcv(exchange_choice, pos['symbol'], limit=150)
+            if not df_ohlcv.empty:
+                fig = go.Figure()
+                
+                # 메인 캔들스틱
+                fig.add_trace(go.Candlestick(
+                    x=df_ohlcv['datetime'], open=df_ohlcv['open'], high=df_ohlcv['high'],
+                    low=df_ohlcv['low'], close=df_ohlcv['close'],
+                    increasing_line_color=GREEN, decreasing_line_color=RED, name="Price"
+                ))
+
+                # 진입가(Entry Price) 가로 점선 표시
+                fig.add_hline(y=pos['entry_price'], line_dash="dash", line_width=1.5, line_color=side_color, opacity=0.8)
+                fig.add_annotation(
+                    x=df_ohlcv['datetime'].iloc[0], y=pos['entry_price'],
+                    text=f"  {pos_side} Entry: ${pos['entry_price']:,.2f}", showarrow=False,
+                    font=dict(color=side_color, size=11, family="Arial"), xanchor='left', yanchor='bottom'
+                )
+
+                # 🔥 B&S (Buy & Sell) 마커 표시 로직
+                if not df_trades.empty:
+                    sym_trades = df_trades[df_trades['symbol'] == pos['symbol']]
+                    if not sym_trades.empty:
+                        min_dt = df_ohlcv['datetime'].min()
+                        # 차트에 보이는 시간 내의 거래 기록만 필터링
+                        recent_trades = sym_trades[sym_trades['datetime'] >= min_dt]
+                        
+                        # Buy (초록 화살표) = 롱 진입 또는 숏 청산
+                        buys = recent_trades[((recent_trades['side'] == 'LONG') & (recent_trades['bucket'] == '증가')) | ((recent_trades['side'] == 'SHORT') & (recent_trades['bucket'] == '축소'))]
+                        # Sell (빨간 화살표) = 숏 진입 또는 롱 청산
+                        sells = recent_trades[((recent_trades['side'] == 'SHORT') & (recent_trades['bucket'] == '증가')) | ((recent_trades['side'] == 'LONG') & (recent_trades['bucket'] == '축소'))]
+                        
+                        if not buys.empty:
+                            fig.add_trace(go.Scatter(
+                                x=buys['datetime'], y=buys['price'], mode='markers',
+                                marker=dict(symbol='triangle-up', size=13, color=GREEN, line=dict(width=1, color='white')),
+                                name='Buy (B)', hovertemplate="<b>Buy</b><br>%{x}<br>$%{y:,.2f}<extra></extra>"
+                            ))
+                        if not sells.empty:
+                            fig.add_trace(go.Scatter(
+                                x=sells['datetime'], y=sells['price'], mode='markers',
+                                marker=dict(symbol='triangle-down', size=13, color=RED, line=dict(width=1, color='white')),
+                                name='Sell (S)', hovertemplate="<b>Sell</b><br>%{x}<br>$%{y:,.2f}<extra></extra>"
+                            ))
+
+                # 차트 레이아웃 최적화 (흰 배경, 여백 제거)
+                fig.update_layout(
+                    height=280, margin=dict(t=15, b=0, l=15, r=15),
+                    paper_bgcolor='#ffffff', plot_bgcolor='#ffffff',
+                    xaxis_rangeslider_visible=False,
+                    xaxis=dict(showgrid=False, zeroline=False, tickformat="%H:%M"),
+                    yaxis=dict(showgrid=True, gridcolor="#f3f4f6", griddash="dash", zeroline=False, side="right"),
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=10)),
+                    hovermode="x unified"
+                )
+                
+                # 차트 출력
+                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+            
+            # 🔥 [3단계] 닫는 캡 (위쪽 컴포넌트들을 하나의 부드러운 둥근 상자로 마감 처리)
+            st.markdown("""<div style="background-color:#ffffff; border:1px solid #e5e7eb; border-top:none; border-radius:0 0 12px 12px; height:15px; margin-top:-1.8rem; margin-bottom: 25px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); position: relative; z-index: 10;"></div>""", unsafe_allow_html=True)
+            
 show_live_positions()
 
 # -----------------------------------------------------------------------------
@@ -521,11 +629,12 @@ st.markdown("<div style='font-size: 18px; font-weight: 800; color: #111827; marg
 def render_trade_logs(f_df):
     if not f_df.empty:
         st.dataframe(
-            f_df[["datetime", "symbol", "side", "bucket", "pnl", "result"]],
+            f_df[["datetime", "symbol", "side", "bucket", "price", "pnl", "result"]],
             use_container_width=True, hide_index=True, height=400,
             column_config={
                 "datetime": st.column_config.DatetimeColumn("시간 (KST)", format="YYYY-MM-DD HH:mm"),
                 "symbol": "종목", "side": "방향", "bucket": "구분",
+                "price": st.column_config.NumberColumn("체결 가격($)", format="%.2f"),
                 "pnl": st.column_config.NumberColumn("PNL (USDT)", format="%.2f"),
                 "result": "결과",
             },
