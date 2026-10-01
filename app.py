@@ -387,11 +387,11 @@ def show_live_positions():
                                 ))
 
                     fig.update_layout(
-                        height=380, margin=dict(t=15, b=5, l=5, r=64),
+                        height=380, margin=dict(t=15, b=5, l=5, r=140),
                         paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
                         xaxis_rangeslider_visible=False, showlegend=False,
                         xaxis=dict(showgrid=True, gridcolor="#F8F9FA", zeroline=False, tickformat="%H:%M", tickfont=dict(color=GRAY, size=11)),
-                        yaxis=dict(showgrid=True, gridcolor="#F0F3F6", zeroline=False, side="right", tickfont=dict(color=GRAY, size=11), automargin=True),
+                        yaxis=dict(showgrid=True, gridcolor="#F0F3F6", zeroline=False, side="right", tickfont=dict(color=GRAY, size=11)),
                         hovermode="x unified",
                         hoverlabel=dict(bgcolor="#ffffff", bordercolor="#F2F4F6", font=dict(color=TEXT, size=12, family="Pretendard, Arial")),
                     )
@@ -444,19 +444,18 @@ st.markdown("<div style='margin-top: 36px;'></div>", unsafe_allow_html=True)
 # -----------------------------------------------------------------------------
 st.markdown(f"<div style='font-size:19px; font-weight:800; color:{TEXT}; margin-bottom:12px;'>수익 히스토리</div>", unsafe_allow_html=True)
 
-if not df_trades.empty and "date" in df_trades.columns:
-    oldest_date = datetime.strptime(df_trades["date"].min(), "%Y-%m-%d").date()
-else:
-    oldest_date = datetime.strptime(DASHBOARD_START_DATE, "%Y-%m-%d").date()
+today_kst = datetime.now(KST).date()
+dashboard_start = datetime.strptime(DASHBOARD_START_DATE, "%Y-%m-%d").date()
+# 기본 화면은 "최근 7일" — 다만 대시보드 시작일 이전으로는 안 내려감(데이터가 3일치뿐이면 3일치만)
+default_start = max(dashboard_start, today_kst - timedelta(days=6))
 
 c_d1, c_d2, c_btn1, c_btn2, c_btn3, c_space = st.columns([1.5, 1.5, 0.8, 0.9, 1.1, 5.5])
-with c_d1: start_date = st.date_input("s", value=oldest_date, label_visibility="collapsed")
-with c_d2: end_date = st.date_input("e", value=datetime.now(KST).date(), label_visibility="collapsed")
+with c_d1: start_date = st.date_input("s", value=default_start, label_visibility="collapsed")
+with c_d2: end_date = st.date_input("e", value=today_kst, label_visibility="collapsed")
 with c_btn1: btn_today = st.button("오늘", use_container_width=True)
 with c_btn2: btn_month = st.button("이번 달", use_container_width=True)
 with c_btn3: btn_30d = st.button("최근 30일", use_container_width=True)
 
-today_kst = datetime.now(KST).date()
 if btn_today: start_date, end_date = today_kst, today_kst
 elif btn_month: start_date, end_date = today_kst.replace(day=1), today_kst
 elif btn_30d: start_date, end_date = today_kst - timedelta(days=30), today_kst
