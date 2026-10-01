@@ -504,7 +504,6 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
         return pd.DataFrame(
             columns=TRADE_COLS
         )
-```
 
 
 # -----------------------------------------------------------------------------
