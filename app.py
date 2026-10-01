@@ -7,6 +7,8 @@ import plotly.graph_objects as go
 import streamlit as st
 
 # =============================================================================
+# 🔑 웹사이트 비밀 금고에서 API 키를 가져옵니다
+# =============================================================================
 try:
     MY_API_KEY = st.secrets["API_KEY"]
     MY_SECRET_KEY = st.secrets["SECRET_KEY"]
@@ -44,6 +46,9 @@ st.markdown("""
 
 html, body, .stApp { background-color: #F2F4F6 !important; }
 .stApp, .stApp p, .stApp span, .stApp div, .stApp label { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif; letter-spacing:-0.01em; }
+/* 🔥 위 폰트 지정이 사이드바 접기/펼치기 화살표 같은 스트림릿 내장 아이콘 폰트까지 덮어써서
+   "keyboard_double_arrow_right" 처럼 아이콘이 글자 그대로 보이던 문제 — 아이콘만 원래 폰트로 복구 */
+[data-testid="stIconMaterial"] { font-family: 'Material Symbols Rounded' !important; letter-spacing: normal !important; }
 .block-container { padding-top: 3.8rem; max-width: 1240px; }
 
 .card { background:#ffffff; border-radius:20px; box-shadow:0 2px 14px rgba(15,23,42,0.05); padding:22px 24px; }
@@ -531,10 +536,13 @@ today_kst = datetime.now(KST).date()
 dashboard_start = datetime.strptime(DASHBOARD_START_DATE, "%Y-%m-%d").date()
 default_start = max(dashboard_start, today_kst - timedelta(days=6))
 
-if "hist_start" not in st.session_state:
+# 🔥 DASHBOARD_START_DATE를 코드에서 바꿔도(28→29→28 등) 세션에 이미 저장된 날짜 선택값은
+# 안 바뀌는 게 스트림릿 기본 동작이라, "PNL 아무것도 안 뜸"의 원인이 여기 있었음.
+# DASHBOARD_START_DATE 자체가 바뀐 걸 감지하면 날짜 선택값을 강제로 새 기본값으로 리셋.
+if st.session_state.get("_dash_cfg") != DASHBOARD_START_DATE:
     st.session_state.hist_start = default_start
-if "hist_end" not in st.session_state:
     st.session_state.hist_end = today_kst
+    st.session_state["_dash_cfg"] = DASHBOARD_START_DATE
 
 c_d1, c_d2, c_btn1, c_btn2, c_btn3, c_space = st.columns([1.5, 1.5, 0.8, 0.9, 1.1, 5.5])
 with c_btn1:
