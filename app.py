@@ -267,7 +267,7 @@ st.markdown("""<div style="margin-top: -10px; margin-bottom: 25px;"><h1 style="f
 st.markdown("""<div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 15px; border-bottom: 2px solid #e5e7eb; margin-bottom: 25px;"><div style="display: flex; align-items: center; gap: 10px;"><div style="width: 32px; height: 32px; background: linear-gradient(135deg, #3182f6, #1b64da); border-radius: 10px; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 6px rgba(49,130,246,0.3); font-size: 16px;">📈</div><span style="font-size: 22px; font-weight: 900; color: #111827; letter-spacing: -0.5px;">Trading Journal</span></div></div>""", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 7. [FRAGMENT] 🎯 현재 보유 포지션 & 실시간 차트 (트레이딩뷰 스타일 디자인 적용)
+# 7. [FRAGMENT] 🎯 현재 보유 포지션 & 실시간 차트
 # -----------------------------------------------------------------------------
 st.markdown("<div style='font-size: 20px; font-weight: 800; color: #111827; margin-bottom: 10px;'>🎯 현재 보유 포지션</div>", unsafe_allow_html=True)
 
@@ -278,9 +278,14 @@ def show_live_positions():
     if not current_positions:
         st.markdown("<div style='background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:24px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); text-align: center; color: #9ca3af; font-size: 15px; margin-bottom: 25px;'>현재 진행 중인 포지션이 없습니다.</div>", unsafe_allow_html=True)
     else:
-        for pos in current_positions:
+        # 🔥 Duplicate Key Error 해결: enumerate를 사용해 고유 인덱스(idx) 부여
+        for idx, pos in enumerate(current_positions):
             safe_sym = pos['symbol'].replace("/", "_")
             pos_side = pos["side"]
+            
+            # 고유 키 생성 (심볼 + 방향 + 인덱스)
+            unique_key = f"{safe_sym}_{pos_side}_{idx}"
+            
             side_color = GREEN if pos_side == "LONG" else RED
             side_bg = "rgba(8,153,129,0.1)" if pos_side == "LONG" else "rgba(242,54,69,0.1)"
             pnl_val, roe_val = pos["unrealized_pnl"], pos["roe"]
@@ -289,14 +294,14 @@ def show_live_positions():
             pos_usdt_value = pos['size'] * pos['entry_price']
             margin_ratio = (pos['margin'] / wallet_balance * 100) if wallet_balance > 0 else 0
 
-            with st.container(key=f"pos_container_{safe_sym}"):
+            with st.container(key=f"pos_container_{unique_key}"):
                 
                 pos_html = f"""<div style="display: flex; flex-wrap: wrap; margin-bottom: 10px;"><div class="pos-box" style="padding-left:0;"><div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 8px;'>종목 / 방향 및 규모</div><div style='font-size: 24px; font-weight: 800; color: #111827;'>{pos['symbol']} <span style='font-size: 13px; font-weight: 700; color: {side_color}; background-color: {side_bg}; padding: 4px 8px; border-radius: 6px; margin-left: 5px; vertical-align: middle;'>{pos_side} {pos['leverage']}x</span></div><div style='font-size: 14px; color: #4b5563; font-weight: 600; margin-top: 8px;'>{pos['size']} {base_coin} ≈ ${pos_usdt_value:,.2f}</div></div><div class="pos-box pos-divider"><div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 12px;'>진입가 / 현재가</div><div style='display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px;'><span style='width: 45px; font-size: 12px; color: #9ca3af;'>진입가</span><span style='font-size: 18px; font-weight: 700; color: #111827;'>${pos['entry_price']:,.2f}</span></div><div style='display: flex; align-items: baseline; gap: 8px;'><span style='width: 45px; font-size: 12px; color: #9ca3af;'>현재가</span><span style='font-size: 18px; font-weight: 700; color: #2563eb;'>${pos['mark_price']:,.2f}</span></div></div><div class="pos-box pos-divider"><div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 12px;'>미실현 손익 / 수익률(ROI)</div><div style='font-size: 26px; font-weight: 800; color: {pnl_color}; margin-bottom: -5px;'>{pnl_sign}${pnl_val:,.2f}</div><div style='font-size: 15px; font-weight: 700; color: {pnl_color};'>({pnl_sign}{roe_val:.2f}%)</div></div><div class="pos-box pos-divider" style="padding-right:0;"><div style='font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 12px;'>증거금 <span style="color:#2563eb;">(비중%)</span> / 청산가</div><div style='display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px;'><span style='width: 45px; font-size: 12px; color: #9ca3af;'>증거금</span><span style='font-size: 18px; font-weight: 700; color: #111827;'>${pos['margin']:,.2f} <span style='font-size:14px; color:#2563eb;'>({margin_ratio:.1f}%)</span></span></div><div style='display: flex; align-items: baseline; gap: 8px;'><span style='width: 45px; font-size: 12px; color: #9ca3af;'>청산가</span><span style='font-size: 18px; font-weight: 700; color: #4b5563;'>${pos['liq_price']:,.2f}</span></div></div></div>"""
                 st.markdown(pos_html, unsafe_allow_html=True)
                 
                 st.markdown("<div style='border-top:1px dashed #e5e7eb; margin: 5px 0 15px 0;'></div>", unsafe_allow_html=True)
 
-                tf_selected = st.radio("분봉 선택", ["3분봉", "5분봉", "1시간봉"], horizontal=True, label_visibility="collapsed", key=f"tf_radio_{safe_sym}")
+                tf_selected = st.radio("분봉 선택", ["3분봉", "5분봉", "1시간봉"], horizontal=True, label_visibility="collapsed", key=f"tf_radio_{unique_key}")
                 tf_map = {"3분봉": "3m", "5분봉": "5m", "1시간봉": "1h"}
                 
                 df_ohlcv = fetch_live_ohlcv(exchange_choice, pos['symbol'], tf_map[tf_selected], limit=120)
@@ -304,7 +309,6 @@ def show_live_positions():
                 if not df_ohlcv.empty:
                     fig = go.Figure()
                     
-                    # 🔥 트레이딩뷰 스타일 캔들스틱 (오리지널 색상)
                     fig.add_trace(go.Candlestick(
                         x=df_ohlcv['datetime'], open=df_ohlcv['open'], high=df_ohlcv['high'],
                         low=df_ohlcv['low'], close=df_ohlcv['close'],
@@ -313,7 +317,6 @@ def show_live_positions():
                         name="Price"
                     ))
 
-                    # 진입가(Entry) 점선
                     fig.add_hline(y=pos['entry_price'], line_dash="dash", line_width=1.5, line_color=side_color, opacity=0.8)
                     fig.add_annotation(
                         x=1, xref="paper", y=pos['entry_price'],
@@ -322,7 +325,6 @@ def show_live_positions():
                         xanchor='left', yanchor='middle'
                     )
 
-                    # 🔥 B & S 마커 (트레이딩뷰 스타일 배지 디자인으로 변경)
                     if not df_trades.empty:
                         sym_trades = df_trades[df_trades['symbol'] == pos['symbol']]
                         if not sym_trades.empty:
@@ -347,7 +349,6 @@ def show_live_positions():
                                     name='Sell', hovertemplate="<b>Sell</b><br>%{x}<br>$%{y:,.2f}<extra></extra>"
                                 ))
 
-                    # 🔥 차트 레이아웃 최적화 (그리드를 연하게 하여 프로 차트 느낌 부여)
                     fig.update_layout(
                         height=380, margin=dict(t=5, b=5, l=5, r=60),
                         paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
@@ -357,8 +358,6 @@ def show_live_positions():
                         hovermode="x unified"
                     )
                     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-            
-            # 마지막 둥근 캡 마감선 삭제(컨테이너 자체로 마감)
 show_live_positions()
 
 # -----------------------------------------------------------------------------
@@ -559,46 +558,47 @@ render_pnl_charts(filtered_df)
 st.markdown("<div style='font-size:11px; color:#9ca3af; margin: 10px 0 30px 0;'>추정 PNL · USDT · UTC 기준 (한국시간 오전 9시 날짜 전환) · 기간 누적은 선택한 기간의 시작을 0으로 계산합니다.</div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 12. 매매 상세 내역 로그 (🔥 보내주신 사진 스타일의 커스텀 웹 UI 렌더링)
+# 12. 매매 상세 내역 로그 (🔥 마크다운 버그 원천 차단: 좌측 정렬)
 # -----------------------------------------------------------------------------
 st.markdown("<div style='font-size: 18px; font-weight: 800; color: #111827; margin-bottom: 15px;'>📝 상세 매매 내역</div>", unsafe_allow_html=True)
 
 @st.fragment(run_every=3600)
 def render_trade_logs(f_df):
     if not f_df.empty:
-        # 엑셀 같은 기본 표 대신 커스텀 스타일 표 생성
-        html = f"""
-        <style>
-            .log-table {{ width: 100%; border-collapse: collapse; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }}
-            .log-table th {{ padding: 14px 15px; border-bottom: 1px solid #e5e7eb; color: #9ca3af; font-size: 13px; font-weight: 600; text-align: left; background-color: #ffffff; position: sticky; top: 0; z-index: 2; }}
-            .log-table td {{ padding: 18px 15px; border-bottom: 1px solid #f3f4f6; font-size: 14px; color: #111827; vertical-align: middle; }}
-            .log-table tbody tr:hover {{ background-color: #f9fafb; }}
-            .log-long {{ color: {GREEN}; font-weight: 700; }}
-            .log-short {{ color: {RED}; font-weight: 700; }}
-            .pnl-win {{ color: {GREEN}; font-weight: 700; font-size: 15px; text-align: right; }}
-            .pnl-loss {{ color: {RED}; font-weight: 700; font-size: 15px; text-align: right; }}
-            .pnl-neutral {{ color: #6b7280; font-weight: 600; font-size: 15px; text-align: right; }}
-            .tag-win {{ color: {GREEN}; font-size: 12px; font-weight: 600; display: block; margin-top: 4px; text-align: right; }}
-            .tag-loss {{ color: {RED}; font-size: 12px; font-weight: 600; display: block; margin-top: 4px; text-align: right; }}
-            .tag-neutral {{ color: #9ca3af; font-size: 12px; font-weight: 500; display: block; margin-top: 4px; text-align: right; }}
-        </style>
-        <div style="background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); overflow: hidden; margin-bottom: 30px;">
-            <div style="max-height: 500px; overflow-y: auto;">
-                <table class="log-table">
-                    <thead>
-                        <tr>
-                            <th>시간 (KST)</th>
-                            <th>종목</th>
-                            <th>방향</th>
-                            <th>구분</th>
-                            <th style="text-align: right;">체결 가격</th>
-                            <th style="text-align: right;">PNL (결과)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        """
+        html_parts = []
+        # 파이썬 안에서 HTML을 작성할 때 들여쓰기(띄어쓰기 4칸)를 하면 
+        # 마크다운 코드 블록으로 인식하는 버그를 피하기 위해 들여쓰기 제거
+        html_parts.append("""
+<style>
+.log-table { width: 100%; border-collapse: collapse; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+.log-table th { padding: 14px 15px; border-bottom: 1px solid #e5e7eb; color: #9ca3af; font-size: 13px; font-weight: 600; text-align: left; background-color: #ffffff; position: sticky; top: 0; z-index: 2; }
+.log-table td { padding: 18px 15px; border-bottom: 1px solid #f3f4f6; font-size: 14px; color: #111827; vertical-align: middle; }
+.log-table tbody tr:hover { background-color: #f9fafb; }
+.log-long { color: #089981; font-weight: 700; }
+.log-short { color: #F23645; font-weight: 700; }
+.pnl-win { color: #089981; font-weight: 700; font-size: 15px; text-align: right; }
+.pnl-loss { color: #F23645; font-weight: 700; font-size: 15px; text-align: right; }
+.pnl-neutral { color: #6b7280; font-weight: 600; font-size: 15px; text-align: right; }
+.tag-win { color: #089981; font-size: 12px; font-weight: 600; display: block; margin-top: 4px; text-align: right; }
+.tag-loss { color: #F23645; font-size: 12px; font-weight: 600; display: block; margin-top: 4px; text-align: right; }
+.tag-neutral { color: #9ca3af; font-size: 12px; font-weight: 500; display: block; margin-top: 4px; text-align: right; }
+</style>
+<div style="background-color:#ffffff; border:1px solid #e5e7eb; border-radius:12px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); overflow: hidden; margin-bottom: 30px;">
+<div style="max-height: 500px; overflow-y: auto;">
+<table class="log-table">
+<thead>
+<tr>
+<th>시간 (KST)</th>
+<th>종목</th>
+<th>방향</th>
+<th>구분</th>
+<th style="text-align: right;">체결 가격</th>
+<th style="text-align: right;">PNL (결과)</th>
+</tr>
+</thead>
+<tbody>
+""")
         
-        # 최근 100건만 렌더링하여 성능 저하 방지
         for _, r in f_df.head(100).iterrows():
             dt_str = r['datetime'].strftime('%y. %m. %d. %H:%M')
             sym = r['symbol']
@@ -610,7 +610,6 @@ def render_trade_logs(f_df):
             pnl_val = r['pnl']
             res = r['result']
             
-            # 보내주신 사진 스타일의 두 줄 렌더링 (금액 + 익절/손절 태그)
             if res == '익절':
                 pnl_html = f'<div class="pnl-win">+{pnl_val:,.2f}</div><span class="tag-win">익절</span>'
             elif res == '손절':
@@ -620,24 +619,22 @@ def render_trade_logs(f_df):
             else:
                 pnl_html = f'<div class="pnl-neutral">-</div><span class="tag-neutral">-</span>'
                 
-            html += f"""
-                <tr>
-                    <td style="color:#6b7280;">{dt_str}</td>
-                    <td style="font-weight:600;">{sym}</td>
-                    <td class="{side_cls}">{side_txt}</td>
-                    <td style="color:#4b5563;">{bucket}</td>
-                    <td style="text-align: right; font-weight:600;">{price}</td>
-                    <td style="text-align: right;">{pnl_html}</td>
-                </tr>
-            """
+            html_parts.append(f"""<tr>
+<td style="color:#6b7280;">{dt_str}</td>
+<td style="font-weight:600;">{sym}</td>
+<td class="{side_cls}">{side_txt}</td>
+<td style="color:#4b5563;">{bucket}</td>
+<td style="text-align: right; font-weight:600;">{price}</td>
+<td style="text-align: right;">{pnl_html}</td>
+</tr>
+""")
             
-        html += """
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        """
-        st.markdown(html, unsafe_allow_html=True)
+        html_parts.append("""</tbody>
+</table>
+</div>
+</div>
+""")
+        st.markdown("".join(html_parts), unsafe_allow_html=True)
     else:
         st.info("새로운 출발을 응원합니다! (아직 등록된 거래 내역이 없습니다)")
 
