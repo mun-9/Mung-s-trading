@@ -96,7 +96,6 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
 </style>
 """, unsafe_allow_html=True)
 
-
 # -----------------------------------------------------------------------------
 # 2. 체결 분류 유틸
 # -----------------------------------------------------------------------------
@@ -121,14 +120,12 @@ def classify_fill(t):
 
     return side, is_close, has_pnl, pnl, price
 
-
 def result_of(bucket, has_pnl, pnl):
     if bucket == "증가": return "진입"
     if not has_pnl: return "미확인"
     if pnl > 0: return "익절"
     if pnl < 0: return "손절"
     return "본전"
-
 
 TRADE_COLS = ["order_id", "datetime", "date", "symbol", "side", "bucket", "has_pnl", "pnl", "price", "result"]
 
@@ -242,12 +239,14 @@ def fetch_fast_data(exchange_name, api_key, secret, pwd):
     except Exception:
         return [], 0.0
 
-# 🔥 거래소 fetch_my_trades 는 대부분 "종목(symbol)" 하나씩 물어봐야 해서, 이 목록에 없는 코인을
-# 거래하면 조용히 통째로 빠진다. 자주 쓰는 코인을 폭넓게 커버 + 지금 들고 있는 포지션 심볼은 무조건 포함.
 POPULAR_SYMBOLS = [
     "BTC/USDT:USDT", "ETH/USDT:USDT", "SOL/USDT:USDT", "XRP/USDT:USDT", "DOGE/USDT:USDT",
     "ADA/USDT:USDT", "BNB/USDT:USDT", "BCH/USDT:USDT", "LINK/USDT:USDT", "AVAX/USDT:USDT",
     "LTC/USDT:USDT", "TRX/USDT:USDT", "DOT/USDT:USDT", "SUI/USDT:USDT", "PEPE/USDT:USDT",
+    "1000PEPE/USDT:USDT", "SHIB/USDT:USDT", "1000SHIB/USDT:USDT", "WIF/USDT:USDT", "NEIRO/USDT:USDT",
+    "APT/USDT:USDT", "OP/USDT:USDT", "ARB/USDT:USDT", "MATIC/USDT:USDT", "POL/USDT:USDT",
+    "FTM/USDT:USDT", "ONDO/USDT:USDT", "ORDI/USDT:USDT", "STX/USDT:USDT", "TIA/USDT:USDT",
+    "1000FLOKI/USDT:USDT", "NEAR/USDT:USDT", "INJ/USDT:USDT", "RNDR/USDT:USDT", "TAO/USDT:USDT"
 ]
 
 @st.cache_data(ttl=3600, show_spinner="거래 내역 불러오는 중...")
@@ -281,10 +280,26 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
             except Exception as e:
                 errs.append(f"{sym}: {e}")
                 continue
+                
         if errs:
             st.session_state["_slow_fetch_errors"] = errs
         else:
             st.session_state.pop("_slow_fetch_errors", None)
+
+        # 🔥 [수동 추가] 수수료 페이백 61.76달러를 2026년 10월 1일 자로 '수익(익절)'으로 반영
+        payback_date = datetime(2026, 10, 1, 10, 0, tzinfo=KST)
+        rows.append({
+            "order_id": "MANUAL_PAYBACK_61_76",
+            "datetime": payback_date.replace(tzinfo=None),
+            "date": "2026-10-01",
+            "symbol": "FEE/PAYBACK",
+            "side": "LONG",
+            "bucket": "축소",
+            "has_pnl": True,
+            "pnl": 61.76,
+            "price": 0.0
+        })
+
         df = finalize(rows)
         return df[df["date"] >= DASHBOARD_START_DATE] if not df.empty else df
     except Exception as e:
@@ -372,12 +387,13 @@ def show_live_positions():
                     for pos in pos_list:
                         side_color = GREEN if pos["side"] == "LONG" else RED
                         fig.add_hline(y=pos['entry_price'], line_dash="dot", line_width=1.3, line_color=side_color, opacity=0.6)
+                        
                         fig.add_annotation(
-                            x=1, xref="paper", y=pos['entry_price'],
-                            text=f" {pos['side']} 진입 ${pos['entry_price']:,.2f} ", showarrow=False,
-                            font=dict(color="#ffffff", size=11, family="Pretendard, Arial"),
-                            bgcolor=side_color, borderpad=4,
-                            xanchor='left', yanchor='middle'
+                            x=0.01, xref="paper", y=pos['entry_price'],
+                            text=f" {pos['side']} ${pos['entry_price']:,.2f} ", showarrow=False,
+                            font=dict(color="#ffffff", size=10, family="Pretendard, Arial"),
+                            bgcolor=side_color, borderpad=3,
+                            xanchor='left', yanchor='bottom'
                         )
 
                     if not df_trades.empty:
@@ -408,7 +424,7 @@ def show_live_positions():
                                 ))
 
                     fig.update_layout(
-                        height=380, margin=dict(t=15, b=5, l=5, r=140),
+                        height=350, margin=dict(t=15, b=10, l=10, r=45),
                         paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
                         xaxis_rangeslider_visible=False, showlegend=False,
                         xaxis=dict(showgrid=True, gridcolor="#F8F9FA", zeroline=False, tickformat="%H:%M", tickfont=dict(color=GRAY, size=11)),
@@ -467,12 +483,8 @@ st.markdown(f"<div style='font-size:19px; font-weight:800; color:{TEXT}; margin-
 
 today_kst = datetime.now(KST).date()
 dashboard_start = datetime.strptime(DASHBOARD_START_DATE, "%Y-%m-%d").date()
-# 기본 화면은 "최근 7일" — 다만 대시보드 시작일 이전으로는 안 내려감(데이터가 3일치뿐이면 3일치만)
 default_start = max(dashboard_start, today_kst - timedelta(days=6))
 
-# 🔥 날짜 피커는 세션에 딱 한 번만 기본값을 심고, 그 다음부턴 session_state 가 유일한 출처.
-# (예전 코드는 버튼을 눌러도 달력 위젯 자체는 안 바뀌고 내부 변수만 바뀌어서, 위젯이
-#  과거 세션에 남아있던 값을 계속 보여주는 불일치가 있었음 — 그게 날짜 누락의 진짜 원인)
 if "hist_start" not in st.session_state:
     st.session_state.hist_start = default_start
 if "hist_end" not in st.session_state:
@@ -609,7 +621,7 @@ def render_pnl_charts(f_df):
         if n_days == 0:
             tickvals = []
         elif n_days <= 10:
-            tickvals = list(daily_pnl["date"])  # 기간이 짧으면 날짜를 다 보여줌
+            tickvals = list(daily_pnl["date"])
         else:
             step = max(1, n_days // 6)
             idxs = sorted(set(range(0, n_days, step)) | {n_days - 1})
@@ -651,11 +663,17 @@ def render_trade_logs(f_df):
     rows = []
     for _, r in f_df.head(100).iterrows():
         dt_str = r['datetime'].strftime('%m.%d %H:%M')
-        base = (r['symbol'].split('/')[0] if '/' in r['symbol'] else r['symbol'])[:1]
-        side_color = GREEN if r['side'] == 'LONG' else RED
-        side_soft = GREEN_SOFT if r['side'] == 'LONG' else RED_SOFT
+        
+        is_payback = r['symbol'] == "FEE/PAYBACK"
+        base = "💰" if is_payback else (r['symbol'].split('/')[0] if '/' in r['symbol'] else r['symbol'])[:1]
+        sym_name = "수수료 페이백" if is_payback else r['symbol']
+        side_name = "입금" if is_payback else r['side']
+
+        side_color = GREEN if (r['side'] == 'LONG' or is_payback) else RED
+        side_soft = GREEN_SOFT if (r['side'] == 'LONG' or is_payback) else RED_SOFT
         price = f"${r['price']:,.2f}" if pd.notnull(r['price']) and r['price'] > 0 else "-"
         pnl_val, res = r['pnl'], r['result']
+        
         if res == '익절':
             pnl_color, chip_bg, pnl_txt = GREEN, GREEN_SOFT, f"+{pnl_val:,.2f}"
         elif res == '손절':
@@ -664,10 +682,11 @@ def render_trade_logs(f_df):
             pnl_color, chip_bg, pnl_txt = SUB, "rgba(139,149,161,0.12)", "0.00"
         else:
             pnl_color, chip_bg, pnl_txt = SUB, "rgba(139,149,161,0.12)", "-"
+            
         rows.append(
             "<div class='log-row'>"
             f"<div class='log-left'><div class='sym-badge' style='background:{side_soft};color:{side_color};'>{base}</div>"
-            f"<div><div class='row-title'>{r['symbol']} <span class='pill' style='background:{side_soft};color:{side_color};'>{r['side']}</span></div>"
+            f"<div><div class='row-title'>{sym_name} <span class='pill' style='background:{side_soft};color:{side_color};'>{side_name}</span></div>"
             f"<div class='row-sub'>{dt_str} · {r['bucket']}</div></div></div>"
             f"<div class='row-right'><div class='row-price'>{price}</div>"
             f"<div class='row-pnl' style='color:{pnl_color};'>{pnl_txt}<span class='chip' style='background:{chip_bg};color:{pnl_color};'>{res}</span></div></div>"
