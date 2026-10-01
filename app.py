@@ -250,7 +250,6 @@ POPULAR_SYMBOLS = [
 ]
 
 @st.cache_data(ttl=3600, show_spinner="거래 내역 불러오는 중...")
-```python
 @st.cache_data(ttl=60, show_spinner="거래 내역 불러오는 중...")
 def fetch_slow_data(exchange_name, api_key, secret, pwd):
     if not api_key or not secret or exchange_name == "Demo (샘플 데이터)":
