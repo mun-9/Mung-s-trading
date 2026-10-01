@@ -242,6 +242,14 @@ def fetch_fast_data(exchange_name, api_key, secret, pwd):
     except Exception:
         return [], 0.0
 
+# 🔥 거래소 fetch_my_trades 는 대부분 "종목(symbol)" 하나씩 물어봐야 해서, 이 목록에 없는 코인을
+# 거래하면 조용히 통째로 빠진다. 자주 쓰는 코인을 폭넓게 커버 + 지금 들고 있는 포지션 심볼은 무조건 포함.
+POPULAR_SYMBOLS = [
+    "BTC/USDT:USDT", "ETH/USDT:USDT", "SOL/USDT:USDT", "XRP/USDT:USDT", "DOGE/USDT:USDT",
+    "ADA/USDT:USDT", "BNB/USDT:USDT", "BCH/USDT:USDT", "LINK/USDT:USDT", "AVAX/USDT:USDT",
+    "LTC/USDT:USDT", "TRX/USDT:USDT", "DOT/USDT:USDT", "SUI/USDT:USDT", "PEPE/USDT:USDT",
+]
+
 @st.cache_data(ttl=3600, show_spinner="거래 내역 불러오는 중...")
 def fetch_slow_data(exchange_name, api_key, secret, pwd):
     if not api_key or not secret or exchange_name == "Demo (샘플 데이터)": return demo_trades()
@@ -254,8 +262,15 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
         start_dt = datetime.strptime(DASHBOARD_START_DATE, "%Y-%m-%d").replace(tzinfo=KST)
         since_ts = int(start_dt.timestamp() * 1000)
 
-        rows = []
-        for sym in ["BTC/USDT:USDT", "ETH/USDT:USDT", "SOL/USDT:USDT", "XRP/USDT:USDT"]:
+        try:
+            open_pos, _ = fetch_fast_data(exchange_name, api_key, secret, pwd)
+            extra_syms = [f"{p['symbol']}:USDT" for p in open_pos if ':' not in p['symbol']]
+        except Exception:
+            extra_syms = []
+        symbols = list(dict.fromkeys(POPULAR_SYMBOLS + extra_syms))
+
+        rows, errs = [], []
+        for sym in symbols:
             if sym not in exchange.markets: continue
             try:
                 for t in exchange.fetch_my_trades(symbol=sym, since=since_ts, limit=1000):
@@ -263,11 +278,17 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
                     t_kst = t_utc.astimezone(KST)
                     side, is_close, has_pnl, pnl, price = classify_fill(t)
                     rows.append({"order_id": str(t.get("order") or t["timestamp"]), "datetime": t_kst.replace(tzinfo=None), "date": t_kst.strftime("%Y-%m-%d"), "symbol": t["symbol"].replace(":USDT", ""), "side": side, "bucket": "축소" if is_close else "증가", "has_pnl": has_pnl, "pnl": pnl, "price": price})
-            except Exception:
+            except Exception as e:
+                errs.append(f"{sym}: {e}")
                 continue
+        if errs:
+            st.session_state["_slow_fetch_errors"] = errs
+        else:
+            st.session_state.pop("_slow_fetch_errors", None)
         df = finalize(rows)
         return df[df["date"] >= DASHBOARD_START_DATE] if not df.empty else df
-    except Exception:
+    except Exception as e:
+        st.session_state["_slow_fetch_errors"] = [f"전체 조회 실패: {e}"]
         return pd.DataFrame(columns=TRADE_COLS)
 
 # -----------------------------------------------------------------------------
