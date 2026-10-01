@@ -19,7 +19,7 @@ except Exception:
     MY_PASSPHRASE = ""
 
 # 🎯 [초기화 설정] 대시보드 기준 날짜
-DASHBOARD_START_DATE = "2026-09-28"
+DASHBOARD_START_DATE = "2026-09-29"
 
 # 🇰🇷 시간대 설정 (모든 기준을 한국 시간으로 통일)
 KST = timezone(timedelta(hours=9))
@@ -250,47 +250,231 @@ POPULAR_SYMBOLS = [
 ]
 
 @st.cache_data(ttl=3600, show_spinner="거래 내역 불러오는 중...")
+```python
+@st.cache_data(ttl=60, show_spinner="거래 내역 불러오는 중...")
 def fetch_slow_data(exchange_name, api_key, secret, pwd):
-    if not api_key or not secret or exchange_name == "Demo (샘플 데이터)": return demo_trades()
+    if not api_key or not secret or exchange_name == "Demo (샘플 데이터)":
+        return demo_trades()
+
     try:
-        if exchange_name == "Bitget": exchange = ccxt.bitget({'apiKey': api_key, 'secret': secret, 'password': pwd, 'enableRateLimit': True, 'options': {'defaultType': 'swap'}})
-        elif exchange_name == "Binance": exchange = ccxt.binance({'apiKey': api_key, 'secret': secret, 'enableRateLimit': True, 'options': {'defaultType': 'future'}})
-        elif exchange_name == "Bybit": exchange = ccxt.bybit({'apiKey': api_key, 'secret': secret, 'enableRateLimit': True, 'options': {'defaultType': 'linear'}})
+        # 거래소 연결
+        if exchange_name == "Bitget":
+            exchange = ccxt.bitget({
+                'apiKey': api_key,
+                'secret': secret,
+                'password': pwd,
+                'enableRateLimit': True,
+                'options': {
+                    'defaultType': 'swap'
+                }
+            })
+
+        elif exchange_name == "Binance":
+            exchange = ccxt.binance({
+                'apiKey': api_key,
+                'secret': secret,
+                'enableRateLimit': True,
+                'options': {
+                    'defaultType': 'future'
+                }
+            })
+
+        elif exchange_name == "Bybit":
+            exchange = ccxt.bybit({
+                'apiKey': api_key,
+                'secret': secret,
+                'enableRateLimit': True,
+                'options': {
+                    'defaultType': 'linear'
+                }
+            })
+
         exchange.load_markets()
 
-        start_dt = datetime.strptime(DASHBOARD_START_DATE, "%Y-%m-%d").replace(tzinfo=KST)
+        # =========================================================
+        # 2026-09-29 00:00 KST부터 조회
+        # =========================================================
+        start_dt = datetime.strptime(
+            DASHBOARD_START_DATE,
+            "%Y-%m-%d"
+        ).replace(tzinfo=KST)
+
         since_ts = int(start_dt.timestamp() * 1000)
 
+        # 현재 UTC 시간
+        now_ts = int(
+            datetime.now(UTC).timestamp() * 1000
+        )
+
+        # =========================================================
+        # 현재 보유 포지션의 종목도 조회 대상에 추가
+        # =========================================================
         try:
-            open_pos, _ = fetch_fast_data(exchange_name, api_key, secret, pwd)
-            extra_syms = [f"{p['symbol']}:USDT" for p in open_pos if ':' not in p['symbol']]
+            open_pos, _ = fetch_fast_data(
+                exchange_name,
+                api_key,
+                secret,
+                pwd
+            )
+
+            extra_syms = [
+                f"{p['symbol']}:USDT"
+                for p in open_pos
+                if ':' not in p['symbol']
+            ]
+
         except Exception:
             extra_syms = []
-        symbols = list(dict.fromkeys(POPULAR_SYMBOLS + extra_syms))
 
-        rows, errs = [], []
+        symbols = list(
+            dict.fromkeys(
+                POPULAR_SYMBOLS + extra_syms
+            )
+        )
+
+        rows = []
+        errs = []
+
+        # =========================================================
+        # 종목별 거래내역 조회
+        # =========================================================
         for sym in symbols:
-            if sym not in exchange.markets: continue
-            try:
-                for t in exchange.fetch_my_trades(symbol=sym, since=since_ts, limit=1000):
-                    t_utc = datetime.fromtimestamp(t["timestamp"] / 1000, tz=UTC)
-                    t_kst = t_utc.astimezone(KST)
-                    side, is_close, has_pnl, pnl, price = classify_fill(t)
-                    rows.append({"order_id": str(t.get("order") or t["timestamp"]), "datetime": t_kst.replace(tzinfo=None), "date": t_kst.strftime("%Y-%m-%d"), "symbol": t["symbol"].replace(":USDT", ""), "side": side, "bucket": "축소" if is_close else "증가", "has_pnl": has_pnl, "pnl": pnl, "price": price})
-            except Exception as e:
-                errs.append(f"{sym}: {e}")
+
+            if sym not in exchange.markets:
                 continue
-                
+
+            try:
+                # -------------------------------------------------
+                # 중요:
+                # 1000개씩 계속 가져온다.
+                # 1000개에서 끝내지 않음.
+                # -------------------------------------------------
+                fetch_since = since_ts
+
+                while fetch_since < now_ts:
+
+                    batch = exchange.fetch_my_trades(
+                        symbol=sym,
+                        since=fetch_since,
+                        limit=1000
+                    )
+
+                    # 거래가 더 이상 없으면 종료
+                    if not batch:
+                        break
+
+                    # -------------------------------------------------
+                    # 가져온 거래 처리
+                    # -------------------------------------------------
+                    for t in batch:
+
+                        if not t.get("timestamp"):
+                            continue
+
+                        t_utc = datetime.fromtimestamp(
+                            t["timestamp"] / 1000,
+                            tz=UTC
+                        )
+
+                        t_kst = t_utc.astimezone(KST)
+
+                        # 9월 29일 이전 거래 제외
+                        if t_kst.strftime("%Y-%m-%d") < DASHBOARD_START_DATE:
+                            continue
+
+                        # 미래 거래 제외
+                        if t["timestamp"] > now_ts:
+                            continue
+
+                        side, is_close, has_pnl, pnl, price = classify_fill(t)
+
+                        rows.append({
+                            "order_id": str(
+                                t.get("order") or t["timestamp"]
+                            ),
+                            "datetime": t_kst.replace(
+                                tzinfo=None
+                            ),
+                            "date": t_kst.strftime(
+                                "%Y-%m-%d"
+                            ),
+                            "symbol": t["symbol"].replace(
+                                ":USDT",
+                                ""
+                            ),
+                            "side": side,
+                            "bucket": (
+                                "축소"
+                                if is_close
+                                else "증가"
+                            ),
+                            "has_pnl": has_pnl,
+                            "pnl": pnl,
+                            "price": price
+                        })
+
+                    # -------------------------------------------------
+                    # 페이지네이션
+                    # -------------------------------------------------
+
+                    # 1000개보다 적으면 마지막 페이지
+                    if len(batch) < 1000:
+                        break
+
+                    # 마지막 거래 시간
+                    last_ts = batch[-1].get("timestamp")
+
+                    if not last_ts:
+                        break
+
+                    # 다음 조회는 마지막 거래 + 1ms부터
+                    next_since = last_ts + 1
+
+                    # 무한 반복 방지
+                    if next_since <= fetch_since:
+                        break
+
+                    fetch_since = next_since
+
+                    # 현재 시간까지 도달
+                    if fetch_since >= now_ts:
+                        break
+
+            except Exception as e:
+                errs.append(
+                    f"{sym}: {e}"
+                )
+                continue
+
+        # =========================================================
+        # 조회 오류 저장
+        # =========================================================
         if errs:
             st.session_state["_slow_fetch_errors"] = errs
         else:
-            st.session_state.pop("_slow_fetch_errors", None)
+            st.session_state.pop(
+                "_slow_fetch_errors",
+                None
+            )
 
-        # 🔥 [수동 추가] 수수료 페이백 61.76달러를 2026년 10월 1일 자로 '수익(익절)'으로 반영
-        payback_date = datetime(2026, 10, 1, 10, 0, tzinfo=KST)
+        # =========================================================
+        # 수동 추가:
+        # 수수료 페이백 $61.76
+        # =========================================================
+        payback_date = datetime(
+            2026,
+            10,
+            1,
+            10,
+            0,
+            tzinfo=KST
+        )
+
         rows.append({
             "order_id": "MANUAL_PAYBACK_61_76",
-            "datetime": payback_date.replace(tzinfo=None),
+            "datetime": payback_date.replace(
+                tzinfo=None
+            ),
             "date": "2026-10-01",
             "symbol": "FEE/PAYBACK",
             "side": "LONG",
@@ -300,11 +484,29 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
             "price": 0.0
         })
 
+        # =========================================================
+        # 데이터 최종 정리
+        # =========================================================
         df = finalize(rows)
-        return df[df["date"] >= DASHBOARD_START_DATE] if not df.empty else df
+
+        if not df.empty:
+            df = df[
+                df["date"] >= DASHBOARD_START_DATE
+            ]
+
+        return df
+
     except Exception as e:
-        st.session_state["_slow_fetch_errors"] = [f"전체 조회 실패: {e}"]
-        return pd.DataFrame(columns=TRADE_COLS)
+
+        st.session_state["_slow_fetch_errors"] = [
+            f"전체 조회 실패: {e}"
+        ]
+
+        return pd.DataFrame(
+            columns=TRADE_COLS
+        )
+```
+
 
 # -----------------------------------------------------------------------------
 # 5. 사이드바
