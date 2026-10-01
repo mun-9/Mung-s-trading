@@ -569,7 +569,15 @@ def render_pnl_charts(f_df):
         st.markdown(html_pnl, unsafe_allow_html=True)
 
         tab1, tab2 = st.tabs(["일별 손익", "기간 누적"])
-        tickvals = [daily_pnl["date"].iloc[i] for i in sorted({0, len(daily_pnl) // 2, len(daily_pnl) - 1})] if not daily_pnl.empty else []
+        n_days = len(daily_pnl)
+        if n_days == 0:
+            tickvals = []
+        elif n_days <= 10:
+            tickvals = list(daily_pnl["date"])  # 기간이 짧으면 날짜를 다 보여줌
+        else:
+            step = max(1, n_days // 6)
+            idxs = sorted(set(range(0, n_days, step)) | {n_days - 1})
+            tickvals = [daily_pnl["date"].iloc[i] for i in idxs]
 
         def style(fig):
             fig.update_layout(
