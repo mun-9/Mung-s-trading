@@ -7,8 +7,6 @@ import plotly.graph_objects as go
 import streamlit as st
 
 # =============================================================================
-# 🔑 웹사이트 비밀 금고에서 API 키를 가져옵니다
-# =============================================================================
 try:
     MY_API_KEY = st.secrets["API_KEY"]
     MY_SECRET_KEY = st.secrets["SECRET_KEY"]
@@ -19,7 +17,7 @@ except Exception:
     MY_PASSPHRASE = ""
 
 # 🎯 [초기화 설정] 대시보드 기준 날짜
-DASHBOARD_START_DATE = "2026-09-29"
+DASHBOARD_START_DATE = "2026-09-28"
 
 # 🇰🇷 시간대 설정 (모든 기준을 한국 시간으로 통일)
 KST = timezone(timedelta(hours=9))
