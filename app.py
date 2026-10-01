@@ -19,7 +19,7 @@ except Exception:
     MY_PASSPHRASE = ""
 
 # 🎯 [초기화 설정] 대시보드 기준 날짜
-DASHBOARD_START_DATE = "2026-09-30"
+DASHBOARD_START_DATE = "2026-09-28"
 
 # 🇰🇷 시간대 설정 (모든 기준을 한국 시간으로 통일)
 KST = timezone(timedelta(hours=9))
@@ -46,9 +46,6 @@ st.markdown("""
 
 html, body, .stApp { background-color: #F2F4F6 !important; }
 .stApp, .stApp p, .stApp span, .stApp div, .stApp label { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif; letter-spacing:-0.01em; }
-/* 🔥 위 폰트 지정이 사이드바 접기/펼치기 화살표 같은 스트림릿 내장 아이콘 폰트까지 덮어써서
-   "keyboard_double_arrow_right" 처럼 아이콘이 글자 그대로 보이던 문제 — 아이콘만 원래 폰트로 복구 */
-[data-testid="stIconMaterial"] { font-family: 'Material Symbols Rounded' !important; letter-spacing: normal !important; }
 .block-container { padding-top: 3.8rem; max-width: 1240px; }
 
 .card { background:#ffffff; border-radius:20px; box-shadow:0 2px 14px rgba(15,23,42,0.05); padding:22px 24px; }
@@ -135,6 +132,11 @@ TRADE_COLS = ["order_id", "datetime", "date", "symbol", "side", "bucket", "has_p
 def finalize(rows):
     if not rows: return pd.DataFrame(columns=TRADE_COLS)
     df = pd.DataFrame(rows)
+    
+    # 🔥 고유 체결 ID 기준으로 완벽하게 중복 데이터 제거
+    if "trade_id" in df.columns:
+        df = df.drop_duplicates(subset=["trade_id"])
+        
     g = df.groupby(["order_id", "symbol", "side", "date"], as_index=False).agg(
         pnl=("pnl", "sum"), price=("price", "mean"), datetime=("datetime", "last"),
         bucket=("bucket", lambda s: s.mode().iat[0]), has_pnl=("has_pnl", "max")
@@ -152,8 +154,9 @@ def demo_trades():
         is_close = rnd.random() < 0.55
         pnl = rnd.choice([rnd.uniform(50, 900), rnd.uniform(50, 900), rnd.uniform(-700, -40), 0.0]) if is_close else 0.0
         sym = rnd.choice(["BTC/USDT", "ETH/USDT"])
+        trade_id = f"DEMO_TRADE_{i}"
         rows.append({
-            "order_id": f"DEMO_{i}", "datetime": t_kst.replace(tzinfo=None),
+            "trade_id": trade_id, "order_id": f"DEMO_ORDER_{i}", "datetime": t_kst.replace(tzinfo=None),
             "date": t_kst.strftime("%Y-%m-%d"), "symbol": sym, "side": rnd.choice(["LONG", "SHORT"]),
             "bucket": "축소" if is_close else "증가", "has_pnl": True, "pnl": round(pnl, 2),
             "price": round(rnd.uniform(62000, 65000) if "BTC" in sym else rnd.uniform(2000, 3000), 2)
@@ -211,12 +214,10 @@ def fetch_live_ohlcv(exchange_name, symbol, timeframe, limit=120):
         return pd.DataFrame()
 
 # -----------------------------------------------------------------------------
-# 4. API 데이터 로드
-#    🔥 _nonce 파라미터: 값이 자체는 안 쓰지만 캐시 키에 포함돼서, "수동 새로고침"을 누르면
-#    이전에 어떤 캐시가 남아있든 무조건 새 캐시 키로 취급돼 실제로 거래소를 다시 호출함.
+# 4. API 데이터 로드 (🔥 48시간 슬라이딩 우회 시간 쪼개기 추가)
 # -----------------------------------------------------------------------------
 @st.cache_data(ttl=10, show_spinner=False)
-def fetch_fast_data(exchange_name, api_key, secret, pwd, _nonce=0):
+def fetch_fast_data(exchange_name, api_key, secret, pwd):
     if not api_key or not secret or exchange_name == "Demo (샘플 데이터)":
         return [
             {"symbol": "BTC/USDT", "side": "LONG", "leverage": 20, "entry_price": 63200.0, "mark_price": 64800.0, "size": 0.3, "margin": 948.0, "liq_price": 60100.0, "unrealized_pnl": 480.0, "roe": 50.6},
@@ -254,24 +255,21 @@ POPULAR_SYMBOLS = [
     "1000FLOKI/USDT:USDT", "NEAR/USDT:USDT", "INJ/USDT:USDT", "RNDR/USDT:USDT", "TAO/USDT:USDT"
 ]
 
-@st.cache_data(ttl=3600, show_spinner="거래 내역 불러오는 중...")
-def fetch_slow_data(exchange_name, api_key, secret, pwd, _nonce=0):
-    if not api_key or not secret or exchange_name == "Demo (샘플 데이터)":
-        return demo_trades()
-
+@st.cache_data(ttl=3600, show_spinner="거래 및 입금 내역 불러오는 중...")
+def fetch_slow_data(exchange_name, api_key, secret, pwd):
+    if not api_key or not secret or exchange_name == "Demo (샘플 데이터)": return demo_trades()
     try:
-        if exchange_name == "Bitget":
-            exchange = ccxt.bitget({'apiKey': api_key, 'secret': secret, 'password': pwd, 'enableRateLimit': True, 'options': {'defaultType': 'swap'}})
-        elif exchange_name == "Binance":
-            exchange = ccxt.binance({'apiKey': api_key, 'secret': secret, 'enableRateLimit': True, 'options': {'defaultType': 'future'}})
-        elif exchange_name == "Bybit":
-            exchange = ccxt.bybit({'apiKey': api_key, 'secret': secret, 'enableRateLimit': True, 'options': {'defaultType': 'linear'}})
-
+        if exchange_name == "Bitget": exchange = ccxt.bitget({'apiKey': api_key, 'secret': secret, 'password': pwd, 'enableRateLimit': True, 'options': {'defaultType': 'swap'}})
+        elif exchange_name == "Binance": exchange = ccxt.binance({'apiKey': api_key, 'secret': secret, 'enableRateLimit': True, 'options': {'defaultType': 'future'}})
+        elif exchange_name == "Bybit": exchange = ccxt.bybit({'apiKey': api_key, 'secret': secret, 'enableRateLimit': True, 'options': {'defaultType': 'linear'}})
         exchange.load_markets()
 
         start_dt = datetime.strptime(DASHBOARD_START_DATE, "%Y-%m-%d").replace(tzinfo=KST)
         since_ts = int(start_dt.timestamp() * 1000)
         now_ts = int(datetime.now(UTC).timestamp() * 1000)
+        
+        # 거래소의 48시간 최대 조회 제한을 우회하기 위해 2일(48h) 간격으로 잘라서 요청
+        chunk_ms = 2 * 24 * 60 * 60 * 1000 
 
         try:
             open_pos, _ = fetch_fast_data(exchange_name, api_key, secret, pwd)
@@ -281,70 +279,111 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd, _nonce=0):
         symbols = list(dict.fromkeys(POPULAR_SYMBOLS + extra_syms))
 
         rows, errs = [], []
+        
         for sym in symbols:
-            if sym not in exchange.markets:
-                continue
-            try:
-                fetch_since = since_ts
-                guard = 0  # 거래소가 since를 안 지키고 무한루프 돌 가능성 방지
-                while fetch_since < now_ts and guard < 50:
-                    guard += 1
-                    batch = exchange.fetch_my_trades(symbol=sym, since=fetch_since, limit=1000)
-                    if not batch:
-                        break
-                    # 🔥 거래소가 오래된→최신 순으로 안 준다고 가정하지 않고 항상 직접 정렬
-                    batch = sorted(batch, key=lambda x: x.get("timestamp") or 0)
-
-                    for t in batch:
-                        ts_ms = t.get("timestamp")
-                        if not ts_ms or ts_ms > now_ts:
-                            continue
-                        t_utc = datetime.fromtimestamp(ts_ms / 1000, tz=UTC)
+            if sym not in exchange.markets: continue
+            
+            current_since = since_ts
+            # 현재 시간까지 2일씩 쪼개면서 계속 조회
+            while current_since < now_ts:
+                chunk_until = min(current_since + chunk_ms, now_ts)
+                try:
+                    # 'endTime' 또는 'until'로 명시적인 시간 종료점을 알려줌
+                    params = {'endTime': chunk_until, 'until': chunk_until}
+                    trades = exchange.fetch_my_trades(symbol=sym, since=current_since, limit=1000, params=params)
+                    
+                    for t in trades:
+                        t_utc = datetime.fromtimestamp(t["timestamp"] / 1000, tz=UTC)
                         t_kst = t_utc.astimezone(KST)
-                        if t_kst.strftime("%Y-%m-%d") < DASHBOARD_START_DATE:
-                            continue
                         side, is_close, has_pnl, pnl, price = classify_fill(t)
+                        
+                        trade_id = str(t.get("id") or f"{t.get('order')}_{t['timestamp']}")
+                        order_id = str(t.get("order") or t["timestamp"])
+                        
                         rows.append({
-                            "order_id": str(t.get("order") or ts_ms),
-                            "datetime": t_kst.replace(tzinfo=None),
-                            "date": t_kst.strftime("%Y-%m-%d"),
-                            "symbol": t["symbol"].replace(":USDT", ""),
-                            "side": side,
-                            "bucket": "축소" if is_close else "증가",
-                            "has_pnl": has_pnl, "pnl": pnl, "price": price,
+                            "trade_id": trade_id,
+                            "order_id": order_id, 
+                            "datetime": t_kst.replace(tzinfo=None), 
+                            "date": t_kst.strftime("%Y-%m-%d"), 
+                            "symbol": t["symbol"].replace(":USDT", ""), 
+                            "side": side, 
+                            "bucket": "축소" if is_close else "증가", 
+                            "has_pnl": has_pnl, 
+                            "pnl": pnl, 
+                            "price": price
                         })
+                except Exception:
+                    # 파라미터 미지원 에러 시 일반 조회로 폴백 (대신 중복 데이터는 finalize에서 제거됨)
+                    try:
+                        trades = exchange.fetch_my_trades(symbol=sym, since=current_since, limit=1000)
+                        for t in trades:
+                            t_utc = datetime.fromtimestamp(t["timestamp"] / 1000, tz=UTC)
+                            t_kst = t_utc.astimezone(KST)
+                            side, is_close, has_pnl, pnl, price = classify_fill(t)
+                            trade_id = str(t.get("id") or f"{t.get('order')}_{t['timestamp']}")
+                            order_id = str(t.get("order") or t["timestamp"])
+                            rows.append({
+                                "trade_id": trade_id, "order_id": order_id, "datetime": t_kst.replace(tzinfo=None), 
+                                "date": t_kst.strftime("%Y-%m-%d"), "symbol": t["symbol"].replace(":USDT", ""), 
+                                "side": side, "bucket": "축소" if is_close else "증가", "has_pnl": has_pnl, 
+                                "pnl": pnl, "price": price
+                            })
+                    except Exception as e2:
+                        errs.append(f"{sym}: {e2}")
+                
+                current_since = chunk_until
+                time.sleep(0.05) # Rate Limit 방지용 휴식
 
-                    if len(batch) < 1000:
-                        break
-                    last_ts = batch[-1].get("timestamp")
-                    if not last_ts:
-                        break
-                    next_since = last_ts + 1
-                    if next_since <= fetch_since:
-                        break
-                    fetch_since = next_since
-            except Exception as e:
-                errs.append(f"{sym}: {e}")
-                continue
-
+        # 🔥 [자동 입금/페이백 감지] 거래소 지갑에 들어온 입금 내역(USDT)을 자동으로 수집
+        try:
+            deposits = exchange.fetch_deposits(since=since_ts)
+            for d in deposits:
+                status = str(d.get("status", "")).lower()
+                if status in ("ok", "success", "completed", "1"):
+                    curr = str(d.get("currency", "")).upper()
+                    if curr == "USDT":
+                        d_utc = datetime.fromtimestamp(d["timestamp"] / 1000, tz=UTC)
+                        d_kst = d_utc.astimezone(KST)
+                        amount = float(d.get("amount", 0) or 0)
+                        if amount > 0:
+                            dep_id = f"DEPOSIT_{d.get('id', d['timestamp'])}"
+                            rows.append({
+                                "trade_id": dep_id,
+                                "order_id": dep_id,
+                                "datetime": d_kst.replace(tzinfo=None),
+                                "date": d_kst.strftime("%Y-%m-%d"),
+                                "symbol": "FEE/PAYBACK",
+                                "side": "LONG",
+                                "bucket": "축소",
+                                "has_pnl": True,
+                                "pnl": amount,
+                                "price": 0.0
+                            })
+        except Exception:
+            pass
+                
         if errs:
             st.session_state["_slow_fetch_errors"] = errs
         else:
             st.session_state.pop("_slow_fetch_errors", None)
 
-        # 수동 추가: 수수료 페이백
+        # 🔥 [수동 추가 백업본] 위 자동 입금이 아직 반영 안 됐을 때를 위한 수동 코드
         payback_date = datetime(2026, 10, 1, 10, 0, tzinfo=KST)
         rows.append({
+            "trade_id": "MANUAL_PAYBACK_61_76",
             "order_id": "MANUAL_PAYBACK_61_76",
             "datetime": payback_date.replace(tzinfo=None),
-            "date": "2026-10-01", "symbol": "FEE/PAYBACK", "side": "LONG",
-            "bucket": "축소", "has_pnl": True, "pnl": 61.76, "price": 0.0,
+            "date": "2026-10-01",
+            "symbol": "FEE/PAYBACK",
+            "side": "LONG",
+            "bucket": "축소",
+            "has_pnl": True,
+            "pnl": 61.76,
+            "price": 0.0
         })
 
         df = finalize(rows)
-        if not df.empty:
-            df = df[df["date"] >= DASHBOARD_START_DATE]
-        return df
+        return df[df["date"] >= DASHBOARD_START_DATE] if not df.empty else df
     except Exception as e:
         st.session_state["_slow_fetch_errors"] = [f"전체 조회 실패: {e}"]
         return pd.DataFrame(columns=TRADE_COLS)
@@ -352,22 +391,13 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd, _nonce=0):
 # -----------------------------------------------------------------------------
 # 5. 사이드바
 # -----------------------------------------------------------------------------
-if "data_nonce" not in st.session_state:
-    st.session_state.data_nonce = 0
-
 st.sidebar.title("⚙️ 대시보드 설정")
 exchange_choice = st.sidebar.selectbox("거래소 선택", ["Bitget", "Binance", "Bybit", "Demo (샘플 데이터)"])
 st.sidebar.markdown(f"<div style='font-size:12.5px; color:{GREEN}; margin-bottom:12px;'>● API 연동 완료</div><div style='font-size:12px; color:{BLUE}; margin-bottom:15px;'>● 10초마다 자동 갱신</div>", unsafe_allow_html=True)
 if st.sidebar.button("🔄 수동 새로고침"):
-    st.session_state.data_nonce += 1
-    fetch_fast_data.clear(); fetch_slow_data.clear(); fetch_usdt_krw.clear(); fetch_live_ohlcv.clear()
-    st.rerun()
+    fetch_fast_data.clear(); fetch_slow_data.clear(); fetch_usdt_krw.clear(); fetch_live_ohlcv.clear(); st.rerun()
 
-if st.session_state.get("_slow_fetch_errors"):
-    st.sidebar.warning("일부 종목 조회 실패:\n" + "\n".join(st.session_state["_slow_fetch_errors"][:5]))
-
-NONCE = st.session_state.data_nonce
-df_trades = fetch_slow_data(exchange_choice, MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE, NONCE)
+df_trades = fetch_slow_data(exchange_choice, MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
 
 # -----------------------------------------------------------------------------
 # 6. 메인 타이틀 — 심플 버전
@@ -387,7 +417,7 @@ st.markdown(f"<div style='font-size: 17px; font-weight: 800; color: {TEXT}; marg
 
 @st.fragment(run_every=10)
 def show_live_positions():
-    current_positions, wallet_balance = fetch_fast_data(exchange_choice, MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE, NONCE)
+    current_positions, wallet_balance = fetch_fast_data(exchange_choice, MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
 
     if not current_positions:
         st.markdown(f"<div class='card' style='text-align: center; color: {SUB}; font-size: 14px; padding:32px;'>현재 진행 중인 포지션이 없습니다</div>", unsafe_allow_html=True)
@@ -439,6 +469,7 @@ def show_live_positions():
                     for pos in pos_list:
                         side_color = GREEN if pos["side"] == "LONG" else RED
                         fig.add_hline(y=pos['entry_price'], line_dash="dot", line_width=1.3, line_color=side_color, opacity=0.6)
+                        
                         fig.add_annotation(
                             x=0.01, xref="paper", y=pos['entry_price'],
                             text=f" {pos['side']} ${pos['entry_price']:,.2f} ", showarrow=False,
@@ -487,7 +518,7 @@ def show_live_positions():
 show_live_positions()
 
 # -----------------------------------------------------------------------------
-# 8. 상단 PNL 카드 — USD 좌측, 원화 우측 정렬
+# 8. 상단 PNL 카드
 # -----------------------------------------------------------------------------
 st.markdown(f"<div style='font-size: 12px; color: {SUB}; margin-bottom: 10px; margin-top: 0;'>미실현손익은 일별·월별 추정 PNL 합계에 포함하지 않습니다</div>", unsafe_allow_html=True)
 col_s1, col_s2, col_s3 = st.columns(3)
@@ -495,8 +526,8 @@ col_s1, col_s2, col_s3 = st.columns(3)
 def make_top_card(title, value, sub_left, sub_right="", krw_rate=1350.0):
     val_color, sign = (GREEN, "+") if value >= 0 else (RED, "")
     krw_val = value * krw_rate
-    krw_str = f"+₩{krw_val:,.0f}" if krw_val >= 0 else f"-₩{abs(krw_val):,.0f}"
-    return f"""<div class="card" style="min-height: 150px; display:flex; flex-direction:column;"><div><div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700; color:{TEXT};"><span>{title}</span> <span style="color:{SUB}; font-weight:500;">{sub_right}</span></div><div style="display:flex; align-items:baseline; gap:8px; margin:14px 0 2px;"><span style="font-size:30px; font-weight:800; color:{val_color}; letter-spacing:-0.02em;">{sign}${value:,.2f}</span><span style="font-size:13px; font-weight:600; color:{SUB};">{krw_str}</span></div></div><div style="font-size:12px; color:{SUB}; margin-top:auto; padding-top:10px;">{sub_left}</div></div>"""
+    krw_str = f"+ ₩{krw_val:,.0f}" if krw_val >= 0 else f"- ₩{abs(krw_val):,.0f}"
+    return f"""<div class="card" style="min-height: 150px; display:flex; flex-direction:column;"><div><div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700; color:{TEXT};"><span>{title}</span> <span style="color:{SUB}; font-weight:500;">{sub_right}</span></div><div style="font-size:30px; font-weight:800; color:{val_color}; margin:14px 0 2px; letter-spacing:-0.02em;">{sign}${value:,.2f}</div><div style="font-size:13px; font-weight:500; color:{SUB};">{krw_str}</div></div><div style="font-size:12px; color:{SUB}; margin-top:auto; padding-top:10px;">{sub_left}</div></div>"""
 
 with col_s1:
     @st.fragment(run_every=3600)
@@ -520,7 +551,7 @@ with col_s3:
     @st.fragment(run_every=10)
     def render_unrealized_pnl():
         k_rate = fetch_usdt_krw()
-        pos, bal = fetch_fast_data(exchange_choice, MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE, NONCE)
+        pos, bal = fetch_fast_data(exchange_choice, MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
         unrealized = sum([p.get("unrealized_pnl", 0.0) for p in pos]) if pos else 0.0
         st.markdown(make_top_card("현재 미실현손익", unrealized, "전체 포지션 합계 · 10초마다 갱신", "", k_rate), unsafe_allow_html=True)
     render_unrealized_pnl()
@@ -536,13 +567,10 @@ today_kst = datetime.now(KST).date()
 dashboard_start = datetime.strptime(DASHBOARD_START_DATE, "%Y-%m-%d").date()
 default_start = max(dashboard_start, today_kst - timedelta(days=6))
 
-# 🔥 DASHBOARD_START_DATE를 코드에서 바꿔도(28→29→28 등) 세션에 이미 저장된 날짜 선택값은
-# 안 바뀌는 게 스트림릿 기본 동작이라, "PNL 아무것도 안 뜸"의 원인이 여기 있었음.
-# DASHBOARD_START_DATE 자체가 바뀐 걸 감지하면 날짜 선택값을 강제로 새 기본값으로 리셋.
-if st.session_state.get("_dash_cfg") != DASHBOARD_START_DATE:
+if "hist_start" not in st.session_state:
     st.session_state.hist_start = default_start
+if "hist_end" not in st.session_state:
     st.session_state.hist_end = today_kst
-    st.session_state["_dash_cfg"] = DASHBOARD_START_DATE
 
 c_d1, c_d2, c_btn1, c_btn2, c_btn3, c_space = st.columns([1.5, 1.5, 0.8, 0.9, 1.1, 5.5])
 with c_btn1:
@@ -575,7 +603,7 @@ st.markdown(f"<div style='margin-top: 8px; display:flex; justify-content:space-b
 
 @st.fragment(run_every=3600)
 def render_trade_stats(f_df):
-    all_df = fetch_slow_data(exchange_choice, MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE, NONCE)
+    all_df = fetch_slow_data(exchange_choice, MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
     col_t1, col_t2, col_t3 = st.columns([1, 1, 1.2])
 
     total = len(f_df)
@@ -717,7 +745,7 @@ def render_trade_logs(f_df):
     rows = []
     for _, r in f_df.head(100).iterrows():
         dt_str = r['datetime'].strftime('%m.%d %H:%M')
-
+        
         is_payback = r['symbol'] == "FEE/PAYBACK"
         base = "💰" if is_payback else (r['symbol'].split('/')[0] if '/' in r['symbol'] else r['symbol'])[:1]
         sym_name = "수수료 페이백" if is_payback else r['symbol']
@@ -727,7 +755,7 @@ def render_trade_logs(f_df):
         side_soft = GREEN_SOFT if (r['side'] == 'LONG' or is_payback) else RED_SOFT
         price = f"${r['price']:,.2f}" if pd.notnull(r['price']) and r['price'] > 0 else "-"
         pnl_val, res = r['pnl'], r['result']
-
+        
         if res == '익절':
             pnl_color, chip_bg, pnl_txt = GREEN, GREEN_SOFT, f"+{pnl_val:,.2f}"
         elif res == '손절':
@@ -736,7 +764,7 @@ def render_trade_logs(f_df):
             pnl_color, chip_bg, pnl_txt = SUB, "rgba(139,149,161,0.12)", "0.00"
         else:
             pnl_color, chip_bg, pnl_txt = SUB, "rgba(139,149,161,0.12)", "-"
-
+            
         rows.append(
             "<div class='log-row'>"
             f"<div class='log-left'><div class='sym-badge' style='background:{side_soft};color:{side_color};'>{base}</div>"
