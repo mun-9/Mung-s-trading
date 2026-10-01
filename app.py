@@ -19,7 +19,7 @@ except Exception:
     MY_PASSPHRASE = ""
 
 # 🎯 [초기화 설정] 대시보드 기준 날짜
-DASHBOARD_START_DATE = "2026-09-28"
+DASHBOARD_START_DATE = "2026-09-30"
 
 # 🇰🇷 시간대 설정 (모든 기준을 한국 시간으로 통일)
 KST = timezone(timedelta(hours=9))
@@ -496,7 +496,7 @@ def make_top_card(title, value, sub_left, sub_right="", krw_rate=1350.0):
     val_color, sign = (GREEN, "+") if value >= 0 else (RED, "")
     krw_val = value * krw_rate
     krw_str = f"+₩{krw_val:,.0f}" if krw_val >= 0 else f"-₩{abs(krw_val):,.0f}"
-    return f"""<div class="card" style="min-height: 150px; display:flex; flex-direction:column;"><div><div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700; color:{TEXT};"><span>{title}</span> <span style="color:{SUB}; font-weight:500;">{sub_right}</span></div><div style="display:flex; align-items:baseline; justify-content:space-between; margin:14px 0 2px;"><span style="font-size:30px; font-weight:800; color:{val_color}; letter-spacing:-0.02em;">{sign}${value:,.2f}</span><span style="font-size:13px; font-weight:600; color:{SUB};">{krw_str}</span></div></div><div style="font-size:12px; color:{SUB}; margin-top:auto; padding-top:10px;">{sub_left}</div></div>"""
+    return f"""<div class="card" style="min-height: 150px; display:flex; flex-direction:column;"><div><div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700; color:{TEXT};"><span>{title}</span> <span style="color:{SUB}; font-weight:500;">{sub_right}</span></div><div style="display:flex; align-items:baseline; gap:8px; margin:14px 0 2px;"><span style="font-size:30px; font-weight:800; color:{val_color}; letter-spacing:-0.02em;">{sign}${value:,.2f}</span><span style="font-size:13px; font-weight:600; color:{SUB};">{krw_str}</span></div></div><div style="font-size:12px; color:{SUB}; margin-top:auto; padding-top:10px;">{sub_left}</div></div>"""
 
 with col_s1:
     @st.fragment(run_every=3600)
