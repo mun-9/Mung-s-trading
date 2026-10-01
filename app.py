@@ -313,7 +313,7 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
                             "price": price
                         })
                 except Exception:
-                    # 파라미터 미지원 에러 시 일반 조회로 폴백 (대신 중복 데이터는 finalize에서 제거됨)
+                    # 파라미터 미지원 에러 시 일반 조회로 폴백
                     try:
                         trades = exchange.fetch_my_trades(symbol=sym, since=current_since, limit=1000)
                         for t in trades:
@@ -334,9 +334,10 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
                 current_since = chunk_until
                 time.sleep(0.05) # Rate Limit 방지용 휴식
 
-        # 🔥 [자동 입금/페이백 감지] 거래소 지갑에 들어온 입금 내역(USDT)을 자동으로 수집
+        # 🔥 [자동 입금/페이백 감지] 10월 1일 이후의 USDT 입금 내역만 수수료 페이백으로 수집
         try:
-            deposits = exchange.fetch_deposits(since=since_ts)
+            payback_start_ts = int(datetime(2026, 10, 1, tzinfo=KST).timestamp() * 1000)
+            deposits = exchange.fetch_deposits(since=payback_start_ts)
             for d in deposits:
                 status = str(d.get("status", "")).lower()
                 if status in ("ok", "success", "completed", "1"):
@@ -366,21 +367,6 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
             st.session_state["_slow_fetch_errors"] = errs
         else:
             st.session_state.pop("_slow_fetch_errors", None)
-
-        # 🔥 [수동 추가 백업본] 위 자동 입금이 아직 반영 안 됐을 때를 위한 수동 코드
-        payback_date = datetime(2026, 10, 1, 10, 0, tzinfo=KST)
-        rows.append({
-            "trade_id": "MANUAL_PAYBACK_61_76",
-            "order_id": "MANUAL_PAYBACK_61_76",
-            "datetime": payback_date.replace(tzinfo=None),
-            "date": "2026-10-01",
-            "symbol": "FEE/PAYBACK",
-            "side": "LONG",
-            "bucket": "축소",
-            "has_pnl": True,
-            "pnl": 61.76,
-            "price": 0.0
-        })
 
         df = finalize(rows)
         return df[df["date"] >= DASHBOARD_START_DATE] if not df.empty else df
