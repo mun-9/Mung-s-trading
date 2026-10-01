@@ -449,18 +449,33 @@ dashboard_start = datetime.strptime(DASHBOARD_START_DATE, "%Y-%m-%d").date()
 # 기본 화면은 "최근 7일" — 다만 대시보드 시작일 이전으로는 안 내려감(데이터가 3일치뿐이면 3일치만)
 default_start = max(dashboard_start, today_kst - timedelta(days=6))
 
+# 🔥 날짜 피커는 세션에 딱 한 번만 기본값을 심고, 그 다음부턴 session_state 가 유일한 출처.
+# (예전 코드는 버튼을 눌러도 달력 위젯 자체는 안 바뀌고 내부 변수만 바뀌어서, 위젯이
+#  과거 세션에 남아있던 값을 계속 보여주는 불일치가 있었음 — 그게 날짜 누락의 진짜 원인)
+if "hist_start" not in st.session_state:
+    st.session_state.hist_start = default_start
+if "hist_end" not in st.session_state:
+    st.session_state.hist_end = today_kst
+
 c_d1, c_d2, c_btn1, c_btn2, c_btn3, c_space = st.columns([1.5, 1.5, 0.8, 0.9, 1.1, 5.5])
-with c_d1: start_date = st.date_input("s", value=default_start, label_visibility="collapsed")
-with c_d2: end_date = st.date_input("e", value=today_kst, label_visibility="collapsed")
-with c_btn1: btn_today = st.button("오늘", use_container_width=True)
-with c_btn2: btn_month = st.button("이번 달", use_container_width=True)
-with c_btn3: btn_30d = st.button("최근 30일", use_container_width=True)
+with c_btn1:
+    if st.button("오늘", use_container_width=True):
+        st.session_state.hist_start = today_kst
+        st.session_state.hist_end = today_kst
+with c_btn2:
+    if st.button("이번 달", use_container_width=True):
+        st.session_state.hist_start = today_kst.replace(day=1)
+        st.session_state.hist_end = today_kst
+with c_btn3:
+    if st.button("최근 30일", use_container_width=True):
+        st.session_state.hist_start = today_kst - timedelta(days=30)
+        st.session_state.hist_end = today_kst
+with c_d1:
+    start_date = st.date_input("s", key="hist_start", label_visibility="collapsed")
+with c_d2:
+    end_date = st.date_input("e", key="hist_end", label_visibility="collapsed")
 
-if btn_today: start_date, end_date = today_kst, today_kst
-elif btn_month: start_date, end_date = today_kst.replace(day=1), today_kst
-elif btn_30d: start_date, end_date = today_kst - timedelta(days=30), today_kst
-
-filter_start_date = max(start_date, datetime.strptime(DASHBOARD_START_DATE, "%Y-%m-%d").date())
+filter_start_date = max(start_date, dashboard_start)
 filter_start_str = filter_start_date.strftime("%Y-%m-%d")
 end_str = end_date.strftime("%Y-%m-%d")
 
