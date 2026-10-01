@@ -46,7 +46,7 @@ st.markdown("""
 
 html, body, .stApp { background-color: #F2F4F6 !important; }
 .stApp, .stApp p, .stApp span, .stApp div, .stApp label { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif; letter-spacing:-0.01em; }
-.block-container { padding-top: 2.2rem; max-width: 1240px; }
+.block-container { padding-top: 3.8rem; max-width: 1240px; }
 
 .card { background:#ffffff; border-radius:20px; box-shadow:0 2px 14px rgba(15,23,42,0.05); padding:22px 24px; }
 
@@ -401,7 +401,7 @@ show_live_positions()
 # -----------------------------------------------------------------------------
 # 8. 상단 PNL 카드
 # -----------------------------------------------------------------------------
-st.markdown(f"<div style='font-size: 12px; color: {SUB}; margin-bottom: 12px; margin-top: 24px;'>미실현손익은 일별·월별 추정 PNL 합계에 포함하지 않습니다</div>", unsafe_allow_html=True)
+st.markdown(f"<div style='font-size: 12px; color: {SUB}; margin-bottom: 10px; margin-top: 0;'>미실현손익은 일별·월별 추정 PNL 합계에 포함하지 않습니다</div>", unsafe_allow_html=True)
 col_s1, col_s2, col_s3 = st.columns(3)
 
 def make_top_card(title, value, sub_left, sub_right="", krw_rate=1350.0):
