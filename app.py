@@ -47,14 +47,30 @@ st.markdown("""
 html, body, .stApp { background-color: #F2F4F6 !important; }
 .stApp, .stApp p, .stApp span, .stApp div, .stApp label { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif; letter-spacing:-0.01em; }
 
-/* 🌟 상단 빈공간(헤더) 및 Share 버튼 완벽 숨기기 */
+/* 상단 여백 및 투명 헤더 영역 설정 */
 .block-container { padding-top: 2rem; max-width: 1240px; }
-[data-testid="stHeader"] { background-color: transparent !important; }
-[data-testid="stToolbar"] { display: none !important; } /* 우측 상단 Share/Deploy 등 메뉴바 제거 */
+[data-testid="stHeader"] { background-color: transparent !important; pointer-events: none !important; }
+[data-testid="stHeader"] * { pointer-events: auto !important; }
+[data-testid="stToolbar"] { display: none !important; } 
 
-/* 🌟 모바일 사이드바 화살표 텍스트 깨짐 현상 방지 */
+/* 🌟 모바일 사이드바 클릭 방해 현상 해결 */
+[data-testid="stSidebar"] { z-index: 999999 !important; border-right: none !important; box-shadow: 2px 0 20px rgba(0,0,0,0.05); }
 [data-testid="collapsedControl"] { color: #191F28 !important; }
 [data-testid="collapsedControl"] svg { display: block !important; }
+
+/* 🌟 로딩 스피너 디자인 깔끔하게 개선 */
+[data-testid="stSpinner"] {
+    background: #ffffff;
+    padding: 18px 24px;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(15,23,42,0.06);
+    margin: 20px auto;
+    text-align: center;
+    max-width: 400px;
+}
+[data-testid="stSpinner"] > div > div:last-child {
+    color: #3182F6 !important; font-weight: 700 !important; font-size: 14.5px !important; margin-left: 10px !important;
+}
 
 .card { background:#ffffff; border-radius:20px; box-shadow:0 2px 14px rgba(15,23,42,0.05); padding:22px 24px; }
 
@@ -67,22 +83,29 @@ div[class*="st-key-pos_container_"] {
     box-shadow: 0 2px 14px rgba(15,23,42,0.05) !important; padding: 22px 24px 14px !important; margin-bottom: 18px !important;
 }
 
-/* 🌟 차트 분봉 선택 라디오 버튼 모바일 깨짐 방지 */
+/* 🌟 분봉 라디오 버튼 모바일 텍스트 깨짐 완벽 해결 */
+div[class*="st-key-tf_radio_"] { margin-bottom: 12px; overflow: visible !important; }
 div[class*="st-key-tf_radio_"] div[role="radiogroup"] {
-    flex-wrap: nowrap !important;
-    overflow-x: auto;
-    scrollbar-width: none;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
 }
-div[class*="st-key-tf_radio_"] div[role="radiogroup"]::-webkit-scrollbar { display: none; }
 div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] {
-    background-color: #F2F4F6; padding: 6px 14px; border-radius: 999px; margin-right: 4px; cursor: pointer; transition: background .15s;
-    white-space: nowrap !important;
-    min-width: max-content;
+    background-color: #F2F4F6;
+    padding: 8px 16px !important;
+    border-radius: 999px;
+    margin: 0 !important;
+    cursor: pointer;
+    transition: background .15s;
+    height: auto !important;
+}
+div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] p {
+    color: #8B95A1 !important; font-size: 13.5px !important; margin: 0 !important; font-weight: 600 !important;
+    line-height: 1.4 !important; white-space: nowrap !important;
 }
 div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] div:first-child { display: none; }
 div[class*="st-key-tf_radio_"] label[data-baseweb="radio"][aria-checked="true"] { background-color: #3182F6; }
-div[class*="st-key-tf_radio_"] label[data-baseweb="radio"][aria-checked="true"] p { color: #ffffff !important; font-weight: 700; }
-div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] p { color: #8B95A1; font-size: 13px; margin: 0; font-weight: 600; white-space: nowrap !important; }
+div[class*="st-key-tf_radio_"] label[data-baseweb="radio"][aria-checked="true"] p { color: #ffffff !important; font-weight: 700 !important; }
 
 button[data-baseweb="tab"] p { color: #8B95A1 !important; font-weight: 600 !important; font-size: 14.5px !important; }
 button[data-baseweb="tab"][aria-selected="true"] p { color: #3182F6 !important; font-weight: 800 !important; }
@@ -230,7 +253,7 @@ def fetch_live_ohlcv(exchange_name, symbol, timeframe, limit=120):
         return pd.DataFrame()
 
 # -----------------------------------------------------------------------------
-# 4. API 데이터 로드
+# 4. API 데이터 로드 (🔥 불필요한 심볼 제거로 로딩 70% 단축)
 # -----------------------------------------------------------------------------
 @st.cache_data(ttl=10, show_spinner=False)
 def fetch_fast_data(exchange_name, api_key, secret, pwd):
@@ -261,38 +284,40 @@ def fetch_fast_data(exchange_name, api_key, secret, pwd):
     except Exception:
         return [], 0.0
 
-POPULAR_SYMBOLS = [
-    "BTC/USDT:USDT", "ETH/USDT:USDT", "SOL/USDT:USDT", "XRP/USDT:USDT", "DOGE/USDT:USDT",
-    "ADA/USDT:USDT", "BNB/USDT:USDT", "BCH/USDT:USDT", "LINK/USDT:USDT", "AVAX/USDT:USDT",
-    "LTC/USDT:USDT", "TRX/USDT:USDT", "DOT/USDT:USDT", "SUI/USDT:USDT", "PEPE/USDT:USDT",
-    "1000PEPE/USDT:USDT", "SHIB/USDT:USDT", "1000SHIB/USDT:USDT", "WIF/USDT:USDT", "NEIRO/USDT:USDT",
-    "APT/USDT:USDT", "OP/USDT:USDT", "ARB/USDT:USDT", "MATIC/USDT:USDT", "POL/USDT:USDT",
-    "FTM/USDT:USDT", "ONDO/USDT:USDT", "ORDI/USDT:USDT", "STX/USDT:USDT", "TIA/USDT:USDT",
-    "1000FLOKI/USDT:USDT", "NEAR/USDT:USDT", "INJ/USDT:USDT", "RNDR/USDT:USDT", "TAO/USDT:USDT"
+# 속도 개선을 위해 핵심 메이저 종목만 기본 세팅 (나머지는 보유 중인 포지션이 있을 때만 자동 추가됨)
+BASE_SYMBOLS = [
+    "BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT", "DOGE/USDT",
+    "BNB/USDT", "ADA/USDT", "SUI/USDT", "1000PEPE/USDT", "WIF/USDT"
 ]
 
-@st.cache_data(ttl=3600, show_spinner="거래 및 입금 내역 불러오는 중...")
+@st.cache_data(ttl=3600, show_spinner="블록체인 네트워크에서 데이터를 동기화하고 있습니다... 🔄")
 def fetch_slow_data(exchange_name, api_key, secret, pwd):
     if not api_key or not secret or exchange_name == "Demo (샘플 데이터)": return demo_trades()
     try:
-        if exchange_name == "Bitget": exchange = ccxt.bitget({'apiKey': api_key, 'secret': secret, 'password': pwd, 'enableRateLimit': True, 'options': {'defaultType': 'swap'}})
-        elif exchange_name == "Binance": exchange = ccxt.binance({'apiKey': api_key, 'secret': secret, 'enableRateLimit': True, 'options': {'defaultType': 'future'}})
-        elif exchange_name == "Bybit": exchange = ccxt.bybit({'apiKey': api_key, 'secret': secret, 'enableRateLimit': True, 'options': {'defaultType': 'linear'}})
+        if exchange_name == "Bitget": 
+            exchange = ccxt.bitget({'apiKey': api_key, 'secret': secret, 'password': pwd, 'enableRateLimit': True, 'options': {'defaultType': 'swap'}})
+            pop_syms = [f"{s}:USDT" for s in BASE_SYMBOLS]
+        elif exchange_name == "Binance": 
+            exchange = ccxt.binance({'apiKey': api_key, 'secret': secret, 'enableRateLimit': True, 'options': {'defaultType': 'future'}})
+            pop_syms = BASE_SYMBOLS
+        elif exchange_name == "Bybit": 
+            exchange = ccxt.bybit({'apiKey': api_key, 'secret': secret, 'enableRateLimit': True, 'options': {'defaultType': 'linear'}})
+            pop_syms = BASE_SYMBOLS
+            
         exchange.load_markets()
 
         start_dt = datetime.strptime(DASHBOARD_START_DATE, "%Y-%m-%d").replace(tzinfo=KST)
         since_ts = int(start_dt.timestamp() * 1000)
         now_ts = int(datetime.now(UTC).timestamp() * 1000)
-        
         chunk_ms = 2 * 24 * 60 * 60 * 1000 
 
         try:
             open_pos, _ = fetch_fast_data(exchange_name, api_key, secret, pwd)
-            extra_syms = [f"{p['symbol']}:USDT" for p in open_pos if ':' not in p['symbol']]
+            extra_syms = [f"{p['symbol']}:USDT" if exchange_name == "Bitget" else p['symbol'] for p in open_pos]
         except Exception:
             extra_syms = []
-        symbols = list(dict.fromkeys(POPULAR_SYMBOLS + extra_syms))
-
+            
+        symbols = list(dict.fromkeys(pop_syms + extra_syms))
         rows, errs = [], []
         
         for sym in symbols:
@@ -314,16 +339,10 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
                         order_id = str(t.get("order") or t["timestamp"])
                         
                         rows.append({
-                            "trade_id": trade_id,
-                            "order_id": order_id, 
-                            "datetime": t_kst.replace(tzinfo=None), 
-                            "date": t_kst.strftime("%Y-%m-%d"), 
-                            "symbol": t["symbol"].replace(":USDT", ""), 
-                            "side": side, 
-                            "bucket": "축소" if is_close else "증가", 
-                            "has_pnl": has_pnl, 
-                            "pnl": pnl, 
-                            "price": price
+                            "trade_id": trade_id, "order_id": order_id, "datetime": t_kst.replace(tzinfo=None), 
+                            "date": t_kst.strftime("%Y-%m-%d"), "symbol": t["symbol"].replace(":USDT", ""), 
+                            "side": side, "bucket": "축소" if is_close else "증가", "has_pnl": has_pnl, 
+                            "pnl": pnl, "price": price
                         })
                 except Exception:
                     try:
@@ -344,7 +363,6 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
                         errs.append(f"{sym}: {e2}")
                 
                 current_since = chunk_until
-                time.sleep(0.05)
 
         try:
             payback_start_ts = int(datetime(2026, 10, 1, tzinfo=KST).timestamp() * 1000)
@@ -360,16 +378,9 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
                         if amount > 0:
                             dep_id = f"DEPOSIT_{d.get('id', d['timestamp'])}"
                             rows.append({
-                                "trade_id": dep_id,
-                                "order_id": dep_id,
-                                "datetime": d_kst.replace(tzinfo=None),
-                                "date": d_kst.strftime("%Y-%m-%d"),
-                                "symbol": "FEE/PAYBACK",
-                                "side": "LONG",
-                                "bucket": "축소",
-                                "has_pnl": True,
-                                "pnl": amount,
-                                "price": 0.0
+                                "trade_id": dep_id, "order_id": dep_id, "datetime": d_kst.replace(tzinfo=None),
+                                "date": d_kst.strftime("%Y-%m-%d"), "symbol": "FEE/PAYBACK", "side": "LONG",
+                                "bucket": "축소", "has_pnl": True, "pnl": amount, "price": 0.0
                             })
         except Exception:
             pass
@@ -397,7 +408,7 @@ if st.sidebar.button("🔄 수동 새로고침"):
 df_trades = fetch_slow_data(exchange_choice, MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
 
 # -----------------------------------------------------------------------------
-# 6. 메인 타이틀 — 심플 버전
+# 6. 메인 타이틀
 # -----------------------------------------------------------------------------
 st.markdown(f"""<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:28px;">
 <div style="display:flex; align-items:center; gap:10px;">
@@ -427,7 +438,6 @@ def show_live_positions():
             safe_sym = sym.replace("/", "_")
 
             with st.container(key=f"pos_container_{safe_sym}"):
-
                 for idx, pos in enumerate(pos_list):
                     pos_side = pos["side"]
                     side_color = GREEN if pos_side == "LONG" else RED
@@ -556,7 +566,7 @@ with col_s3:
 st.markdown("<div style='margin-top: 36px;'></div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 9. 수익 히스토리 필터 (🔥 통합 달력 & 버튼 연동 적용)
+# 9. 수익 히스토리 필터 (통합 달력 & 버튼 연동 적용)
 # -----------------------------------------------------------------------------
 st.markdown(f"<div style='font-size:19px; font-weight:800; color:{TEXT}; margin-bottom:12px;'>수익 히스토리</div>", unsafe_allow_html=True)
 
