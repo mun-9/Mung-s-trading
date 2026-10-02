@@ -51,13 +51,24 @@ html, body, .stApp { background-color: #F2F4F6 !important; }
 [data-testid="stHeader"] { background-color: transparent !important; }
 [data-testid="stToolbar"] { display: none !important; } 
 
-/* 🌟 상단 보유 포지션 옆 작은 새로고침 버튼 스타일 */
+/* 🌟 토스 스타일 컴팩트 버튼 (새로고침 등) */
 div[data-testid="stColumn"] button {
     height: 32px !important;
     min-height: 32px !important;
-    padding: 0 10px !important;
-    font-size: 12.5px !important;
-    border-radius: 8px !important;
+    padding: 0 14px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    border-radius: 999px !important;
+    border: 1px solid rgba(15,23,42,0.08) !important;
+    background-color: #ffffff !important;
+    color: #191F28 !important;
+    box-shadow: 0 2px 8px rgba(15,23,42,0.03) !important;
+    transition: all 0.15s ease !important;
+}
+div[data-testid="stColumn"] button:hover {
+    border-color: #3182F6 !important;
+    color: #3182F6 !important;
+    background-color: #F8FAFC !important;
 }
 
 /* 🌟 로딩 스피너 디자인 깔끔하게 개선 */
@@ -171,26 +182,6 @@ def finalize(rows):
     g["result"] = g.apply(lambda r: result_of(r.bucket, r.has_pnl, r.pnl), axis=1)
     return g.sort_values("datetime", ascending=False)
 
-def demo_trades():
-    rnd = random.Random(42)
-    now = datetime.now(UTC)
-    rows = []
-    for i in range(300):
-        t = now - timedelta(hours=rnd.randint(1, 900))
-        t_kst = t.astimezone(KST)
-        is_close = rnd.random() < 0.55
-        pnl = rnd.choice([rnd.uniform(50, 900), rnd.uniform(50, 900), rnd.uniform(-700, -40), 0.0]) if is_close else 0.0
-        sym = rnd.choice(["BTC/USDT", "ETH/USDT"])
-        trade_id = f"DEMO_TRADE_{i}"
-        rows.append({
-            "trade_id": trade_id, "order_id": f"DEMO_ORDER_{i}", "datetime": t_kst.replace(tzinfo=None),
-            "date": t_kst.strftime("%Y-%m-%d"), "symbol": sym, "side": rnd.choice(["LONG", "SHORT"]),
-            "bucket": "축소" if is_close else "증가", "has_pnl": True, "pnl": round(pnl, 2),
-            "price": round(rnd.uniform(62000, 65000) if "BTC" in sym else rnd.uniform(2000, 3000), 2)
-        })
-    df = finalize(rows)
-    return df[df["date"] >= DASHBOARD_START_DATE]
-
 # -----------------------------------------------------------------------------
 # 3. 실시간 유틸 (환율 및 OHLCV)
 # -----------------------------------------------------------------------------
@@ -200,32 +191,10 @@ def fetch_usdt_krw():
     except Exception: return 1350.0
 
 @st.cache_data(ttl=30, show_spinner=False)
-def fetch_live_ohlcv(exchange_name, symbol, timeframe, limit=120):
-    if exchange_name == "Demo (샘플 데이터)":
-        now = datetime.now(UTC)
-        minutes_map = {"3m": 3, "5m": 5, "1h": 60}
-        dates = [now - timedelta(minutes=minutes_map.get(timeframe, 5) * i) for i in range(limit)]
-        dates.reverse()
-        base_p = 64800.0 if "BTC" in symbol else 2500.0
-        data = []
-        for d in dates:
-            o = base_p + random.uniform(-10, 10)
-            c = o + random.uniform(-20, 20)
-            h, l = max(o, c) + random.uniform(2, 15), min(o, c) - random.uniform(2, 15)
-            data.append([int(d.timestamp() * 1000), o, h, l, c, 100])
-            base_p = c
-        df = pd.DataFrame(data, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-        df['datetime'] = pd.to_datetime(df['timestamp'], unit='ms').dt.tz_localize('UTC').dt.tz_convert('Asia/Seoul').dt.tz_localize(None)
-        return df
-
+def fetch_live_ohlcv(symbol, timeframe, limit=120):
     try:
-        ex = None
-        if exchange_name == "Bitget": ex = ccxt.bitget({'enableRateLimit': True, 'options': {'defaultType': 'swap'}})
-        elif exchange_name == "Binance": ex = ccxt.binance({'enableRateLimit': True, 'options': {'defaultType': 'future'}})
-        elif exchange_name == "Bybit": ex = ccxt.bybit({'enableRateLimit': True, 'options': {'defaultType': 'linear'}})
-        if not ex: return pd.DataFrame()
-
-        fetch_sym = symbol + ":USDT" if exchange_name == "Bitget" else symbol
+        ex = ccxt.bitget({'enableRateLimit': True, 'options': {'defaultType': 'swap'}})
+        fetch_sym = symbol + ":USDT"
         try:
             bars = ex.fetch_ohlcv(fetch_sym, timeframe, limit=limit)
         except Exception:
@@ -244,17 +213,15 @@ def fetch_live_ohlcv(exchange_name, symbol, timeframe, limit=120):
 # 4. API 데이터 로드
 # -----------------------------------------------------------------------------
 @st.cache_data(ttl=10, show_spinner=False)
-def fetch_fast_data(exchange_name, api_key, secret, pwd):
-    if not api_key or not secret or exchange_name == "Demo (샘플 데이터)":
+def fetch_fast_data(api_key, secret, pwd):
+    if not api_key or not secret:
         return [
             {"symbol": "BTC/USDT", "side": "LONG", "leverage": 20, "entry_price": 63200.0, "mark_price": 64800.0, "size": 0.3, "margin": 948.0, "liq_price": 60100.0, "unrealized_pnl": 480.0, "roe": 50.6},
             {"symbol": "BTC/USDT", "side": "SHORT", "leverage": 20, "entry_price": 65100.0, "mark_price": 64800.0, "size": 0.5, "margin": 1581.25, "liq_price": 68200.0, "unrealized_pnl": 150.0, "roe": 9.4}
         ], 10000.0
     try:
-        if exchange_name == "Bitget": exchange = ccxt.bitget({'apiKey': api_key, 'secret': secret, 'password': pwd, 'enableRateLimit': True, 'options': {'defaultType': 'swap'}})
-        elif exchange_name == "Binance": exchange = ccxt.binance({'apiKey': api_key, 'secret': secret, 'enableRateLimit': True, 'options': {'defaultType': 'future'}})
-        elif exchange_name == "Bybit": exchange = ccxt.bybit({'apiKey': api_key, 'secret': secret, 'enableRateLimit': True, 'options': {'defaultType': 'linear'}})
-        bal = exchange.fetch_balance({'type': 'swap'}) if exchange_name == "Bitget" else exchange.fetch_balance()
+        exchange = ccxt.bitget({'apiKey': api_key, 'secret': secret, 'password': pwd, 'enableRateLimit': True, 'options': {'defaultType': 'swap'}})
+        bal = exchange.fetch_balance({'type': 'swap'})
         total_balance = float(bal.get('USDT', {}).get('total', 0))
         active_positions = []
         for p in exchange.fetch_positions():
@@ -278,18 +245,31 @@ BASE_SYMBOLS = [
 ]
 
 @st.cache_data(ttl=3600, show_spinner="블록체인 네트워크에서 데이터를 동기화하고 있습니다... 🔄")
-def fetch_slow_data(exchange_name, api_key, secret, pwd):
-    if not api_key or not secret or exchange_name == "Demo (샘플 데이터)": return demo_trades()
+def fetch_slow_data(api_key, secret, pwd):
+    if not api_key or not secret:
+        # 데모 데이터 생성
+        rnd = random.Random(42)
+        now = datetime.now(UTC)
+        rows = []
+        for i in range(300):
+            t = now - timedelta(hours=rnd.randint(1, 900))
+            t_kst = t.astimezone(KST)
+            is_close = rnd.random() < 0.55
+            pnl = rnd.choice([rnd.uniform(50, 900), rnd.uniform(50, 900), rnd.uniform(-700, -40), 0.0]) if is_close else 0.0
+            sym = rnd.choice(["BTC/USDT", "ETH/USDT"])
+            trade_id = f"DEMO_TRADE_{i}"
+            rows.append({
+                "trade_id": trade_id, "order_id": f"DEMO_ORDER_{i}", "datetime": t_kst.replace(tzinfo=None),
+                "date": t_kst.strftime("%Y-%m-%d"), "symbol": sym, "side": rnd.choice(["LONG", "SHORT"]),
+                "bucket": "축소" if is_close else "증가", "has_pnl": True, "pnl": round(pnl, 2),
+                "price": round(rnd.uniform(62000, 65000) if "BTC" in sym else rnd.uniform(2000, 3000), 2)
+            })
+        df = finalize(rows)
+        return df[df["date"] >= DASHBOARD_START_DATE]
+
     try:
-        if exchange_name == "Bitget": 
-            exchange = ccxt.bitget({'apiKey': api_key, 'secret': secret, 'password': pwd, 'enableRateLimit': True, 'options': {'defaultType': 'swap'}})
-            pop_syms = [f"{s}:USDT" for s in BASE_SYMBOLS]
-        elif exchange_name == "Binance": 
-            exchange = ccxt.binance({'apiKey': api_key, 'secret': secret, 'enableRateLimit': True, 'options': {'defaultType': 'future'}})
-            pop_syms = BASE_SYMBOLS
-        elif exchange_name == "Bybit": 
-            exchange = ccxt.bybit({'apiKey': api_key, 'secret': secret, 'enableRateLimit': True, 'options': {'defaultType': 'linear'}})
-            pop_syms = BASE_SYMBOLS
+        exchange = ccxt.bitget({'apiKey': api_key, 'secret': secret, 'password': pwd, 'enableRateLimit': True, 'options': {'defaultType': 'swap'}})
+        pop_syms = [f"{s}:USDT" for s in BASE_SYMBOLS]
             
         exchange.load_markets()
 
@@ -299,8 +279,8 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
         chunk_ms = 2 * 24 * 60 * 60 * 1000 
 
         try:
-            open_pos, _ = fetch_fast_data(exchange_name, api_key, secret, pwd)
-            extra_syms = [f"{p['symbol']}:USDT" if exchange_name == "Bitget" else p['symbol'] for p in open_pos]
+            open_pos, _ = fetch_fast_data(api_key, secret, pwd)
+            extra_syms = [f"{p['symbol']}:USDT" for p in open_pos]
         except Exception:
             extra_syms = []
             
@@ -384,7 +364,7 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
         return pd.DataFrame(columns=TRADE_COLS)
 
 # -----------------------------------------------------------------------------
-# 5. 메인 타이틀 및 거래소 선택 (사이드바 대체)
+# 5. 메인 헤더 & 토스 스타일 Bitget 연동 배지 (우측 상단)
 # -----------------------------------------------------------------------------
 col_title, col_ex = st.columns([7, 3])
 with col_title:
@@ -393,24 +373,31 @@ with col_title:
     <span style="font-size:21px; font-weight:800; color:{TEXT}; letter-spacing:-0.02em;">Trading Journal</span>
     </div>""", unsafe_allow_html=True)
 with col_ex:
-    exchange_choice = st.selectbox("거래소 선택", ["Bitget", "Binance", "Bybit", "Demo (샘플 데이터)"], label_visibility="collapsed")
-    st.markdown(f"<div style='font-size:12px; color:{GREEN}; text-align:right; margin-top:-20px;'>● API 연동 완료 (10초 자동 갱신)</div>", unsafe_allow_html=True)
+    st.markdown(f"""<div style="display:flex; justify-content:flex-end; align-items:center; height:38px; margin-bottom:28px;">
+    <div style="background:#ffffff; padding:6px 14px; border-radius:999px; box-shadow:0 2px 10px rgba(15,23,42,0.04); display:flex; align-items:center; gap:8px;">
+        <span style="width:7px; height:7px; background:{GREEN}; border-radius:50%; display:inline-block;"></span>
+        <span style="font-size:12.5px; font-weight:700; color:{TEXT};">Bitget</span>
+        <span style="font-size:11.5px; color:{SUB}; font-weight:500;">실시간 연동</span>
+    </div>
+    </div>""", unsafe_allow_html=True)
 
-df_trades = fetch_slow_data(exchange_choice, MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
+df_trades = fetch_slow_data(MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
 
 # -----------------------------------------------------------------------------
 # 6. [FRAGMENT] 🎯 현재 보유 포지션 & 실시간 차트
 # -----------------------------------------------------------------------------
-col_hp1, col_hp2 = st.columns([9, 2])
+col_hp1, col_hp2 = st.columns([8, 4])
 with col_hp1:
     st.markdown(f"<div style='font-size: 19px; font-weight: 800; color: {TEXT}; margin-bottom: 12px;'> 보유 포지션</div>", unsafe_allow_html=True)
 with col_hp2:
-    if st.button("🔄 새로고침", use_container_width=True, key="manual_refresh_main"):
+    st.markdown("<div style='display:flex; justify-content:flex-end;'>", unsafe_allow_html=True)
+    if st.button("🔄 새로고침", key="manual_refresh_main"):
         fetch_fast_data.clear(); fetch_slow_data.clear(); fetch_usdt_krw.clear(); fetch_live_ohlcv.clear(); st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
 @st.fragment(run_every=10)
 def show_live_positions():
-    current_positions, wallet_balance = fetch_fast_data(exchange_choice, MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
+    current_positions, wallet_balance = fetch_fast_data(MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
 
     if not current_positions:
         st.markdown(f"<div class='card' style='text-align: center; color: {SUB}; font-size: 14px; padding:32px;'>현재 진행 중인 포지션이 없습니다</div>", unsafe_allow_html=True)
@@ -444,7 +431,7 @@ def show_live_positions():
                 tf_selected = st.radio("분봉 선택", ["3분봉", "5분봉", "1시간봉"], horizontal=True, label_visibility="collapsed", key=f"tf_radio_{safe_sym}")
                 tf_map = {"3분봉": "3m", "5분봉": "5m", "1시간봉": "1h"}
 
-                df_ohlcv = fetch_live_ohlcv(exchange_choice, sym, tf_map[tf_selected], limit=120)
+                df_ohlcv = fetch_live_ohlcv(sym, tf_map[tf_selected], limit=120)
 
                 if not df_ohlcv.empty:
                     fig = go.Figure()
@@ -542,16 +529,16 @@ with col_s3:
     @st.fragment(run_every=10)
     def render_unrealized_pnl():
         k_rate = fetch_usdt_krw()
-        pos, bal = fetch_fast_data(exchange_choice, MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
+        pos, bal = fetch_fast_data(MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
         unrealized = sum([p.get("unrealized_pnl", 0.0) for p in pos]) if pos else 0.0
         st.markdown(make_top_card("현재 미실현손익", unrealized, "전체 포지션 합계 · 10초마다 갱신", "", k_rate), unsafe_allow_html=True)
     render_unrealized_pnl()
 
-# 🌟 미실현손익 안내 문구를 3개 PNL 카드 바로 밑으로 이동 및 띄어쓰기 적용
+# 🌟 미실현손익 안내 문구
 st.markdown(f"<div style='font-size: 12px; color: {SUB}; margin-top: 10px; margin-bottom: 28px;'> 미실현손익은 일별·월별 추정 PNL 합계에 포함하지 않습니다</div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 8. [FRAGMENT] 매매동향 (통합 필터 & 통계 카드)
+# 8. [FRAGMENT] 매매동향
 # -----------------------------------------------------------------------------
 st.markdown(f"<div style='font-size: 19px; font-weight: 800; color: {TEXT}; margin-bottom: 14px;'> 매매동향</div>", unsafe_allow_html=True)
 
@@ -603,7 +590,7 @@ st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
 
 @st.fragment(run_every=3600)
 def render_trade_stats(f_df):
-    all_df = fetch_slow_data(exchange_choice, MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
+    all_df = fetch_slow_data(MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
     col_t1, col_t2, col_t3 = st.columns([1, 1, 1.2])
 
     total = len(f_df)
