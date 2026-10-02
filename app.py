@@ -51,26 +51,6 @@ html, body, .stApp { background-color: #F2F4F6 !important; }
 [data-testid="stHeader"] { background-color: transparent !important; }
 [data-testid="stToolbar"] { display: none !important; } 
 
-/* 🌟 토스 스타일 컴팩트 버튼 (새로고침 등) */
-div[data-testid="stColumn"] button {
-    height: 30px !important;
-    min-height: 30px !important;
-    padding: 0 12px !important;
-    font-size: 11.5px !important;
-    font-weight: 600 !important;
-    border-radius: 999px !important;
-    border: 1px solid rgba(15,23,42,0.08) !important;
-    background-color: #ffffff !important;
-    color: #191F28 !important;
-    box-shadow: 0 2px 8px rgba(15,23,42,0.03) !important;
-    transition: all 0.15s ease !important;
-}
-div[data-testid="stColumn"] button:hover {
-    border-color: #3182F6 !important;
-    color: #3182F6 !important;
-    background-color: #F8FAFC !important;
-}
-
 /* 🌟 로딩 스피너 디자인 깔끔하게 개선 */
 [data-testid="stSpinner"] {
     background: #ffffff; padding: 18px 24px; border-radius: 16px;
@@ -363,7 +343,7 @@ def fetch_slow_data(api_key, secret, pwd):
         return pd.DataFrame(columns=TRADE_COLS)
 
 # -----------------------------------------------------------------------------
-# 5. 메인 헤더 & 우측 상단 (Bitget 배지 및 새로고침 버튼 배치)
+# 5. 메인 헤더 & 우측 상단 Bitget 실시간 연동 배지
 # -----------------------------------------------------------------------------
 col_title, col_ex = st.columns([7, 3])
 with col_title:
@@ -373,25 +353,25 @@ with col_title:
     </div>""", unsafe_allow_html=True)
 
 with col_ex:
-    st.markdown(f"""<div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+    st.markdown(f"""<div style="display:flex; justify-content:flex-end; align-items:center; height:38px; margin-bottom:28px;">
     <div style="background:#ffffff; padding:6px 14px; border-radius:999px; box-shadow:0 2px 10px rgba(15,23,42,0.04); display:flex; align-items:center; gap:8px;">
         <span style="width:7px; height:7px; background:{GREEN}; border-radius:50%; display:inline-block;"></span>
         <span style="font-size:12.5px; font-weight:700; color:{TEXT};">Bitget</span>
         <span style="font-size:11.5px; color:{SUB}; font-weight:500;">실시간 연동</span>
     </div>
     </div>""", unsafe_allow_html=True)
-    
-    st.markdown("<div style='display:flex; justify-content:flex-end;'>", unsafe_allow_html=True)
-    if st.button("🔄 새로고침", key="manual_refresh_main"):
-        fetch_fast_data.clear(); fetch_slow_data.clear(); fetch_usdt_krw.clear(); fetch_live_ohlcv.clear(); st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
 
 df_trades = fetch_slow_data(MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
 
 # -----------------------------------------------------------------------------
-# 6. [FRAGMENT] 🎯 현재 보유 포지션 & 실시간 차트
+# 6. [FRAGMENT] 🎯 현재 보유 포지션 & 실시간 차트 (보유 포지션 라인 맨 끝 🔄 버튼 배치)
 # -----------------------------------------------------------------------------
-st.markdown(f"<div style='font-size: 19px; font-weight: 800; color: {TEXT}; margin-bottom: 12px;'> 보유 포지션</div>", unsafe_allow_html=True)
+col_hp1, col_hp2 = st.columns([11, 1])
+with col_hp1:
+    st.markdown(f"<div style='font-size: 19px; font-weight: 800; color: {TEXT}; margin-bottom: 12px; line-height: 38px;'> 보유 포지션</div>", unsafe_allow_html=True)
+with col_hp2:
+    if st.button("🔄", key="manual_refresh_main", use_container_width=True):
+        fetch_fast_data.clear(); fetch_slow_data.clear(); fetch_usdt_krw.clear(); fetch_live_ohlcv.clear(); st.rerun()
 
 @st.fragment(run_every=10)
 def show_live_positions():
