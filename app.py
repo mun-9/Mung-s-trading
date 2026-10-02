@@ -46,7 +46,15 @@ st.markdown("""
 
 html, body, .stApp { background-color: #F2F4F6 !important; }
 .stApp, .stApp p, .stApp span, .stApp div, .stApp label { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif; letter-spacing:-0.01em; }
-.block-container { padding-top: 3.8rem; max-width: 1240px; }
+
+/* 🌟 상단 빈공간(헤더) 및 Share 버튼 완벽 숨기기 */
+.block-container { padding-top: 2rem; max-width: 1240px; }
+[data-testid="stHeader"] { background-color: transparent !important; }
+[data-testid="stToolbar"] { display: none !important; } /* 우측 상단 Share/Deploy 등 메뉴바 제거 */
+
+/* 🌟 모바일 사이드바 화살표 텍스트 깨짐 현상 방지 */
+[data-testid="collapsedControl"] { color: #191F28 !important; }
+[data-testid="collapsedControl"] svg { display: block !important; }
 
 .card { background:#ffffff; border-radius:20px; box-shadow:0 2px 14px rgba(15,23,42,0.05); padding:22px 24px; }
 
@@ -59,13 +67,22 @@ div[class*="st-key-pos_container_"] {
     box-shadow: 0 2px 14px rgba(15,23,42,0.05) !important; padding: 22px 24px 14px !important; margin-bottom: 18px !important;
 }
 
+/* 🌟 차트 분봉 선택 라디오 버튼 모바일 깨짐 방지 */
+div[class*="st-key-tf_radio_"] div[role="radiogroup"] {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+div[class*="st-key-tf_radio_"] div[role="radiogroup"]::-webkit-scrollbar { display: none; }
 div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] {
-    background-color: #F2F4F6; padding: 5px 13px; border-radius: 999px; margin-right: 6px; cursor: pointer; transition: background .15s;
+    background-color: #F2F4F6; padding: 6px 14px; border-radius: 999px; margin-right: 4px; cursor: pointer; transition: background .15s;
+    white-space: nowrap !important;
+    min-width: max-content;
 }
 div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] div:first-child { display: none; }
 div[class*="st-key-tf_radio_"] label[data-baseweb="radio"][aria-checked="true"] { background-color: #3182F6; }
 div[class*="st-key-tf_radio_"] label[data-baseweb="radio"][aria-checked="true"] p { color: #ffffff !important; font-weight: 700; }
-div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] p { color: #8B95A1; font-size: 13px; margin: 0; font-weight: 600; }
+div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] p { color: #8B95A1; font-size: 13px; margin: 0; font-weight: 600; white-space: nowrap !important; }
 
 button[data-baseweb="tab"] p { color: #8B95A1 !important; font-weight: 600 !important; font-size: 14.5px !important; }
 button[data-baseweb="tab"][aria-selected="true"] p { color: #3182F6 !important; font-weight: 800 !important; }
@@ -133,7 +150,6 @@ def finalize(rows):
     if not rows: return pd.DataFrame(columns=TRADE_COLS)
     df = pd.DataFrame(rows)
     
-    # 🔥 고유 체결 ID 기준으로 완벽하게 중복 데이터 제거
     if "trade_id" in df.columns:
         df = df.drop_duplicates(subset=["trade_id"])
         
@@ -214,7 +230,7 @@ def fetch_live_ohlcv(exchange_name, symbol, timeframe, limit=120):
         return pd.DataFrame()
 
 # -----------------------------------------------------------------------------
-# 4. API 데이터 로드 (🔥 48시간 슬라이딩 우회 시간 쪼개기 추가)
+# 4. API 데이터 로드
 # -----------------------------------------------------------------------------
 @st.cache_data(ttl=10, show_spinner=False)
 def fetch_fast_data(exchange_name, api_key, secret, pwd):
@@ -268,7 +284,6 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
         since_ts = int(start_dt.timestamp() * 1000)
         now_ts = int(datetime.now(UTC).timestamp() * 1000)
         
-        # 거래소의 48시간 최대 조회 제한을 우회하기 위해 2일(48h) 간격으로 잘라서 요청
         chunk_ms = 2 * 24 * 60 * 60 * 1000 
 
         try:
@@ -284,11 +299,9 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
             if sym not in exchange.markets: continue
             
             current_since = since_ts
-            # 현재 시간까지 2일씩 쪼개면서 계속 조회
             while current_since < now_ts:
                 chunk_until = min(current_since + chunk_ms, now_ts)
                 try:
-                    # 'endTime' 또는 'until'로 명시적인 시간 종료점을 알려줌
                     params = {'endTime': chunk_until, 'until': chunk_until}
                     trades = exchange.fetch_my_trades(symbol=sym, since=current_since, limit=1000, params=params)
                     
@@ -313,7 +326,6 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
                             "price": price
                         })
                 except Exception:
-                    # 파라미터 미지원 에러 시 일반 조회로 폴백
                     try:
                         trades = exchange.fetch_my_trades(symbol=sym, since=current_since, limit=1000)
                         for t in trades:
@@ -332,9 +344,8 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
                         errs.append(f"{sym}: {e2}")
                 
                 current_since = chunk_until
-                time.sleep(0.05) # Rate Limit 방지용 휴식
+                time.sleep(0.05)
 
-        # 🔥 [자동 입금/페이백 감지] 10월 1일 이후의 USDT 입금 내역만 수수료 페이백으로 수집
         try:
             payback_start_ts = int(datetime(2026, 10, 1, tzinfo=KST).timestamp() * 1000)
             deposits = exchange.fetch_deposits(since=payback_start_ts)
@@ -545,7 +556,7 @@ with col_s3:
 st.markdown("<div style='margin-top: 36px;'></div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 9. 수익 히스토리 필터
+# 9. 수익 히스토리 필터 (🔥 통합 달력 & 버튼 연동 적용)
 # -----------------------------------------------------------------------------
 st.markdown(f"<div style='font-size:19px; font-weight:800; color:{TEXT}; margin-bottom:12px;'>수익 히스토리</div>", unsafe_allow_html=True)
 
@@ -553,28 +564,39 @@ today_kst = datetime.now(KST).date()
 dashboard_start = datetime.strptime(DASHBOARD_START_DATE, "%Y-%m-%d").date()
 default_start = max(dashboard_start, today_kst - timedelta(days=6))
 
-if "hist_start" not in st.session_state:
-    st.session_state.hist_start = default_start
-if "hist_end" not in st.session_state:
-    st.session_state.hist_end = today_kst
+if "date_range" not in st.session_state:
+    st.session_state.date_range = (default_start, today_kst)
 
-c_d1, c_d2, c_btn1, c_btn2, c_btn3, c_space = st.columns([1.5, 1.5, 0.8, 0.9, 1.1, 5.5])
+def set_range(mode):
+    if mode == "today":
+        st.session_state.date_range = (today_kst, today_kst)
+    elif mode == "month":
+        st.session_state.date_range = (today_kst.replace(day=1), today_kst)
+    elif mode == "30d":
+        st.session_state.date_range = (today_kst - timedelta(days=30), today_kst)
+
+c_d, c_btn1, c_btn2, c_btn3 = st.columns([3, 1, 1, 1.2])
 with c_btn1:
-    if st.button("오늘", use_container_width=True):
-        st.session_state.hist_start = today_kst
-        st.session_state.hist_end = today_kst
+    st.button("오늘", on_click=set_range, args=("today",), use_container_width=True)
 with c_btn2:
-    if st.button("이번 달", use_container_width=True):
-        st.session_state.hist_start = today_kst.replace(day=1)
-        st.session_state.hist_end = today_kst
+    st.button("이번 달", on_click=set_range, args=("month",), use_container_width=True)
 with c_btn3:
-    if st.button("최근 30일", use_container_width=True):
-        st.session_state.hist_start = today_kst - timedelta(days=30)
-        st.session_state.hist_end = today_kst
-with c_d1:
-    start_date = st.date_input("s", key="hist_start", label_visibility="collapsed")
-with c_d2:
-    end_date = st.date_input("e", key="hist_end", label_visibility="collapsed")
+    st.button("최근 30일", on_click=set_range, args=("30d",), use_container_width=True)
+
+with c_d:
+    dates = st.date_input(
+        "기간 선택", 
+        key="date_range", 
+        max_value=today_kst,
+        label_visibility="collapsed"
+    )
+
+if isinstance(dates, tuple) and len(dates) == 2:
+    start_date, end_date = dates
+elif isinstance(dates, tuple) and len(dates) == 1:
+    start_date, end_date = dates[0], dates[0]
+else:
+    start_date, end_date = dates, dates
 
 filter_start_date = max(start_date, dashboard_start)
 filter_start_str = filter_start_date.strftime("%Y-%m-%d")
