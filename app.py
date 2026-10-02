@@ -47,26 +47,45 @@ st.markdown("""
 html, body, .stApp { background-color: #F2F4F6 !important; }
 .stApp, .stApp p, .stApp span, .stApp div, .stApp label { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif; letter-spacing:-0.01em; }
 
-/* 상단 여백 및 투명 헤더 영역 설정 */
+/* 🌟 상단 여백 및 헤더(Share버튼 포함) 깔끔하게 숨기기 */
 .block-container { padding-top: 2rem; max-width: 1240px; }
-[data-testid="stHeader"] { background-color: transparent !important; pointer-events: none !important; }
-[data-testid="stHeader"] * { pointer-events: auto !important; }
+[data-testid="stHeader"] { background-color: transparent !important; }
 [data-testid="stToolbar"] { display: none !important; } 
 
-/* 🌟 모바일 사이드바 클릭 방해 현상 해결 */
-[data-testid="stSidebar"] { z-index: 999999 !important; border-right: none !important; box-shadow: 2px 0 20px rgba(0,0,0,0.05); }
-[data-testid="collapsedControl"] { color: #191F28 !important; }
-[data-testid="collapsedControl"] svg { display: block !important; }
+/* 🌟 모바일 사이드바 클릭 안됨 + 'double arrow' 텍스트 깨짐 완벽 해결 */
+[data-testid="stSidebar"] { border-right: none !important; box-shadow: 2px 0 20px rgba(0,0,0,0.05); }
+
+[data-testid="collapsedControl"] {
+    color: transparent !important; /* 고장난 텍스트 숨기기 */
+    background-color: #ffffff !important;
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 50% !important;
+    box-shadow: 0 2px 10px rgba(15,23,42,0.08) !important;
+    margin: 12px !important;
+    z-index: 999999 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.2s !important;
+}
+[data-testid="collapsedControl"]:hover { background-color: #F2F4F6 !important; }
+[data-testid="collapsedControl"] svg { display: none !important; /* 기본 화살표 삭제 */ }
+[data-testid="collapsedControl"]::after {
+    content: "☰"; /* 앱 스타일 햄버거 메뉴 아이콘 */
+    color: #191F28 !important;
+    font-size: 22px !important;
+    font-weight: bold !important;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
 
 /* 🌟 로딩 스피너 디자인 깔끔하게 개선 */
 [data-testid="stSpinner"] {
-    background: #ffffff;
-    padding: 18px 24px;
-    border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(15,23,42,0.06);
-    margin: 20px auto;
-    text-align: center;
-    max-width: 400px;
+    background: #ffffff; padding: 18px 24px; border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(15,23,42,0.06); margin: 20px auto; text-align: center; max-width: 400px;
 }
 [data-testid="stSpinner"] > div > div:last-child {
     color: #3182F6 !important; font-weight: 700 !important; font-size: 14.5px !important; margin-left: 10px !important;
@@ -86,22 +105,13 @@ div[class*="st-key-pos_container_"] {
 /* 🌟 분봉 라디오 버튼 모바일 텍스트 깨짐 완벽 해결 */
 div[class*="st-key-tf_radio_"] { margin-bottom: 12px; overflow: visible !important; }
 div[class*="st-key-tf_radio_"] div[role="radiogroup"] {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    gap: 8px !important;
+    display: flex !important; flex-wrap: wrap !important; gap: 8px !important;
 }
 div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] {
-    background-color: #F2F4F6;
-    padding: 8px 16px !important;
-    border-radius: 999px;
-    margin: 0 !important;
-    cursor: pointer;
-    transition: background .15s;
-    height: auto !important;
+    background-color: #F2F4F6; padding: 8px 16px !important; border-radius: 999px; margin: 0 !important; cursor: pointer; transition: background .15s; height: auto !important;
 }
 div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] p {
-    color: #8B95A1 !important; font-size: 13.5px !important; margin: 0 !important; font-weight: 600 !important;
-    line-height: 1.4 !important; white-space: nowrap !important;
+    color: #8B95A1 !important; font-size: 13.5px !important; margin: 0 !important; font-weight: 600 !important; line-height: 1.4 !important; white-space: nowrap !important;
 }
 div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] div:first-child { display: none; }
 div[class*="st-key-tf_radio_"] label[data-baseweb="radio"][aria-checked="true"] { background-color: #3182F6; }
@@ -253,7 +263,7 @@ def fetch_live_ohlcv(exchange_name, symbol, timeframe, limit=120):
         return pd.DataFrame()
 
 # -----------------------------------------------------------------------------
-# 4. API 데이터 로드 (🔥 불필요한 심볼 제거로 로딩 70% 단축)
+# 4. API 데이터 로드
 # -----------------------------------------------------------------------------
 @st.cache_data(ttl=10, show_spinner=False)
 def fetch_fast_data(exchange_name, api_key, secret, pwd):
@@ -284,7 +294,6 @@ def fetch_fast_data(exchange_name, api_key, secret, pwd):
     except Exception:
         return [], 0.0
 
-# 속도 개선을 위해 핵심 메이저 종목만 기본 세팅 (나머지는 보유 중인 포지션이 있을 때만 자동 추가됨)
 BASE_SYMBOLS = [
     "BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT", "DOGE/USDT",
     "BNB/USDT", "ADA/USDT", "SUI/USDT", "1000PEPE/USDT", "WIF/USDT"
