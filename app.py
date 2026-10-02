@@ -28,6 +28,7 @@ UTC = timezone.utc
 # 🎨 색상 상수 — 토스 팔레트 + 트레이딩 그린/레드
 GREEN, RED, BLUE, GRAY = "#089981", "#F04452", "#3182F6", "#8B95A1"
 TEXT, SUB, DIVIDER = "#191F28", "#8B95A1", "#F2F4F6"
+LINE_COLOR = "#D1D6DB"  # 🌟 눈에 잘 띄는 진한 회색 실선 색상
 GREEN_SOFT, RED_SOFT, BLUE_SOFT = "rgba(8,153,129,0.10)", "rgba(240,68,82,0.10)", "rgba(49,130,246,0.10)"
 
 # -----------------------------------------------------------------------------
@@ -384,8 +385,8 @@ with col_ex:
 
 df_trades = fetch_slow_data(MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
 
-# 🌟 Trading Journal 영역과 보유 포지션 사이 회색 실선 구분선 추가
-st.markdown(f"<div style='border-top:1px solid {DIVIDER}; margin: 6px 0 20px 0;'></div>", unsafe_allow_html=True)
+# 🌟 Trading Journal 영역과 보유 포지션 사이 눈에 잘 띄는 진한 회색 실선 구분선
+st.markdown(f"<div style='border-top:1px solid {LINE_COLOR}; margin: 6px 0 20px 0;'></div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
 # 6. [FRAGMENT] 🎯 현재 보유 포지션 & 실시간 차트
