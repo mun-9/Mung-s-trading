@@ -36,8 +36,7 @@ GREEN_SOFT, RED_SOFT, BLUE_SOFT = "rgba(8,153,129,0.10)", "rgba(240,68,82,0.10)"
 st.set_page_config(
     page_title="Trading Journal",
     page_icon="📈",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="wide"
 )
 
 st.markdown("""
@@ -47,39 +46,18 @@ st.markdown("""
 html, body, .stApp { background-color: #F2F4F6 !important; }
 .stApp, .stApp p, .stApp span, .stApp div, .stApp label { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif; letter-spacing:-0.01em; }
 
-/* 🌟 상단 여백 및 헤더(Share버튼 포함) 깔끔하게 숨기기 */
+/* 🌟 상단 여백 및 헤더 깔끔하게 숨기기 */
 .block-container { padding-top: 2rem; max-width: 1240px; }
 [data-testid="stHeader"] { background-color: transparent !important; }
 [data-testid="stToolbar"] { display: none !important; } 
 
-/* 🌟 모바일 사이드바 클릭 안됨 + 'double arrow' 텍스트 깨짐 완벽 해결 */
-[data-testid="stSidebar"] { border-right: none !important; box-shadow: 2px 0 20px rgba(0,0,0,0.05); }
-
-[data-testid="collapsedControl"] {
-    color: transparent !important; /* 고장난 텍스트 숨기기 */
-    background-color: #ffffff !important;
-    width: 44px !important;
-    height: 44px !important;
-    border-radius: 50% !important;
-    box-shadow: 0 2px 10px rgba(15,23,42,0.08) !important;
-    margin: 12px !important;
-    z-index: 999999 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    transition: all 0.2s !important;
-}
-[data-testid="collapsedControl"]:hover { background-color: #F2F4F6 !important; }
-[data-testid="collapsedControl"] svg { display: none !important; /* 기본 화살표 삭제 */ }
-[data-testid="collapsedControl"]::after {
-    content: "☰"; /* 앱 스타일 햄버거 메뉴 아이콘 */
-    color: #191F28 !important;
-    font-size: 22px !important;
-    font-weight: bold !important;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+/* 🌟 상단 보유 포지션 옆 작은 새로고침 버튼 스타일 */
+div[data-testid="stColumn"] button {
+    height: 32px !important;
+    min-height: 32px !important;
+    padding: 0 10px !important;
+    font-size: 12.5px !important;
+    border-radius: 8px !important;
 }
 
 /* 🌟 로딩 스피너 디자인 깔끔하게 개선 */
@@ -406,31 +384,29 @@ def fetch_slow_data(exchange_name, api_key, secret, pwd):
         return pd.DataFrame(columns=TRADE_COLS)
 
 # -----------------------------------------------------------------------------
-# 5. 사이드바
+# 5. 메인 타이틀 및 거래소 선택 (사이드바 대체)
 # -----------------------------------------------------------------------------
-st.sidebar.title("⚙️ 대시보드 설정")
-exchange_choice = st.sidebar.selectbox("거래소 선택", ["Bitget", "Binance", "Bybit", "Demo (샘플 데이터)"])
-st.sidebar.markdown(f"<div style='font-size:12.5px; color:{GREEN}; margin-bottom:12px;'>● API 연동 완료</div><div style='font-size:12px; color:{BLUE}; margin-bottom:15px;'>● 10초마다 자동 갱신</div>", unsafe_allow_html=True)
-if st.sidebar.button("🔄 수동 새로고침"):
-    fetch_fast_data.clear(); fetch_slow_data.clear(); fetch_usdt_krw.clear(); fetch_live_ohlcv.clear(); st.rerun()
+col_title, col_ex = st.columns([7, 3])
+with col_title:
+    st.markdown(f"""<div style="display:flex; align-items:center; gap:10px; margin-bottom:28px;">
+    <span style="font-size:22px;">📈</span>
+    <span style="font-size:21px; font-weight:800; color:{TEXT}; letter-spacing:-0.02em;">Trading Journal</span>
+    </div>""", unsafe_allow_html=True)
+with col_ex:
+    exchange_choice = st.selectbox("거래소 선택", ["Bitget", "Binance", "Bybit", "Demo (샘플 데이터)"], label_visibility="collapsed")
+    st.markdown(f"<div style='font-size:12px; color:{GREEN}; text-align:right; margin-top:-20px;'>● API 연동 완료 (10초 자동 갱신)</div>", unsafe_allow_html=True)
 
 df_trades = fetch_slow_data(exchange_choice, MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
 
 # -----------------------------------------------------------------------------
-# 6. 메인 타이틀
+# 6. [FRAGMENT] 🎯 현재 보유 포지션 & 실시간 차트
 # -----------------------------------------------------------------------------
-st.markdown(f"""<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:28px;">
-<div style="display:flex; align-items:center; gap:10px;">
-<span style="font-size:22px;">📈</span>
-<span style="font-size:21px; font-weight:800; color:{TEXT}; letter-spacing:-0.02em;">Trading Journal</span>
-</div>
-<span style="font-size:12.5px; color:{SUB}; background:#ffffff; padding:7px 14px; border-radius:999px; box-shadow:0 2px 10px rgba(15,23,42,0.04); font-weight:600;">{exchange_choice}</span>
-</div>""", unsafe_allow_html=True)
-
-# -----------------------------------------------------------------------------
-# 7. [FRAGMENT] 🎯 현재 보유 포지션 & 실시간 차트
-# -----------------------------------------------------------------------------
-st.markdown(f"<div style='font-size: 17px; font-weight: 800; color: {TEXT}; margin-bottom: 12px;'>보유 포지션</div>", unsafe_allow_html=True)
+col_hp1, col_hp2 = st.columns([9, 2])
+with col_hp1:
+    st.markdown(f"<div style='font-size: 19px; font-weight: 800; color: {TEXT}; margin-bottom: 12px;'> 보유 포지션</div>", unsafe_allow_html=True)
+with col_hp2:
+    if st.button("🔄 새로고침", use_container_width=True, key="manual_refresh_main"):
+        fetch_fast_data.clear(); fetch_slow_data.clear(); fetch_usdt_krw.clear(); fetch_live_ohlcv.clear(); st.rerun()
 
 @st.fragment(run_every=10)
 def show_live_positions():
@@ -534,9 +510,8 @@ def show_live_positions():
 show_live_positions()
 
 # -----------------------------------------------------------------------------
-# 8. 상단 PNL 카드
+# 7. 상단 PNL 카드
 # -----------------------------------------------------------------------------
-st.markdown(f"<div style='font-size: 12px; color: {SUB}; margin-bottom: 10px; margin-top: 0;'>미실현손익은 일별·월별 추정 PNL 합계에 포함하지 않습니다</div>", unsafe_allow_html=True)
 col_s1, col_s2, col_s3 = st.columns(3)
 
 def make_top_card(title, value, sub_left, sub_right="", krw_rate=1350.0):
@@ -572,12 +547,13 @@ with col_s3:
         st.markdown(make_top_card("현재 미실현손익", unrealized, "전체 포지션 합계 · 10초마다 갱신", "", k_rate), unsafe_allow_html=True)
     render_unrealized_pnl()
 
-st.markdown("<div style='margin-top: 36px;'></div>", unsafe_allow_html=True)
+# 🌟 미실현손익 안내 문구를 3개 PNL 카드 바로 밑으로 이동 및 띄어쓰기 적용
+st.markdown(f"<div style='font-size: 12px; color: {SUB}; margin-top: 10px; margin-bottom: 28px;'> 미실현손익은 일별·월별 추정 PNL 합계에 포함하지 않습니다</div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 9. 수익 히스토리 필터 (통합 달력 & 버튼 연동 적용)
+# 8. [FRAGMENT] 매매동향 (통합 필터 & 통계 카드)
 # -----------------------------------------------------------------------------
-st.markdown(f"<div style='font-size:19px; font-weight:800; color:{TEXT}; margin-bottom:12px;'>수익 히스토리</div>", unsafe_allow_html=True)
+st.markdown(f"<div style='font-size: 19px; font-weight: 800; color: {TEXT}; margin-bottom: 14px;'> 매매동향</div>", unsafe_allow_html=True)
 
 today_kst = datetime.now(KST).date()
 dashboard_start = datetime.strptime(DASHBOARD_START_DATE, "%Y-%m-%d").date()
@@ -623,10 +599,7 @@ end_str = end_date.strftime("%Y-%m-%d")
 
 filtered_df = df_trades[(df_trades["date"] >= filter_start_str) & (df_trades["date"] <= end_str)] if not df_trades.empty else df_trades
 
-# -----------------------------------------------------------------------------
-# 10. [FRAGMENT] 매매 동향
-# -----------------------------------------------------------------------------
-st.markdown(f"<div style='margin-top: 8px; display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:12px;'><span style='font-size:16px; font-weight:800; color:{TEXT};'>매매 동향</span><span style='font-size:12px; color:{SUB};'>관측 기록 기준</span></div>", unsafe_allow_html=True)
+st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
 
 @st.fragment(run_every=3600)
 def render_trade_stats(f_df):
@@ -699,7 +672,7 @@ def render_trade_stats(f_df):
 render_trade_stats(filtered_df)
 
 # -----------------------------------------------------------------------------
-# 11. [FRAGMENT] 선택 기간 PNL 박스
+# 9. [FRAGMENT] 선택 기간 PNL 박스
 # -----------------------------------------------------------------------------
 st.markdown("<div style='margin-top: 32px;'></div>", unsafe_allow_html=True)
 
@@ -759,7 +732,7 @@ render_pnl_charts(filtered_df)
 st.markdown(f"<div class='note-text'>추정 PNL · USDT · KST 기준 · 기간 누적은 선택한 기간의 시작을 0으로 계산합니다</div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 12. 매매 상세 내역 — 토스 거래내역 스타일 리스트
+# 10. 상세 매매 내역 — 토스 거래내역 스타일 리스트
 # -----------------------------------------------------------------------------
 st.markdown(f"<div style='font-size: 17px; font-weight: 800; color: {TEXT}; margin: 32px 0 14px;'>상세 매매 내역</div>", unsafe_allow_html=True)
 
