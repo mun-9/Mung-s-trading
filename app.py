@@ -51,6 +51,27 @@ html, body, .stApp { background-color: #F2F4F6 !important; }
 [data-testid="stHeader"] { background-color: transparent !important; }
 [data-testid="stToolbar"] { display: none !important; } 
 
+/* 🔄 새로고침 아이콘 버튼 컴팩트하게 축소 */
+div[class*="st-key-manual_refresh_main"] button {
+    width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 0 !important;
+    border-radius: 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin-left: auto !important;
+    background-color: #ffffff !important;
+    border: 1px solid rgba(15,23,42,0.08) !important;
+    box-shadow: 0 2px 8px rgba(15,23,42,0.03) !important;
+    transition: all 0.15s ease !important;
+}
+div[class*="st-key-manual_refresh_main"] button:hover {
+    border-color: #3182F6 !important;
+    background-color: #F8FAFC !important;
+}
+
 /* 🌟 로딩 스피너 디자인 깔끔하게 개선 */
 [data-testid="stSpinner"] {
     background: #ffffff; padding: 18px 24px; border-radius: 16px;
@@ -347,13 +368,13 @@ def fetch_slow_data(api_key, secret, pwd):
 # -----------------------------------------------------------------------------
 col_title, col_ex = st.columns([7, 3])
 with col_title:
-    st.markdown(f"""<div style="display:flex; align-items:center; gap:10px; margin-bottom:28px;">
+    st.markdown(f"""<div style="display:flex; align-items:center; gap:10px; margin-bottom:18px;">
     <span style="font-size:22px;">📈</span>
     <span style="font-size:21px; font-weight:800; color:{TEXT}; letter-spacing:-0.02em;">Trading Journal</span>
     </div>""", unsafe_allow_html=True)
 
 with col_ex:
-    st.markdown(f"""<div style="display:flex; justify-content:flex-end; align-items:center; height:38px; margin-bottom:28px;">
+    st.markdown(f"""<div style="display:flex; justify-content:flex-end; align-items:center; height:38px; margin-bottom:18px;">
     <div style="background:#ffffff; padding:6px 14px; border-radius:999px; box-shadow:0 2px 10px rgba(15,23,42,0.04); display:flex; align-items:center; gap:8px;">
         <span style="width:7px; height:7px; background:{GREEN}; border-radius:50%; display:inline-block;"></span>
         <span style="font-size:12.5px; font-weight:700; color:{TEXT};">Bitget</span>
@@ -363,12 +384,15 @@ with col_ex:
 
 df_trades = fetch_slow_data(MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
 
+# 🌟 Trading Journal 영역과 보유 포지션 사이 회색 실선 구분선 추가
+st.markdown(f"<div style='border-top:1px solid {DIVIDER}; margin: 6px 0 20px 0;'></div>", unsafe_allow_html=True)
+
 # -----------------------------------------------------------------------------
-# 6. [FRAGMENT] 🎯 현재 보유 포지션 & 실시간 차트 (보유 포지션 라인 맨 끝 🔄 버튼 배치)
+# 6. [FRAGMENT] 🎯 현재 보유 포지션 & 실시간 차트
 # -----------------------------------------------------------------------------
 col_hp1, col_hp2 = st.columns([11, 1])
 with col_hp1:
-    st.markdown(f"<div style='font-size: 19px; font-weight: 800; color: {TEXT}; margin-bottom: 12px; line-height: 38px;'> 보유 포지션</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='font-size: 19px; font-weight: 800; color: {TEXT}; margin-bottom: 12px; line-height: 36px;'> 보유 포지션</div>", unsafe_allow_html=True)
 with col_hp2:
     if st.button("🔄", key="manual_refresh_main", use_container_width=True):
         fetch_fast_data.clear(); fetch_slow_data.clear(); fetch_usdt_krw.clear(); fetch_live_ohlcv.clear(); st.rerun()
