@@ -28,7 +28,7 @@ UTC = timezone.utc
 # 🎨 색상 상수 — 토스 팔레트 + 트레이딩 그린/레드
 GREEN, RED, BLUE, GRAY = "#089981", "#F04452", "#3182F6", "#8B95A1"
 TEXT, SUB, DIVIDER = "#191F28", "#8B95A1", "#F2F4F6"
-LINE_COLOR = "#D1D6DB"  # 🌟 눈에 잘 띄는 진한 회색 실선 색상
+LINE_COLOR = "#D1D6DB"
 GREEN_SOFT, RED_SOFT, BLUE_SOFT = "rgba(8,153,129,0.10)", "rgba(240,68,82,0.10)", "rgba(49,130,246,0.10)"
 
 # -----------------------------------------------------------------------------
@@ -47,39 +47,34 @@ st.markdown("""
 html, body, .stApp { background-color: #F2F4F6 !important; }
 .stApp, .stApp p, .stApp span, .stApp div, .stApp label { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif; letter-spacing:-0.01em; }
 
-/* 🌟 상단 여백 및 헤더 깔끔하게 숨기기 */
 .block-container { padding-top: 2rem; max-width: 1240px; }
 [data-testid="stHeader"] { background-color: transparent !important; }
-[data-testid="stToolbar"] { display: none !important; } 
+[data-testid="stToolbar"] { display: none !important; }
 
-/* 🔄 새로고침 아이콘 버튼 컴팩트하게 축소 */
 div[class*="st-key-manual_refresh_main"] button {
-    width: 36px !important;
-    height: 36px !important;
-    min-height: 36px !important;
-    padding: 0 !important;
-    border-radius: 12px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    margin-left: auto !important;
-    background-color: #ffffff !important;
-    border: 1px solid rgba(15,23,42,0.08) !important;
-    box-shadow: 0 2px 8px rgba(15,23,42,0.03) !important;
-    transition: all 0.15s ease !important;
+    width: 36px !important; height: 36px !important; min-height: 36px !important; padding: 0 !important;
+    border-radius: 12px !important; display: flex !important; align-items: center !important; justify-content: center !important;
+    margin-left: auto !important; background-color: #ffffff !important; border: 1px solid rgba(15,23,42,0.08) !important;
+    box-shadow: 0 2px 8px rgba(15,23,42,0.03) !important; transition: all 0.15s ease !important;
 }
-div[class*="st-key-manual_refresh_main"] button:hover {
-    border-color: #3182F6 !important;
-    background-color: #F8FAFC !important;
-}
+div[class*="st-key-manual_refresh_main"] button:hover { border-color: #3182F6 !important; background-color: #F8FAFC !important; }
 
-/* 🌟 로딩 스피너 디자인 깔끔하게 개선 */
-[data-testid="stSpinner"] {
-    background: #ffffff; padding: 18px 24px; border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(15,23,42,0.06); margin: 20px auto; text-align: center; max-width: 400px;
+/* 🌟 "보유 포지션" 제목 + 새로고침 버튼 — 모바일에서도 줄바꿈 없이 한 줄, 세로 중앙 정렬 */
+div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] {
+    flex-wrap: nowrap !important;
+    align-items: center !important;
 }
+div[class*="st-key-pos_header_row"] [data-testid="column"] { min-width: 0 !important; }
+
+/* 🌟 로딩 스피너 디자인 — 더 깔끔하고 또렷하게 */
+[data-testid="stSpinner"] {
+    background: #ffffff; padding: 18px 26px; border-radius: 18px;
+    box-shadow: 0 8px 28px rgba(15,23,42,0.08); border: 1px solid rgba(15,23,42,0.04);
+    margin: 24px auto; display: flex; align-items: center; justify-content: center; max-width: 420px;
+}
+[data-testid="stSpinner"] svg { width: 22px; height: 22px; color: #3182F6 !important; }
 [data-testid="stSpinner"] > div > div:last-child {
-    color: #3182F6 !important; font-weight: 700 !important; font-size: 14.5px !important; margin-left: 10px !important;
+    color: #191F28 !important; font-weight: 700 !important; font-size: 14px !important; margin-left: 12px !important;
 }
 
 .card { background:#ffffff; border-radius:20px; box-shadow:0 2px 14px rgba(15,23,42,0.05); padding:22px 24px; }
@@ -93,20 +88,29 @@ div[class*="st-key-pos_container_"] {
     box-shadow: 0 2px 14px rgba(15,23,42,0.05) !important; padding: 22px 24px 14px !important; margin-bottom: 18px !important;
 }
 
-/* 🌟 분봉 라디오 버튼 모바일 텍스트 깨짐 완벽 해결 */
+/* 🌟 분봉 라디오 버튼 — 라이트/다크 테마와 무관하게 항상 같은 색으로 고정 (라이트 모드에서
+   텍스트가 테마 변수에 묻혀 안 보이던 문제 방어적으로 처리) */
 div[class*="st-key-tf_radio_"] { margin-bottom: 12px; overflow: visible !important; }
-div[class*="st-key-tf_radio_"] div[role="radiogroup"] {
-    display: flex !important; flex-wrap: wrap !important; gap: 8px !important;
-}
+div[class*="st-key-tf_radio_"] div[role="radiogroup"] { display: flex !important; flex-wrap: wrap !important; gap: 8px !important; }
 div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] {
-    background-color: #F2F4F6; padding: 8px 16px !important; border-radius: 999px; margin: 0 !important; cursor: pointer; transition: background .15s; height: auto !important;
+    background-color: #F2F4F6 !important; color: #6b7280 !important; padding: 8px 16px !important;
+    border-radius: 999px; margin: 0 !important; cursor: pointer; transition: background .15s; height: auto !important;
 }
 div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] p {
-    color: #8B95A1 !important; font-size: 13.5px !important; margin: 0 !important; font-weight: 600 !important; line-height: 1.4 !important; white-space: nowrap !important;
+    color: #6b7280 !important; font-size: 13.5px !important; margin: 0 !important; font-weight: 600 !important;
+    line-height: 1.4 !important; white-space: nowrap !important; opacity: 1 !important;
 }
 div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] div:first-child { display: none; }
-div[class*="st-key-tf_radio_"] label[data-baseweb="radio"][aria-checked="true"] { background-color: #3182F6; }
+div[class*="st-key-tf_radio_"] label[data-baseweb="radio"][aria-checked="true"] { background-color: #3182F6 !important; color: #ffffff !important; }
 div[class*="st-key-tf_radio_"] label[data-baseweb="radio"][aria-checked="true"] p { color: #ffffff !important; font-weight: 700 !important; }
+@media (prefers-color-scheme: light) {
+    div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] p { color: #6b7280 !important; }
+    div[class*="st-key-tf_radio_"] label[data-baseweb="radio"][aria-checked="true"] p { color: #ffffff !important; }
+}
+@media (prefers-color-scheme: dark) {
+    div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] p { color: #6b7280 !important; }
+    div[class*="st-key-tf_radio_"] label[data-baseweb="radio"][aria-checked="true"] p { color: #ffffff !important; }
+}
 
 button[data-baseweb="tab"] p { color: #8B95A1 !important; font-weight: 600 !important; font-size: 14.5px !important; }
 button[data-baseweb="tab"][aria-selected="true"] p { color: #3182F6 !important; font-weight: 800 !important; }
@@ -173,10 +177,10 @@ TRADE_COLS = ["order_id", "datetime", "date", "symbol", "side", "bucket", "has_p
 def finalize(rows):
     if not rows: return pd.DataFrame(columns=TRADE_COLS)
     df = pd.DataFrame(rows)
-    
+
     if "trade_id" in df.columns:
         df = df.drop_duplicates(subset=["trade_id"])
-        
+
     g = df.groupby(["order_id", "symbol", "side", "date"], as_index=False).agg(
         pnl=("pnl", "sum"), price=("price", "mean"), datetime=("datetime", "last"),
         bucket=("bucket", lambda s: s.mode().iat[0]), has_pnl=("has_pnl", "max")
@@ -271,45 +275,45 @@ def fetch_slow_data(api_key, secret, pwd):
     try:
         exchange = ccxt.bitget({'apiKey': api_key, 'secret': secret, 'password': pwd, 'enableRateLimit': True, 'options': {'defaultType': 'swap'}})
         pop_syms = [f"{s}:USDT" for s in BASE_SYMBOLS]
-            
+
         exchange.load_markets()
 
         start_dt = datetime.strptime(DASHBOARD_START_DATE, "%Y-%m-%d").replace(tzinfo=KST)
         since_ts = int(start_dt.timestamp() * 1000)
         now_ts = int(datetime.now(UTC).timestamp() * 1000)
-        chunk_ms = 2 * 24 * 60 * 60 * 1000 
+        chunk_ms = 2 * 24 * 60 * 60 * 1000
 
         try:
             open_pos, _ = fetch_fast_data(api_key, secret, pwd)
             extra_syms = [f"{p['symbol']}:USDT" for p in open_pos]
         except Exception:
             extra_syms = []
-            
+
         symbols = list(dict.fromkeys(pop_syms + extra_syms))
         rows, errs = [], []
-        
+
         for sym in symbols:
             if sym not in exchange.markets: continue
-            
+
             current_since = since_ts
             while current_since < now_ts:
                 chunk_until = min(current_since + chunk_ms, now_ts)
                 try:
                     params = {'endTime': chunk_until, 'until': chunk_until}
                     trades = exchange.fetch_my_trades(symbol=sym, since=current_since, limit=1000, params=params)
-                    
+
                     for t in trades:
                         t_utc = datetime.fromtimestamp(t["timestamp"] / 1000, tz=UTC)
                         t_kst = t_utc.astimezone(KST)
                         side, is_close, has_pnl, pnl, price = classify_fill(t)
-                        
+
                         trade_id = str(t.get("id") or f"{t.get('order')}_{t['timestamp']}")
                         order_id = str(t.get("order") or t["timestamp"])
-                        
+
                         rows.append({
-                            "trade_id": trade_id, "order_id": order_id, "datetime": t_kst.replace(tzinfo=None), 
-                            "date": t_kst.strftime("%Y-%m-%d"), "symbol": t["symbol"].replace(":USDT", ""), 
-                            "side": side, "bucket": "축소" if is_close else "증가", "has_pnl": has_pnl, 
+                            "trade_id": trade_id, "order_id": order_id, "datetime": t_kst.replace(tzinfo=None),
+                            "date": t_kst.strftime("%Y-%m-%d"), "symbol": t["symbol"].replace(":USDT", ""),
+                            "side": side, "bucket": "축소" if is_close else "증가", "has_pnl": has_pnl,
                             "pnl": pnl, "price": price
                         })
                 except Exception:
@@ -322,14 +326,14 @@ def fetch_slow_data(api_key, secret, pwd):
                             trade_id = str(t.get("id") or f"{t.get('order')}_{t['timestamp']}")
                             order_id = str(t.get("order") or t["timestamp"])
                             rows.append({
-                                "trade_id": trade_id, "order_id": order_id, "datetime": t_kst.replace(tzinfo=None), 
-                                "date": t_kst.strftime("%Y-%m-%d"), "symbol": t["symbol"].replace(":USDT", ""), 
-                                "side": side, "bucket": "축소" if is_close else "증가", "has_pnl": has_pnl, 
+                                "trade_id": trade_id, "order_id": order_id, "datetime": t_kst.replace(tzinfo=None),
+                                "date": t_kst.strftime("%Y-%m-%d"), "symbol": t["symbol"].replace(":USDT", ""),
+                                "side": side, "bucket": "축소" if is_close else "증가", "has_pnl": has_pnl,
                                 "pnl": pnl, "price": price
                             })
                     except Exception as e2:
                         errs.append(f"{sym}: {e2}")
-                
+
                 current_since = chunk_until
 
         try:
@@ -352,7 +356,7 @@ def fetch_slow_data(api_key, secret, pwd):
                             })
         except Exception:
             pass
-                
+
         if errs:
             st.session_state["_slow_fetch_errors"] = errs
         else:
@@ -385,18 +389,18 @@ with col_ex:
 
 df_trades = fetch_slow_data(MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
 
-# 🌟 Trading Journal 영역과 보유 포지션 사이 눈에 잘 띄는 진한 회색 실선 구분선
 st.markdown(f"<div style='border-top:1px solid {LINE_COLOR}; margin: 6px 0 20px 0;'></div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
 # 6. [FRAGMENT] 🎯 현재 보유 포지션 & 실시간 차트
 # -----------------------------------------------------------------------------
-col_hp1, col_hp2 = st.columns([11, 1])
-with col_hp1:
-    st.markdown(f"<div style='font-size: 19px; font-weight: 800; color: {TEXT}; margin-bottom: 12px; line-height: 36px;'> 보유 포지션</div>", unsafe_allow_html=True)
-with col_hp2:
-    if st.button("🔄", key="manual_refresh_main", use_container_width=True):
-        fetch_fast_data.clear(); fetch_slow_data.clear(); fetch_usdt_krw.clear(); fetch_live_ohlcv.clear(); st.rerun()
+with st.container(key="pos_header_row"):
+    col_hp1, col_hp2 = st.columns([11, 1])
+    with col_hp1:
+        st.markdown(f"<div style='font-size: 19px; font-weight: 800; color: {TEXT}; margin-bottom: 12px; line-height: 36px;'> 보유 포지션</div>", unsafe_allow_html=True)
+    with col_hp2:
+        if st.button("🔄", key="manual_refresh_main", use_container_width=True):
+            fetch_fast_data.clear(); fetch_slow_data.clear(); fetch_usdt_krw.clear(); fetch_live_ohlcv.clear(); st.rerun()
 
 @st.fragment(run_every=10)
 def show_live_positions():
@@ -451,7 +455,7 @@ def show_live_positions():
                     for pos in pos_list:
                         side_color = GREEN if pos["side"] == "LONG" else RED
                         fig.add_hline(y=pos['entry_price'], line_dash="dot", line_width=1.3, line_color=side_color, opacity=0.6)
-                        
+
                         fig.add_annotation(
                             x=0.01, xref="paper", y=pos['entry_price'],
                             text=f" {pos['side']} ${pos['entry_price']:,.2f} ", showarrow=False,
@@ -508,7 +512,7 @@ def make_top_card(title, value, sub_left, sub_right="", krw_rate=1350.0):
     val_color, sign = (GREEN, "+") if value >= 0 else (RED, "")
     krw_val = value * krw_rate
     krw_str = f"+ ₩{krw_val:,.0f}" if krw_val >= 0 else f"- ₩{abs(krw_val):,.0f}"
-    return f"""<div class="card" style="min-height: 150px; display:flex; flex-direction:column;"><div><div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700; color:{TEXT};"><span>{title}</span> <span style="color:{SUB}; font-weight:500;">{sub_right}</span></div><div style="font-size:30px; font-weight:800; color:{val_color}; margin:14px 0 2px; letter-spacing:-0.02em;">{sign}${value:,.2f}</div><div style="font-size:13px; font-weight:500; color:{SUB};">{krw_str}</div></div><div style="font-size:12px; color:{SUB}; margin-top:auto; padding-top:10px;">{sub_left}</div></div>"""
+    return f"""<div class="card" style="min-height: 150px; display:flex; flex-direction:column;"><div><div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700; color:{TEXT};"><span>{title}</span> <span style="color:{SUB}; font-weight:500;">{sub_right}</span></div><div style="display:flex; align-items:baseline; gap:8px; margin:14px 0 2px;"><span style="font-size:30px; font-weight:800; color:{val_color}; letter-spacing:-0.02em;">{sign}${value:,.2f}</span><span style="font-size:13px; font-weight:600; color:{SUB};">{krw_str}</span></div></div><div style="font-size:12px; color:{SUB}; margin-top:auto; padding-top:10px;">{sub_left}</div></div>"""
 
 with col_s1:
     @st.fragment(run_every=3600)
@@ -537,7 +541,6 @@ with col_s3:
         st.markdown(make_top_card("현재 미실현손익", unrealized, "전체 포지션 합계 · 10초마다 갱신", "", k_rate), unsafe_allow_html=True)
     render_unrealized_pnl()
 
-# 🌟 미실현손익 안내 문구
 st.markdown(f"<div style='font-size: 12px; color: {SUB}; margin-top: 10px; margin-bottom: 28px;'> 미실현손익은 일별·월별 추정 PNL 합계에 포함하지 않습니다</div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
@@ -570,8 +573,8 @@ with c_btn3:
 
 with c_d:
     dates = st.date_input(
-        "기간 선택", 
-        key="date_range", 
+        "기간 선택",
+        key="date_range",
         max_value=today_kst,
         label_visibility="collapsed"
     )
@@ -710,12 +713,17 @@ def render_pnl_charts(f_df):
 
         with tab1:
             if not daily_pnl.empty:
-                st.plotly_chart(style(go.Figure(go.Bar(x=daily_pnl["date"], y=daily_pnl["pnl"], marker_color=daily_pnl["color"], marker_line_width=0, name="일별 수익", hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT<extra></extra>"))), use_container_width=True, config={"displayModeBar": False})
+                # 🌟 막대 모서리를 둥글게 (지원 안 하는 plotly 버전이면 조용히 각진 막대로 폴백)
+                try:
+                    bar = go.Bar(x=daily_pnl["date"], y=daily_pnl["pnl"], marker=dict(color=daily_pnl["color"], line_width=0, cornerradius=8), name="일별 수익", hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT<extra></extra>")
+                except Exception:
+                    bar = go.Bar(x=daily_pnl["date"], y=daily_pnl["pnl"], marker_color=daily_pnl["color"], marker_line_width=0, name="일별 수익", hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT<extra></extra>")
+                st.plotly_chart(style(go.Figure(bar)), use_container_width=True, config={"displayModeBar": False})
             else: st.caption("선택한 기간에 거래가 없습니다")
 
         with tab2:
             if not daily_pnl.empty:
-                st.plotly_chart(style(go.Figure(go.Scatter(x=daily_pnl["date"], y=daily_pnl["cum"], mode="lines+markers", line=dict(color=BLUE, width=3), fill="tozeroy", fillcolor="rgba(49,130,246,0.08)", name="누적 수익", hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT<extra></extra>"))), use_container_width=True, config={"displayModeBar": False})
+                st.plotly_chart(style(go.Figure(go.Scatter(x=daily_pnl["date"], y=daily_pnl["cum"], mode="lines+markers", line=dict(color=BLUE, width=3, shape="spline", smoothing=0.4), marker=dict(size=5), fill="tozeroy", fillcolor="rgba(49,130,246,0.08)", name="누적 수익", hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT<extra></extra>"))), use_container_width=True, config={"displayModeBar": False})
 
 render_pnl_charts(filtered_df)
 
@@ -735,7 +743,7 @@ def render_trade_logs(f_df):
     rows = []
     for _, r in f_df.head(100).iterrows():
         dt_str = r['datetime'].strftime('%m.%d %H:%M')
-        
+
         is_payback = r['symbol'] == "FEE/PAYBACK"
         base = "💰" if is_payback else (r['symbol'].split('/')[0] if '/' in r['symbol'] else r['symbol'])[:1]
         sym_name = "수수료 페이백" if is_payback else r['symbol']
@@ -745,7 +753,7 @@ def render_trade_logs(f_df):
         side_soft = GREEN_SOFT if (r['side'] == 'LONG' or is_payback) else RED_SOFT
         price = f"${r['price']:,.2f}" if pd.notnull(r['price']) and r['price'] > 0 else "-"
         pnl_val, res = r['pnl'], r['result']
-        
+
         if res == '익절':
             pnl_color, chip_bg, pnl_txt = GREEN, GREEN_SOFT, f"+{pnl_val:,.2f}"
         elif res == '손절':
@@ -754,7 +762,7 @@ def render_trade_logs(f_df):
             pnl_color, chip_bg, pnl_txt = SUB, "rgba(139,149,161,0.12)", "0.00"
         else:
             pnl_color, chip_bg, pnl_txt = SUB, "rgba(139,149,161,0.12)", "-"
-            
+
         rows.append(
             "<div class='log-row'>"
             f"<div class='log-left'><div class='sym-badge' style='background:{side_soft};color:{side_color};'>{base}</div>"
