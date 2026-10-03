@@ -64,7 +64,12 @@ div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] {
     flex-wrap: nowrap !important;
     align-items: center !important;
 }
-div[class*="st-key-pos_header_row"] [data-testid="column"] { min-width: 0 !important; }
+div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"]:first-child {
+    flex: 1 1 auto !important; min-width: 0 !important;
+}
+div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"]:last-child {
+    flex: 0 0 48px !important; width: 48px !important; min-width: 48px !important;
+}
 
 /* 🌟 로딩 스피너 디자인 — 더 깔끔하고 또렷하게 */
 [data-testid="stSpinner"] {
@@ -250,7 +255,7 @@ BASE_SYMBOLS = [
     "BNB/USDT", "ADA/USDT", "SUI/USDT", "1000PEPE/USDT", "WIF/USDT"
 ]
 
-@st.cache_data(ttl=3600, show_spinner="블록체인 네트워크에서 데이터를 동기화하고 있습니다... 🔄")
+@st.cache_data(ttl=3600, show_spinner="거래 내역을 불러오고 있어요")
 def fetch_slow_data(api_key, secret, pwd):
     if not api_key or not secret:
         rnd = random.Random(42)
