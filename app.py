@@ -47,7 +47,7 @@ st.markdown("""
 html, body, .stApp { background-color: #F2F4F6 !important; }
 .stApp, .stApp p, .stApp span, .stApp div, .stApp label { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif; letter-spacing:-0.01em; }
 
-.block-container { padding-top: 2rem; max-width: 1240px; }
+.block-container { padding-top: 2rem; max-width: 1240px; box-sizing: border-box !important; }
 [data-testid="stHeader"] { background-color: transparent !important; }
 [data-testid="stToolbar"] { display: none !important; }
 
@@ -184,26 +184,39 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
     /* 2. 모바일에서 메인 타이틀 폰트 크기 살짝 축소 */
     .hdr-title-text { font-size: 19px !important; }
 
-    /* 모바일에서도 보유 포지션 오른쪽 끝에 버튼 고정 */
+    /* 모바일: 보유 포지션 오른쪽 끝에 새로고침 버튼 고정 */
     div[class*="st-key-pos_header_row"] {
         width: 100% !important;
         max-width: 100% !important;
         min-width: 0 !important;
         overflow: visible !important;
+        box-sizing: border-box !important;
     }
 
     div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
         width: 100% !important;
         max-width: 100% !important;
         min-width: 0 !important;
-        flex-wrap: nowrap !important;
+        gap: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+        box-sizing: border-box !important;
+        min-width: 0 !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
     }
 
     div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"]:first-child {
         width: calc(100% - 48px) !important;
         max-width: calc(100% - 48px) !important;
-        min-width: 0 !important;
         flex: 1 1 auto !important;
+        min-width: 0 !important;
     }
 
     div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"]:last-child {
@@ -211,6 +224,8 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
         max-width: 48px !important;
         min-width: 48px !important;
         flex: 0 0 48px !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
 
     div[class*="st-key-manual_refresh_main"] {
@@ -222,6 +237,8 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
         display: flex !important;
         justify-content: flex-end !important;
         align-items: center !important;
+        box-sizing: border-box !important;
+        overflow: visible !important;
     }
 
     div[class*="st-key-manual_refresh_main"] button {
@@ -244,6 +261,7 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
         max-width: 100% !important;
         padding-left: 1rem !important;
         padding-right: 1rem !important;
+        box-sizing: border-box !important;
         overflow-x: hidden !important;
     }
 
@@ -557,7 +575,7 @@ st.markdown(f"<div style='border-top:1px solid {LINE_COLOR}; margin: 6px 0 20px 
 # 6. [FRAGMENT] 🎯 현재 보유 포지션 & 실시간 차트
 # -----------------------------------------------------------------------------
 with st.container(key="pos_header_row"):
-    col_hp1, col_hp2 = st.columns([1, 0.07], gap="small")
+    col_hp1, col_hp2 = st.columns([1, 0.07], gap=None)
     with col_hp1:
         st.markdown(f"<div style='font-size: 19px; font-weight: 800; color: {TEXT}; margin-bottom: 12px; line-height: 36px; white-space: nowrap;'> 보유 포지션</div>", unsafe_allow_html=True)
     with col_hp2:
