@@ -704,7 +704,7 @@ with col_s1:
         k_rate = fetch_usdt_krw()
         today_str = datetime.now(KST).strftime("%Y-%m-%d")
         today_pnl = df_trades[df_trades["date"] == today_str]["pnl"].sum() if not df_trades.empty else 0.0
-        st.markdown(make_top_card("오늘 추정 PNL", today_pnl, "1시간마다 갱신 (KST)", "", k_rate), unsafe_allow_html=True)
+        st.markdown(make_top_card("오늘 PNL", today_pnl, "1시간마다 갱신 (KST)", "", k_rate), unsafe_allow_html=True)
     render_today_pnl()
 
 with col_s2:
@@ -713,7 +713,7 @@ with col_s2:
         k_rate = fetch_usdt_krw()
         month_str = datetime.now(KST).strftime("%Y-%m")
         month_pnl = df_trades[df_trades["date"].str.startswith(month_str)]["pnl"].sum() if not df_trades.empty else 0.0
-        st.markdown(make_top_card("이번 달 추정 PNL", month_pnl, "1시간마다 갱신 (KST)", "", k_rate), unsafe_allow_html=True)
+        st.markdown(make_top_card("이번 달 PNL", month_pnl, "1시간마다 갱신 (KST)", "", k_rate), unsafe_allow_html=True)
     render_month_pnl()
 
 with col_s3:
@@ -725,7 +725,7 @@ with col_s3:
         st.markdown(make_top_card("현재 미실현손익", unrealized, "전체 포지션 합계 · 10초마다 갱신", "", k_rate), unsafe_allow_html=True)
     render_unrealized_pnl()
 
-st.markdown(f"<div style='font-size: 12px; color: {SUB}; margin-top: 10px; margin-bottom: 28px;'> 미실현손익은 일별·월별 추정 PNL 합계에 포함하지 않습니다</div>", unsafe_allow_html=True)
+st.markdown(f"<div style='font-size: 12px; color: {SUB}; margin-top: 10px; margin-bottom: 28px;'> 미실현손익은 일별·월별 PNL 합계에 포함하지 않습니다</div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
 # 8. [FRAGMENT] 매매동향
@@ -872,7 +872,7 @@ def render_pnl_charts(f_df):
     last_sign = "+" if last_val >= 0 else ""
 
     with st.container(key="pnl_card"):
-        html_pnl = f"""<div style='display:flex; justify-content:space-between; align-items:baseline;'><span style='font-size:13px; color:{TEXT}; font-weight:700;'>선택 기간 추정 PNL</span><span style='font-size:12px; color:{SUB};'>{last_date} <b style='color:{GREEN if last_val >= 0 else RED};'>{last_sign}${last_val:,.2f}</b></span></div><div style='font-size:30px; font-weight:800; color:{pnl_color}; margin-top:8px; letter-spacing:-0.02em;'>{pnl_sign}${period_sum:,.2f} <span style='font-size:14px; color:{SUB}; font-weight:600;'>USDT</span></div><div style="border-bottom: 1px solid {DIVIDER}; margin: 16px 0 6px 0;"></div>"""
+        html_pnl = f"""<div style='display:flex; justify-content:space-between; align-items:baseline;'><span style='font-size:13px; color:{TEXT}; font-weight:700;'>선택 기간 PNL</span><span style='font-size:12px; color:{SUB};'>{last_date} <b style='color:{GREEN if last_val >= 0 else RED};'>{last_sign}${last_val:,.2f}</b></span></div><div style='font-size:30px; font-weight:800; color:{pnl_color}; margin-top:8px; letter-spacing:-0.02em;'>{pnl_sign}${period_sum:,.2f} <span style='font-size:14px; color:{SUB}; font-weight:600;'>USDT</span></div><div style="border-bottom: 1px solid {DIVIDER}; margin: 16px 0 6px 0;"></div>"""
         st.markdown(html_pnl, unsafe_allow_html=True)
 
         tab1, tab2 = st.tabs(["일별 손익", "기간 누적"])
@@ -911,7 +911,7 @@ def render_pnl_charts(f_df):
 
 render_pnl_charts(filtered_df)
 
-st.markdown(f"<div class='note-text'>추정 PNL · USDT · KST 기준 · 기간 누적은 선택한 기간의 시작을 0으로 계산합니다</div>", unsafe_allow_html=True)
+st.markdown(f"<div class='note-text'> PNL · USDT · KST 기준 · 기간 누적은 선택한 기간의 시작을 0으로 계산합니다</div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
 # 10. 상세 매매 내역 — 토스 거래내역 스타일 리스트
