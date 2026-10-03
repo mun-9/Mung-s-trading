@@ -93,8 +93,7 @@ div[class*="st-key-pos_container_"] {
     box-shadow: 0 2px 14px rgba(15,23,42,0.05) !important; padding: 22px 24px 14px !important; margin-bottom: 18px !important;
 }
 
-/* 🌟 분봉 라디오 버튼 — 라이트/다크 테마와 무관하게 항상 같은 색으로 고정 (라이트 모드에서
-   텍스트가 테마 변수에 묻혀 안 보이던 문제 방어적으로 처리) */
+/* 🌟 분봉 라디오 버튼 — 라이트/다크 테마와 무관하게 항상 같은 색으로 고정 */
 div[class*="st-key-tf_radio_"] { margin-bottom: 12px; overflow: visible !important; }
 div[class*="st-key-tf_radio_"] div[role="radiogroup"] { display: flex !important; flex-wrap: wrap !important; gap: 8px !important; }
 div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] {
@@ -123,9 +122,6 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
 
 .pos-box { padding: 4px 14px; flex: 1 1 190px; }
 .pos-divider { border-left: 1px solid rgba(15,23,42,0.06); }
-@media (max-width: 768px) {
-    .pos-divider { border-left: none !important; border-top: 1px solid rgba(15,23,42,0.06) !important; padding-top: 14px !important; margin-top: 6px !important; }
-}
 
 .stButton>button { height: 38px; padding: 0 16px; border-radius: 999px; border: 1px solid rgba(15,23,42,0.08); background-color: #ffffff; color: #191F28; font-weight: 600; white-space: nowrap; box-shadow:none; }
 .stButton>button:hover { border-color: #3182F6; color: #3182F6; }
@@ -143,6 +139,34 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
 .row-price { font-size:12px; color:#8B95A1; margin-bottom:4px; }
 .row-pnl { font-size:14.5px; font-weight:800; }
 .chip { display:inline-block; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:999px; margin-left:4px; }
+
+/* 📱 모바일 환경(768px 이하) 대응을 위한 추가 CSS */
+@media (max-width: 768px) {
+    .pos-divider { border-left: none !important; border-top: 1px solid rgba(15,23,42,0.06) !important; padding-top: 14px !important; margin-top: 6px !important; }
+    
+    /* 1. 모바일에서 '실시간 연동' 글자를 숨겨서 공간 확보 */
+    .hide-on-mobile { display: none !important; }
+    
+    /* 2. 모바일에서 메인 타이틀 폰트 크기 살짝 축소 */
+    .hdr-title-text { font-size: 19px !important; }
+
+    /* 3. 보유포지션 + 새로고침 버튼 강제 가로 배치 (스트림릿 자동 줄바꿈 방지) */
+    div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+    }
+    div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"]:first-child {
+        width: auto !important;
+        flex: 1 1 auto !important;
+    }
+    div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"]:last-child {
+        width: 40px !important;
+        flex: 0 0 40px !important;
+        min-width: 40px !important;
+    }
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -376,21 +400,19 @@ def fetch_slow_data(api_key, secret, pwd):
 # -----------------------------------------------------------------------------
 # 5. 메인 헤더 & 우측 상단 Bitget 실시간 연동 배지
 # -----------------------------------------------------------------------------
-col_title, col_ex = st.columns([7, 3])
-with col_title:
-    st.markdown(f"""<div style="display:flex; align-items:center; gap:10px; margin-bottom:18px;">
-    <span style="font-size:22px;">📈</span>
-    <span style="font-size:21px; font-weight:800; color:{TEXT}; letter-spacing:-0.02em;">Trading Journal</span>
-    </div>""", unsafe_allow_html=True)
-
-with col_ex:
-    st.markdown(f"""<div style="display:flex; justify-content:flex-end; align-items:center; height:38px; margin-bottom:18px;">
-    <div style="background:#ffffff; padding:6px 14px; border-radius:999px; box-shadow:0 2px 10px rgba(15,23,42,0.04); display:flex; align-items:center; gap:8px;">
-        <span style="width:7px; height:7px; background:{GREEN}; border-radius:50%; display:inline-block;"></span>
-        <span style="font-size:12.5px; font-weight:700; color:{TEXT};">Bitget</span>
-        <span style="font-size:11.5px; color:{SUB}; font-weight:500;">실시간 연동</span>
+st.markdown(f"""
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:nowrap;">
+    <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:22px;">📈</span>
+        <span class="hdr-title-text" style="font-size:21px; font-weight:800; color:{TEXT}; letter-spacing:-0.02em; white-space:nowrap;">Trading Journal</span>
     </div>
-    </div>""", unsafe_allow_html=True)
+    <div style="background:#ffffff; padding:6px 12px; border-radius:999px; box-shadow:0 2px 10px rgba(15,23,42,0.04); display:flex; align-items:center; gap:6px; white-space:nowrap; flex-shrink:0;">
+        <span style="width:7px; height:7px; background:{GREEN}; border-radius:50%; display:inline-block; flex-shrink:0;"></span>
+        <span style="font-size:12.5px; font-weight:700; color:{TEXT};">Bitget</span>
+        <span class="hide-on-mobile" style="font-size:11.5px; color:{SUB}; font-weight:500;">실시간 연동</span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 df_trades = fetch_slow_data(MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
 
