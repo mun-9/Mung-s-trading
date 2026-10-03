@@ -57,6 +57,15 @@ div[class*="st-key-manual_refresh_main"] button {
     margin-left: auto !important; background-color: #ffffff !important; border: 1px solid rgba(15,23,42,0.08) !important;
     box-shadow: 0 2px 8px rgba(15,23,42,0.03) !important; transition: all 0.15s ease !important;
 }
+div[class*="st-key-manual_refresh_main"] {
+    display: flex !important;
+    justify-content: flex-end !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin-top: -8px !important;
+    margin-bottom: 10px !important;
+}
 div[class*="st-key-manual_refresh_main"] button:hover { border-color: #3182F6 !important; background-color: #F8FAFC !important; }
 
 /* 🌟 "보유 포지션" 제목 + 새로고침 버튼 — 모바일에서도 줄바꿈 없이 한 줄, 세로 중앙 정렬 */
@@ -150,21 +159,91 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
     /* 2. 모바일에서 메인 타이틀 폰트 크기 살짝 축소 */
     .hdr-title-text { font-size: 19px !important; }
 
-    /* 3. 보유포지션 + 새로고침 버튼 강제 가로 배치 (스트림릿 자동 줄바꿈 방지) */
+    /* Bitget 바로 아래 새로고침 버튼 */
+    div[class*="st-key-manual_refresh_main"] {
+        display: flex !important;
+        justify-content: flex-end !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        margin-top: -8px !important;
+        margin-bottom: 10px !important;
+    }
+
+    div[class*="st-key-manual_refresh_main"] button {
+        width: 36px !important;
+        max-width: 36px !important;
+        min-width: 36px !important;
+        margin: 0 !important;
+    }
+
+    /* 모바일 전체 페이지의 불필요한 가로 스크롤 방지 */
+    html, body, .stApp {
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+    }
+
+    .block-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        overflow-x: hidden !important;
+    }
+
+    /* 3. 보유 포지션 + 새로고침 버튼 — 모바일 화면 밖으로 밀리지 않도록 고정 */
+    div[class*="st-key-pos_header_row"] {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow: visible !important;
+    }
+
     div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
         align-items: center !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        gap: 0 !important;
     }
+
+    div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+        min-width: 0 !important;
+        max-width: 100% !important;
+    }
+
     div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"]:first-child {
-        width: auto !important;
+        width: calc(100% - 48px) !important;
+        max-width: calc(100% - 48px) !important;
         flex: 1 1 auto !important;
+        min-width: 0 !important;
     }
+
     div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"]:last-child {
-        width: 40px !important;
-        flex: 0 0 40px !important;
-        min-width: 40px !important;
+        width: 48px !important;
+        max-width: 48px !important;
+        flex: 0 0 48px !important;
+        min-width: 48px !important;
+        margin-left: 0 !important;
+        padding: 0 !important;
+    }
+
+    div[class*="st-key-manual_refresh_main"] {
+        width: 48px !important;
+        max-width: 48px !important;
+        min-width: 48px !important;
+        margin-left: 0 !important;
+        overflow: visible !important;
+    }
+
+    div[class*="st-key-manual_refresh_main"] button {
+        width: 36px !important;
+        max-width: 36px !important;
+        min-width: 36px !important;
+        margin-left: auto !important;
+        margin-right: 0 !important;
     }
 }
 </style>
@@ -414,6 +493,16 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
+# 📱 모바일/데스크톱 공통: Bitget 배지 바로 아래 오른쪽에 새로고침 버튼
+refresh_col_left, refresh_col_right = st.columns([11, 1])
+with refresh_col_right:
+    if st.button("🔄", key="manual_refresh_main", use_container_width=False):
+        fetch_fast_data.clear()
+        fetch_slow_data.clear()
+        fetch_usdt_krw.clear()
+        fetch_live_ohlcv.clear()
+        st.rerun()
+
 df_trades = fetch_slow_data(MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
 
 st.markdown(f"<div style='border-top:1px solid {LINE_COLOR}; margin: 6px 0 20px 0;'></div>", unsafe_allow_html=True)
@@ -422,12 +511,7 @@ st.markdown(f"<div style='border-top:1px solid {LINE_COLOR}; margin: 6px 0 20px 
 # 6. [FRAGMENT] 🎯 현재 보유 포지션 & 실시간 차트
 # -----------------------------------------------------------------------------
 with st.container(key="pos_header_row"):
-    col_hp1, col_hp2 = st.columns([11, 1])
-    with col_hp1:
-        st.markdown(f"<div style='font-size: 19px; font-weight: 800; color: {TEXT}; margin-bottom: 12px; line-height: 36px;'> 보유 포지션</div>", unsafe_allow_html=True)
-    with col_hp2:
-        if st.button("🔄", key="manual_refresh_main", use_container_width=True):
-            fetch_fast_data.clear(); fetch_slow_data.clear(); fetch_usdt_krw.clear(); fetch_live_ohlcv.clear(); st.rerun()
+    st.markdown(f"<div style='font-size: 19px; font-weight: 800; color: {TEXT}; margin-bottom: 12px; line-height: 36px;'> 보유 포지션</div>", unsafe_allow_html=True)
 
 @st.fragment(run_every=10)
 def show_live_positions():
