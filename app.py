@@ -35,7 +35,7 @@ GREEN_SOFT, RED_SOFT, BLUE_SOFT = "rgba(8,153,129,0.10)", "rgba(240,68,82,0.10)"
 # 1. 페이지 설정 & 토스 스타일 디자인 시스템
 # -----------------------------------------------------------------------------
 st.set_page_config(
-    page_title="Trading Journal 개시발 한번 잘못 잡아서 ㅈ댈뻔한거 복구했네",
+    page_title="Trading Journal",
     page_icon="📈",
     layout="wide"
 )
@@ -577,7 +577,7 @@ st.markdown(f"<div style='border-top:1px solid {LINE_COLOR}; margin: 6px 0 20px 
 with st.container(key="pos_header_row"):
     col_hp1, col_hp2 = st.columns([1, 0.07], gap=None)
     with col_hp1:
-        st.markdown(f"<div style='font-size: 19px; font-weight: 800; color: {TEXT}; margin-bottom: 12px; line-height: 36px; white-space: nowrap;'> 보유 포지션</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='font-size: 19px; font-weight: 800; color: {TEXT}; margin-bottom: 12px; line-height: 36px; white-space: nowrap;'> 보유 포지션 개시발 한번 잘못 잡아서 ㅈ댈뻔한거 복구했네</div>", unsafe_allow_html=True)
     with col_hp2:
         if st.button("🔄", key="manual_refresh_main", use_container_width=False):
             fetch_fast_data.clear()
