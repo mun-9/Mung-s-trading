@@ -35,7 +35,7 @@ GREEN_SOFT, RED_SOFT, BLUE_SOFT = "rgba(8,153,129,0.10)", "rgba(240,68,82,0.10)"
 # 1. 페이지 설정 & 토스 스타일 디자인 시스템
 # -----------------------------------------------------------------------------
 st.set_page_config(
-    page_title="Trading Journal",
+    page_title="Trading Journal 개시발 한번 잘못 잡아서 ㅈ댈뻔한거 복구했네",
     page_icon="📈",
     layout="wide"
 )
