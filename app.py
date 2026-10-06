@@ -51,30 +51,33 @@ html, body, .stApp { background-color: #F2F4F6 !important; }
 [data-testid="stHeader"] { background-color: transparent !important; }
 [data-testid="stToolbar"] { display: none !important; }
 
-/* 🌟 "보유 포지션" 헤더행 모바일 가로 스크롤(오버플로우) 완벽 방지 */
-div[class*="st-key-pos_header_row"] {
-    position: relative !important;
+/* 🌟 "보유 포지션" 헤더행 겹침/줄바꿈 완벽 방지 (Flexbox 가로 강제 1줄) */
+div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] {
+    display: flex !important;
+    flex-direction: row !important; /* 모바일에서도 세로 정렬 무시하고 가로 1줄 강제 */
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: space-between !important;
     width: 100% !important;
-}
-/* Flex 충돌을 막기 위해 block 요소로 변경 */
-div[class*="st-key-pos_header_row"] > div > div[data-testid="stHorizontalBlock"] {
-    display: block !important; 
-    width: 100% !important;
-}
-div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"]:first-child {
-    width: 100% !important;
-    display: block !important;
-}
-/* 새로고침 버튼 영역을 오른쪽 상단에 절대 좌표로 띄움 (PC/모바일 동일하게 고정) */
-div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"]:last-child {
-    position: absolute !important;
-    right: 0 !important;
-    top: 0 !important;
-    width: auto !important;
-    display: block !important;
+    padding: 0 !important;
+    gap: 0 !important;
 }
 
-/* 🌟 새로고침 버튼 스타일 */
+div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"]:first-child {
+    width: auto !important;
+    flex: 1 1 auto !important; /* 왼쪽 텍스트는 가능한 모든 공간 차지 */
+    min-width: 0 !important;
+}
+
+div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"]:last-child {
+    width: 40px !important;
+    min-width: 40px !important;
+    flex: 0 0 40px !important; /* 오른쪽 버튼 공간은 딱 40px 고정 */
+    display: flex !important;
+    justify-content: flex-end !important;
+}
+
+/* 새로고침 버튼 디자인 및 완벽한 우측 끝 밀착 */
 div[class*="st-key-manual_refresh_main"] {
     width: auto !important;
     margin: 0 !important;
@@ -97,6 +100,17 @@ div[class*="st-key-manual_refresh_main"] button {
     transition: all 0.15s ease !important;
 }
 div[class*="st-key-manual_refresh_main"] button:hover { border-color: #3182F6 !important; background-color: #F8FAFC !important; }
+
+/* 🌟 로딩 스피너 디자인 */
+[data-testid="stSpinner"] {
+    background: #ffffff; padding: 18px 26px; border-radius: 18px;
+    box-shadow: 0 8px 28px rgba(15,23,42,0.08); border: 1px solid rgba(15,23,42,0.04);
+    margin: 24px auto; display: flex; align-items: center; justify-content: center; max-width: 420px;
+}
+[data-testid="stSpinner"] svg { width: 22px; height: 22px; color: #3182F6 !important; }
+[data-testid="stSpinner"] > div > div:last-child {
+    color: #191F28 !important; font-weight: 700 !important; font-size: 14px !important; margin-left: 12px !important;
+}
 
 .card { background:#ffffff; border-radius:20px; box-shadow:0 2px 14px rgba(15,23,42,0.05); padding:22px 24px; }
 
