@@ -51,35 +51,34 @@ html, body, .stApp { background-color: #F2F4F6 !important; }
 [data-testid="stHeader"] { background-color: transparent !important; }
 [data-testid="stToolbar"] { display: none !important; }
 
-/* 🌟 "보유 포지션" 헤더행 강제 한 줄 & 우측 끝 정렬 (모바일/PC 공통) */
-div[class*="st-key-pos_header_row"] > div > div[data-testid="stHorizontalBlock"] {
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    align-items: center !important;
-    justify-content: space-between !important;
+/* 🌟 "보유 포지션" 헤더행 모바일 가로 스크롤(오버플로우) 완벽 방지 */
+div[class*="st-key-pos_header_row"] {
+    position: relative !important;
     width: 100% !important;
-    gap: 0 !important;
+}
+/* Flex 충돌을 막기 위해 block 요소로 변경 */
+div[class*="st-key-pos_header_row"] > div > div[data-testid="stHorizontalBlock"] {
+    display: block !important; 
+    width: 100% !important;
 }
 div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"]:first-child {
-    flex: 1 1 auto !important;
-    width: auto !important;
-    min-width: 0 !important;
+    width: 100% !important;
+    display: block !important;
 }
+/* 새로고침 버튼 영역을 오른쪽 상단에 절대 좌표로 띄움 (PC/모바일 동일하게 고정) */
 div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"]:last-child {
-    flex: 0 0 40px !important;
-    width: 40px !important;
-    min-width: 40px !important;
-    display: flex !important;
-    justify-content: flex-end !important;
+    position: absolute !important;
+    right: 0 !important;
+    top: 0 !important;
+    width: auto !important;
+    display: block !important;
 }
 
-/* 🌟 새로고침 버튼 고정 크기 및 완전한 우측 정렬 */
+/* 🌟 새로고침 버튼 스타일 */
 div[class*="st-key-manual_refresh_main"] {
-    display: flex !important;
-    justify-content: flex-end !important;
+    width: auto !important;
     margin: 0 !important;
-    width: 100% !important;
+    padding: 0 !important;
 }
 div[class*="st-key-manual_refresh_main"] button {
     width: 36px !important; 
@@ -87,8 +86,7 @@ div[class*="st-key-manual_refresh_main"] button {
     min-width: 36px !important; 
     min-height: 36px !important; 
     padding: 0 !important;
-    margin-left: auto !important;
-    margin-right: 0 !important;
+    margin: 0 !important;
     border-radius: 12px !important; 
     display: flex !important; 
     align-items: center !important; 
@@ -403,7 +401,6 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# 💡 누락되었던 데이터 로드 코드 복구
 df_trades = fetch_slow_data(MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
 
 st.markdown(f"<div style='border-top:1px solid {LINE_COLOR}; margin: 6px 0 20px 0;'></div>", unsafe_allow_html=True)
