@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-import calendar  # 캘린더 생성을 위한 모듈 추가
+import calendar
 
 # =============================================================================
 # 🔑 웹사이트 비밀 금고에서 API 키를 가져옵니다
@@ -52,8 +52,7 @@ html, body, .stApp { background-color: #F2F4F6 !important; }
 [data-testid="stHeader"] { background-color: transparent !important; }
 [data-testid="stToolbar"] { display: none !important; }
 
-/* 🌟 "보유 포지션" 제목 + 새로고침 버튼 — 컬럼 대신 절대위치로 고정해서
-   화면 폭(PC/모바일)과 상관없이 항상 컨테이너의 진짜 오른쪽 끝에 붙게 함 */
+/* 🌟 "보유 포지션" 제목 + 새로고침 버튼 */
 div[class*="st-key-pos_header_row"] {
     position: relative !important;
     min-height: 36px;
@@ -737,9 +736,8 @@ render_pnl_charts(filtered_df)
 
 st.markdown(f"<div class='note-text'>추정 PNL · USDT · KST 기준 · 기간 누적은 선택한 기간의 시작을 0으로 계산합니다</div>", unsafe_allow_html=True)
 
-
 # =============================================================================
-# 9.5 [FRAGMENT] 심층 성과 분석 (2x3 Grid)
+# 9.5 [FRAGMENT] 심층 성과 분석 (2x3 Grid) - 완전 픽스
 # =============================================================================
 st.markdown("<div style='margin-top: 40px;'></div>", unsafe_allow_html=True)
 st.markdown(f"<div style='font-size: 19px; font-weight: 800; color: {TEXT}; margin-bottom: 14px;'> 심층 성과 분석</div>", unsafe_allow_html=True)
@@ -774,43 +772,48 @@ def render_performance_metrics(f_df):
         else:
             cur_win = 0; cur_loss = 0
 
-    def metric_box(title, value, val_color=TEXT):
-        return f"""
-        <div style="flex: 1; padding: 18px 20px; text-align: center; border-right: 1px solid {DIVIDER}; border-bottom: 1px solid {DIVIDER};">
-            <div style="font-size: 13px; font-weight: 600; color: {SUB}; margin-bottom: 8px;">{title}</div>
-            <div style="font-size: 22px; font-weight: 800; color: {val_color};">{value}</div>
-        </div>
-        """
-    
-    grid_html = f"""
-    <div class="card" style="padding: 0; overflow: hidden; border: 1px solid {DIVIDER}; box-shadow: 0 2px 14px rgba(15,23,42,0.03);">
-        <div style="display: flex;">
-            {metric_box("승률 (Win Rate)", f"{win_rate:.1f}%")}
-            {metric_box("Profit Factor", f"{profit_factor:.2f}")}
-        </div>
-        <div style="display: flex;">
-            {metric_box("평균 익절", f"+${avg_win:,.0f}", GREEN)}
-            {metric_box("평균 손절", f"-${abs(avg_loss):,.0f}", RED)}
-        </div>
-        <div style="display: flex;">
-            <div style="flex: 1; padding: 18px 20px; text-align: center; border-right: 1px solid {DIVIDER}; border-bottom: none;">
-                <div style="font-size: 13px; font-weight: 600; color: {SUB}; margin-bottom: 8px;">최대 연속 수익 (연승)</div>
-                <div style="font-size: 22px; font-weight: 800; color: {GREEN};">{max_win_streak} <span style="font-size:14px;">연승</span></div>
-            </div>
-            <div style="flex: 1; padding: 18px 20px; text-align: center; border-bottom: none;">
-                <div style="font-size: 13px; font-weight: 600; color: {SUB}; margin-bottom: 8px;">최대 연속 손실 (연패)</div>
-                <div style="font-size: 22px; font-weight: 800; color: {RED};">{max_loss_streak} <span style="font-size:14px;">연패</span></div>
-            </div>
-        </div>
-    </div>
-    """
+    # HTML 띄어쓰기 및 줄바꿈에 의한 마크다운 파싱 오류를 원천 차단하기 위해 
+    # 하나의 꽉 찬 문자열로 만들었습니다.
+    grid_html = (
+        f"<div class='card' style='padding: 0; border: 1px solid {DIVIDER}; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column;'>"
+        f"<div style='display: flex; border-bottom: 1px solid {DIVIDER};'>"
+        f"<div style='flex: 1; padding: 20px; text-align: center; border-right: 1px solid {DIVIDER};'>"
+        f"<div style='font-size: 13px; font-weight: 600; color: {SUB}; margin-bottom: 8px;'>승률 (Win Rate)</div>"
+        f"<div style='font-size: 22px; font-weight: 800; color: {TEXT};'>{win_rate:.1f}%</div>"
+        f"</div>"
+        f"<div style='flex: 1; padding: 20px; text-align: center;'>"
+        f"<div style='font-size: 13px; font-weight: 600; color: {SUB}; margin-bottom: 8px;'>Profit Factor</div>"
+        f"<div style='font-size: 22px; font-weight: 800; color: {TEXT};'>{profit_factor:.2f}</div>"
+        f"</div>"
+        f"</div>"
+        f"<div style='display: flex; border-bottom: 1px solid {DIVIDER};'>"
+        f"<div style='flex: 1; padding: 20px; text-align: center; border-right: 1px solid {DIVIDER};'>"
+        f"<div style='font-size: 13px; font-weight: 600; color: {SUB}; margin-bottom: 8px;'>평균 익절</div>"
+        f"<div style='font-size: 22px; font-weight: 800; color: {GREEN};'>+${avg_win:,.0f}</div>"
+        f"</div>"
+        f"<div style='flex: 1; padding: 20px; text-align: center;'>"
+        f"<div style='font-size: 13px; font-weight: 600; color: {SUB}; margin-bottom: 8px;'>평균 손절</div>"
+        f"<div style='font-size: 22px; font-weight: 800; color: {RED};'>-${abs(avg_loss):,.0f}</div>"
+        f"</div>"
+        f"</div>"
+        f"<div style='display: flex;'>"
+        f"<div style='flex: 1; padding: 20px; text-align: center; border-right: 1px solid {DIVIDER};'>"
+        f"<div style='font-size: 13px; font-weight: 600; color: {SUB}; margin-bottom: 8px;'>최대 연속 수익</div>"
+        f"<div style='font-size: 22px; font-weight: 800; color: {GREEN};'>{max_win_streak} <span style='font-size:14px;'>연승</span></div>"
+        f"</div>"
+        f"<div style='flex: 1; padding: 20px; text-align: center;'>"
+        f"<div style='font-size: 13px; font-weight: 600; color: {SUB}; margin-bottom: 8px;'>최대 연속 손실</div>"
+        f"<div style='font-size: 22px; font-weight: 800; color: {RED};'>{max_loss_streak} <span style='font-size:14px;'>연패</span></div>"
+        f"</div>"
+        f"</div>"
+        f"</div>"
+    )
     st.markdown(grid_html, unsafe_allow_html=True)
 
 render_performance_metrics(filtered_df)
 
-
 # =============================================================================
-# 9.6 [FRAGMENT] 월간 PNL 캘린더 (토스 달력 스타일)
+# 9.6 [FRAGMENT] 월간 PNL 캘린더 (토스 달력 스타일) - 완전 픽스
 # =============================================================================
 st.markdown("<div style='margin-top: 40px;'></div>", unsafe_allow_html=True)
 
@@ -837,55 +840,68 @@ def render_pnl_calendar(f_df):
     max_abs_pnl = max([abs(v) for v in daily_pnl.values()] + [1]) 
 
     days_kr = ["월", "화", "수", "목", "금", "토", "일"]
-    header_html = "".join([f"<div style='flex:1; text-align:center; font-size:12px; font-weight:600; color:{SUB}; padding-bottom:12px;'>{d}</div>" for d in days_kr])
     
-    cal_html = f"<div class='card' style='padding: 24px 20px;'><div style='display:flex; width:100%; border-bottom:1px solid {DIVIDER}; margin-bottom:12px;'>{header_html}</div>"
+    # 캘린더 렌더링 시작 (마찬가지로 문자열 이어붙이기로 파싱 에러 원천 차단)
+    cal_html = f"<div class='card' style='padding: 24px 20px; overflow-x: auto;'>"
+    
+    # 요일 헤더
+    cal_html += f"<div style='display:flex; width:100%; border-bottom:1px solid {DIVIDER}; margin-bottom:12px; padding-bottom:8px;'>"
+    for d in days_kr:
+        cal_html += f"<div style='flex:1; text-align:center; font-size:12.5px; font-weight:700; color:{SUB};'>{d}</div>"
+    cal_html += "</div>"
 
+    # 주차별 렌더링
     for week in month_days:
         cal_html += "<div style='display:flex; width:100%; margin-bottom:6px;'>"
         for date_obj in week:
             date_str = date_obj.strftime("%Y-%m-%d")
             day_num = date_obj.day
             
+            # 다른 달 날짜 처리
             if date_obj.month != target_month:
-                cal_html += f"<div style='flex:1; height:65px; padding:6px; text-align:center; opacity:0.3;'><div style='font-size:13px; font-weight:600; color:{SUB};'>{day_num}</div></div>"
+                cal_html += f"<div style='flex:1; height:68px; display:flex; flex-direction:column; justify-content:flex-start; align-items:center; opacity:0.3; padding-top:4px;'><div style='font-size:13px; font-weight:600; color:{SUB};'>{day_num}</div></div>"
                 continue
 
             pnl = daily_pnl.get(date_str, 0)
             
+            # PNL 색상 및 값 설정
             if pnl > 0:
                 intensity = min(0.8, max(0.1, pnl / max_abs_pnl))
                 bg_color = f"rgba(8, 153, 129, {intensity})"
                 text_color = "#ffffff" if intensity > 0.4 else GREEN
                 pnl_str = f"+{pnl:,.0f}"
+                pnl_display = "block"
             elif pnl < 0:
                 intensity = min(0.8, max(0.1, abs(pnl) / max_abs_pnl))
                 bg_color = f"rgba(240, 68, 82, {intensity})"
                 text_color = "#ffffff" if intensity > 0.4 else RED
                 pnl_str = f"{pnl:,.0f}"
+                pnl_display = "block"
             else:
                 bg_color = "transparent"
-                text_color = SUB
+                text_color = "transparent"
                 pnl_str = ""
+                pnl_display = "none"
 
+            # 오늘 날짜 테두리 처리
             is_today = (date_obj == today_kst)
-            today_border = f"border: 2px solid {BLUE}; border-radius: 8px;" if is_today else "border-radius: 8px;"
+            today_style = f"border: 2px solid {BLUE};" if is_today else "border: 2px solid transparent;"
             day_color = BLUE if is_today else TEXT
 
-            cal_html += f"""
-            <div style='flex:1; height:65px; padding:4px; text-align:center; {today_border} margin: 0 2px;'>
-                <div style='font-size:13px; font-weight:700; color:{day_color}; margin-bottom:4px;'>{day_num}</div>
-                <div style='background:{bg_color}; color:{text_color}; font-size:11.5px; font-weight:800; border-radius:6px; padding:4px 0; min-height:22px; display:flex; align-items:center; justify-content:center;'>
-                    {pnl_str}
-                </div>
-            </div>
-            """
+            cal_html += (
+                f"<div style='flex:1; display:flex; flex-direction:column; align-items:center; padding: 4px; {today_style} border-radius: 8px; margin: 0 2px; height:68px;'>"
+                f"<div style='font-size:13px; font-weight:700; color:{day_color}; margin-bottom:6px;'>{day_num}</div>"
+                f"<div style='display:{pnl_display}; width:90%; text-align:center; background:{bg_color}; color:{text_color}; font-size:11px; font-weight:800; border-radius:4px; padding:3px 0;'>"
+                f"{pnl_str}"
+                f"</div>"
+                f"</div>"
+            )
         cal_html += "</div>"
     
     cal_html += "</div>"
     st.markdown(cal_html, unsafe_allow_html=True)
 
-render_pnl_calendar(df_trades) 
+render_pnl_calendar(df_trades)
 
 # -----------------------------------------------------------------------------
 # 10. 상세 매매 내역 — 토스 거래내역 스타일 리스트
