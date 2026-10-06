@@ -480,4 +480,458 @@ def show_live_positions():
                             recent_trades = sym_trades[sym_trades['datetime'] >= min_dt]
 
                             buys = recent_trades[((recent_trades['side'] == 'LONG') & (recent_trades['bucket'] == '증가')) | ((recent_trades['side'] == 'SHORT') & (recent_trades['bucket'] == '축소'))]
-                            sells = recent_trades[((recent_trades['side'] == 'SHORT') & (recent_trades['bucket'] == '
+                            sells = recent_trades[((recent_trades['side'] == 'SHORT') & (recent_trades['bucket'] == '증가')) | ((recent_trades['side'] == 'LONG') & (recent_trades['bucket'] == '축소'))]
+
+                            price_span = (df_ohlcv['high'].max() - df_ohlcv['low'].min()) or (df_ohlcv['close'].iloc[-1] * 0.01)
+                            off = price_span * 0.05
+
+                            if not buys.empty:
+                                fig.add_trace(go.Scatter(
+                                    x=buys['datetime'], y=buys['price'] - off, mode='markers',
+                                    marker=dict(symbol='triangle-up', size=11, color=GREEN, line=dict(width=1, color='#ffffff')),
+                                    customdata=buys['price'],
+                                    name='매수', hovertemplate="<b>매수 체결</b><br>%{x}<br>$%{customdata:,.2f}<extra></extra>"
+                                ))
+                            if not sells.empty:
+                                fig.add_trace(go.Scatter(
+                                    x=sells['datetime'], y=sells['price'] + off, mode='markers',
+                                    marker=dict(symbol='triangle-down', size=11, color=RED, line=dict(width=1, color='#ffffff')),
+                                    customdata=sells['price'],
+                                    name='매도', hovertemplate="<b>매도 체결</b><br>%{x}<br>$%{customdata:,.2f}<extra></extra>"
+                                ))
+
+                    fig.update_layout(
+                        height=350, margin=dict(t=15, b=10, l=10, r=45),
+                        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                        xaxis_rangeslider_visible=False, showlegend=False,
+                        xaxis=dict(showgrid=True, gridcolor="#F8F9FA", zeroline=False, tickformat="%H:%M", tickfont=dict(color=GRAY, size=11)),
+                        yaxis=dict(showgrid=True, gridcolor="#F0F3F6", zeroline=False, side="right", tickfont=dict(color=GRAY, size=11)),
+                        hovermode="x unified",
+                        hoverlabel=dict(bgcolor="#ffffff", bordercolor="#F2F4F6", font=dict(color=TEXT, size=12, family="Pretendard, Arial")),
+                    )
+                    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+show_live_positions()
+
+# -----------------------------------------------------------------------------
+# 7. 상단 PNL 카드
+# -----------------------------------------------------------------------------
+col_s1, col_s2, col_s3 = st.columns(3)
+
+def make_top_card(title, value, sub_left, sub_right="", krw_rate=1350.0):
+    val_color, sign = (GREEN, "+") if value >= 0 else (RED, "")
+    krw_val = value * krw_rate
+    krw_str = f"+ ₩{krw_val:,.0f}" if krw_val >= 0 else f"- ₩{abs(krw_val):,.0f}"
+    return f"""<div class="card" style="min-height: 150px; display:flex; flex-direction:column;"><div><div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700; color:{TEXT};"><span>{title}</span> <span style="color:{SUB}; font-weight:500;">{sub_right}</span></div><div style="display:flex; align-items:baseline; gap:8px; margin:14px 0 2px;"><span style="font-size:30px; font-weight:800; color:{val_color}; letter-spacing:-0.02em;">{sign}${value:,.2f}</span><span style="font-size:13px; font-weight:600; color:{SUB};">{krw_str}</span></div></div><div style="font-size:12px; color:{SUB}; margin-top:auto; padding-top:10px;">{sub_left}</div></div>"""
+
+with col_s1:
+    @st.fragment(run_every=3600)
+    def render_today_pnl():
+        k_rate = fetch_usdt_krw()
+        today_str = datetime.now(KST).strftime("%Y-%m-%d")
+        today_pnl = df_trades[df_trades["date"] == today_str]["pnl"].sum() if not df_trades.empty else 0.0
+        st.markdown(make_top_card("오늘 추정 PNL", today_pnl, "1시간마다 갱신 (KST)", "", k_rate), unsafe_allow_html=True)
+    render_today_pnl()
+
+with col_s2:
+    @st.fragment(run_every=3600)
+    def render_month_pnl():
+        k_rate = fetch_usdt_krw()
+        month_str = datetime.now(KST).strftime("%Y-%m")
+        month_pnl = df_trades[df_trades["date"].str.startswith(month_str)]["pnl"].sum() if not df_trades.empty else 0.0
+        st.markdown(make_top_card("이번 달 추정 PNL", month_pnl, "1시간마다 갱신 (KST)", "", k_rate), unsafe_allow_html=True)
+    render_month_pnl()
+
+with col_s3:
+    @st.fragment(run_every=10)
+    def render_unrealized_pnl():
+        k_rate = fetch_usdt_krw()
+        pos, bal = fetch_fast_data(MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
+        unrealized = sum([p.get("unrealized_pnl", 0.0) for p in pos]) if pos else 0.0
+        st.markdown(make_top_card("현재 미실현손익", unrealized, "전체 포지션 합계 · 10초마다 갱신", "", k_rate), unsafe_allow_html=True)
+    render_unrealized_pnl()
+
+st.markdown(f"<div style='font-size: 12px; color: {SUB}; margin-top: 10px; margin-bottom: 28px;'> 미실현손익은 일별·월별 추정 PNL 합계에 포함하지 않습니다</div>", unsafe_allow_html=True)
+
+# -----------------------------------------------------------------------------
+# 8. [FRAGMENT] 매매동향 (기본 기간 30일 설정)
+# -----------------------------------------------------------------------------
+st.markdown(f"<div style='font-size: 19px; font-weight: 800; color: {TEXT}; margin-bottom: 14px;'> 매매동향</div>", unsafe_allow_html=True)
+
+today_kst = datetime.now(KST).date()
+dashboard_start = datetime.strptime(DASHBOARD_START_DATE, "%Y-%m-%d").date()
+default_start = max(dashboard_start, today_kst - timedelta(days=30))
+
+if "date_range" not in st.session_state:
+    st.session_state.date_range = (default_start, today_kst)
+
+def set_range(mode):
+    if mode == "today":
+        st.session_state.date_range = (today_kst, today_kst)
+    elif mode == "month":
+        st.session_state.date_range = (today_kst.replace(day=1), today_kst)
+    elif mode == "30d":
+        st.session_state.date_range = (today_kst - timedelta(days=30), today_kst)
+
+c_d, c_btn1, c_btn2, c_btn3 = st.columns([3, 1, 1, 1.2])
+with c_btn1:
+    st.button("오늘", on_click=set_range, args=("today",), use_container_width=True)
+with c_btn2:
+    st.button("이번 달", on_click=set_range, args=("month",), use_container_width=True)
+with c_btn3:
+    st.button("최근 30일", on_click=set_range, args=("30d",), use_container_width=True)
+
+with c_d:
+    dates = st.date_input(
+        "기간 선택",
+        key="date_range",
+        max_value=today_kst,
+        label_visibility="collapsed"
+    )
+
+if isinstance(dates, tuple) and len(dates) == 2:
+    start_date, end_date = dates
+elif isinstance(dates, tuple) and len(dates) == 1:
+    start_date, end_date = dates[0], dates[0]
+else:
+    start_date, end_date = dates, dates
+
+filter_start_date = max(start_date, dashboard_start)
+filter_start_str = filter_start_date.strftime("%Y-%m-%d")
+end_str = end_date.strftime("%Y-%m-%d")
+
+filtered_df = df_trades[(df_trades["date"] >= filter_start_str) & (df_trades["date"] <= end_str)] if not df_trades.empty else df_trades
+
+st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
+
+@st.fragment(run_every=3600)
+def render_trade_stats(f_df):
+    all_df = fetch_slow_data(MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
+    col_t1, col_t2, col_t3 = st.columns([1, 1, 1.2])
+
+    total = len(f_df)
+    incr = int((f_df["bucket"] == "증가").sum()) if total else 0
+    closes = f_df[f_df["bucket"] == "축소"] if total else f_df
+    decr = len(closes)
+    wins = int((closes["result"] == "익절").sum())
+    losses = int((closes["result"] == "손절").sum())
+    rate = (wins / (wins + losses) * 100) if (wins + losses) else 0
+
+    lg = int((closes["side"] == "LONG").sum())
+    sh = int((closes["side"] == "SHORT").sum())
+    lp = (lg / (lg + sh) * 100) if (lg + sh) else 0
+    sp = 100 - lp if (lg + sh) else 0
+
+    card_style = "background-color:#ffffff; border-radius:20px; padding:22px; box-shadow: 0 2px 14px rgba(15,23,42,0.05); height: 320px; display:flex; flex-direction:column; justify-content:space-between;"
+
+    with col_t1:
+        html_t1 = f"""<div style="{card_style}"><div><div style='display:flex; justify-content:space-between; font-size:13px; font-weight:700; color:{TEXT};'><span>총 주문 횟수</span><span style='color:{SUB}; font-weight:500;'>선택 기간</span></div><div style='display:flex; align-items:baseline; margin:14px 0 22px;'><span style='font-size:34px; font-weight:800; color:{TEXT}; letter-spacing:-0.02em;'>{total}</span><span style='font-size:13px; font-weight:600; color:{SUB}; margin-left:4px;'>회</span></div><div style='display:flex; flex-direction:column; gap:14px;'><div style='display:flex; justify-content:space-between; font-size:13px;'><div style='flex:1; display:flex; justify-content:space-between; padding-right:15px;'><span style='color:{SUB};'>증가</span><b style='color:{TEXT};'>{incr} 회</b></div><div style='flex:1; display:flex; justify-content:space-between; padding-left:15px;'><span style='color:{SUB};'>축소</span><b style='color:{TEXT};'>{decr} 회</b></div></div><div style='display:flex; justify-content:space-between; font-size:13px;'><div style='flex:1; display:flex; justify-content:space-between; padding-right:15px;'><span style='color:{SUB};'>익절</span><b style='color:{GREEN};'>{wins} 회</b></div><div style='flex:1; display:flex; justify-content:space-between; padding-left:15px;'><span style='color:{SUB};'>손절</span><b style='color:{RED};'>{losses} 회</b></div></div></div><div style='border-top:1px solid {DIVIDER}; padding-top:14px; margin-top:18px;'><div style='display:flex; justify-content:space-between; align-items:center;'><span style='font-size:13px; color:{SUB}; font-weight:600;'>기간 승률</span><b style='color:{BLUE}; font-size:17px;'>{rate:.1f}%</b></div></div></div></div>"""
+        st.markdown(html_t1, unsafe_allow_html=True)
+
+    with col_t2:
+        bg_gradient = f"conic-gradient({GREEN} 0% {lp}%, {RED} {lp}% 100%)" if (lg + sh) > 0 else "conic-gradient(#EEF0F4 0% 100%)"
+        html_t2 = f"""<div style="{card_style}"><div style='display:flex; justify-content:space-between; font-size:13px; font-weight:700; color:{TEXT};'><span>LONG / SHORT</span><span style='color:{SUB}; font-weight:500;'>청산 횟수 비율</span></div><div style="display:flex; justify-content:center; align-items:center; flex-grow:1;"><div style="width: 118px; height: 118px; border-radius: 50%; background: {bg_gradient}; display:flex; justify-content:center; align-items:center;"><div style="width: 86px; height: 86px; background-color: #ffffff; border-radius: 50%; display:flex; flex-direction:column; justify-content:center; align-items:center;"><span style="font-size:11.5px; color:{SUB}; font-weight:600;">총 청산</span><b style="font-size:22px; color:{TEXT}; margin-top:-2px;">{decr}건</b></div></div></div><div><div style='display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px;'><span style='color:{GREEN}; font-weight:700;'>LONG</span><b style='color:{GREEN};'>{lg}건 · {lp:.1f}%</b></div><div style='display:flex; justify-content:space-between; font-size:13px;'><span style='color:{RED}; font-weight:700;'>SHORT</span><b style='color:{RED};'>{sh}건 · {sp:.1f}%</b></div></div></div>"""
+        st.markdown(html_t2, unsafe_allow_html=True)
+
+    with col_t3:
+        now_kst = datetime.now(KST)
+        day_labels, vals = [], []
+        tot_w7, tot_l7 = 0, 0
+        for i in range(6, -1, -1):
+            d = now_kst - timedelta(days=i)
+            ds = d.strftime("%Y-%m-%d")
+            day_labels.append(d.strftime("%m/%d"))
+            day_closes = all_df[(all_df["date"] == ds) & (all_df["bucket"] == "축소")] if not all_df.empty else pd.DataFrame()
+            w, l = int((day_closes["result"] == "익절").sum()), int((day_closes["result"] == "손절").sum())
+            tot_w7 += w; tot_l7 += l
+            vals.append(w / (w + l) * 100 if (w + l) else None)
+        r_rate = round(tot_w7 / (tot_w7 + tot_l7) * 100) if (tot_w7 + tot_l7) else 0
+
+        step_x = 280 / 6
+        runs, cur = [], []
+        for i, v in enumerate(vals):
+            if v is None:
+                if cur: runs.append(cur); cur = []
+            else:
+                cur.append((i * step_x, 110 - (v / 100) * 85, v))
+        if cur: runs.append(cur)
+
+        lines = "".join(
+            f"<polyline points='{' '.join(f'{x:.1f},{y:.1f}' for x, y, _ in run)}' fill='none' stroke='{BLUE}' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/>"
+            for run in runs if len(run) > 1
+        )
+        dots = "".join(
+            f"<circle cx='{x:.1f}' cy='{y:.1f}' r='4' fill='{BLUE}'/><text x='{x:.1f}' y='{y-12:.1f}' font-size='12' font-weight='bold' fill='{BLUE}' text-anchor='middle'>{v:.0f}%</text>"
+            for run in runs for x, y, v in run
+        )
+        empty_x = {i * step_x for i, v in enumerate(vals) if v is None}
+        dashes = "".join(f"<text x='{x:.1f}' y='60' font-size='13' fill='#D1D6DB' text-anchor='middle'>―</text>" for x in empty_x)
+        days = "".join(f"<text x='{i * step_x:.1f}' y='130' font-size='10' fill='{SUB}' text-anchor='middle'>{day_labels[i]}</text>" for i in range(7))
+        svg_html = f"<svg viewBox='-15 -15 310 150' style='width:100%; height:130px; display:block;'>{lines}{dots}{dashes}{days}</svg>"
+
+        html_t3 = f"""<div style="{card_style}"><div style='display:flex; justify-content:space-between; font-size:13px; font-weight:700; color:{TEXT};'><span>승률 추이</span><span style='color:{SUB}; font-weight:500;'>최근 7일 · 오늘 포함</span></div><div style="display:flex; align-items:baseline; gap:10px; margin-top:10px;"><span style="font-size:30px; font-weight:800; color:{BLUE}; letter-spacing:-0.02em;">{r_rate}%</span><span style="font-size:12px; color:{SUB};">익절 {tot_w7} · 손절 {tot_l7}</span></div><div style="flex-grow:1; display:flex; flex-direction:column; justify-content:flex-end;">{svg_html}</div></div>"""
+        st.markdown(html_t3, unsafe_allow_html=True)
+
+render_trade_stats(filtered_df)
+
+# -----------------------------------------------------------------------------
+# 9. [FRAGMENT] 선택 기간 PNL 박스
+# -----------------------------------------------------------------------------
+st.markdown("<div style='margin-top: 32px;'></div>", unsafe_allow_html=True)
+
+@st.fragment(run_every=3600)
+def render_pnl_charts(f_df):
+    period_sum = f_df["pnl"].sum() if not f_df.empty else 0.0
+    pnl_color, pnl_sign = (GREEN, "+") if period_sum >= 0 else (RED, "")
+
+    if not f_df.empty:
+        daily_pnl = f_df.groupby("date")["pnl"].sum().reset_index()
+        full_dates = [d.strftime("%Y-%m-%d") for d in pd.date_range(start=filter_start_str, end=end_str)]
+        daily_pnl = pd.merge(pd.DataFrame({"date": full_dates}), daily_pnl, on="date", how="left").fillna({"pnl": 0})
+        daily_pnl["cum"] = daily_pnl["pnl"].cumsum()
+        daily_pnl["color"] = daily_pnl["pnl"].apply(lambda x: GREEN if x >= 0 else RED)
+        last_date, last_val = daily_pnl["date"].iloc[-1], daily_pnl["pnl"].iloc[-1]
+    else:
+        daily_pnl = pd.DataFrame()
+        last_date, last_val = end_str, 0.0
+
+    last_sign = "+" if last_val >= 0 else ""
+
+    with st.container(key="pnl_card"):
+        html_pnl = f"""<div style='display:flex; justify-content:space-between; align-items:baseline;'><span style='font-size:13px; color:{TEXT}; font-weight:700;'>선택 기간 추정 PNL</span><span style='font-size:12px; color:{SUB};'>{last_date} <b style='color:{GREEN if last_val >= 0 else RED};'>{last_sign}${last_val:,.2f}</b></span></div><div style='font-size:30px; font-weight:800; color:{pnl_color}; margin-top:8px; letter-spacing:-0.02em;'>{pnl_sign}${period_sum:,.2f} <span style='font-size:14px; color:{SUB}; font-weight:600;'>USDT</span></div><div style="border-bottom: 1px solid {DIVIDER}; margin: 16px 0 6px 0;"></div>"""
+        st.markdown(html_pnl, unsafe_allow_html=True)
+
+        tab1, tab2 = st.tabs(["일별 손익", "기간 누적"])
+        n_days = len(daily_pnl)
+        if n_days == 0:
+            tickvals = []
+        elif n_days <= 10:
+            tickvals = list(daily_pnl["date"])
+        else:
+            step = max(1, n_days // 6)
+            idxs = sorted(set(range(0, n_days, step)) | {n_days - 1})
+            tickvals = [daily_pnl["date"].iloc[i] for i in idxs]
+
+        def style(fig):
+            fig.update_layout(
+                template="plotly_white", margin=dict(t=20, b=10, l=10, r=10), height=350,
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", hovermode="x unified",
+                xaxis=dict(showgrid=False, zeroline=False, type='category', tickmode='array', tickvals=tickvals),
+                yaxis=dict(showgrid=True, gridcolor="#F2F4F6", zeroline=True, zerolinecolor="#E5E8EB", zerolinewidth=1.5, nticks=5),
+            )
+            return fig
+
+        with tab1:
+            if not daily_pnl.empty:
+                try:
+                    bar = go.Bar(x=daily_pnl["date"], y=daily_pnl["pnl"], marker=dict(color=daily_pnl["color"], line_width=0, cornerradius=8), name="일별 수익", hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT<extra></extra>")
+                except Exception:
+                    bar = go.Bar(x=daily_pnl["date"], y=daily_pnl["pnl"], marker_color=daily_pnl["color"], marker_line_width=0, name="일별 수익", hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT<extra></extra>")
+                st.plotly_chart(style(go.Figure(bar)), use_container_width=True, config={"displayModeBar": False})
+            else: st.caption("선택한 기간에 거래가 없습니다")
+
+        with tab2:
+            if not daily_pnl.empty:
+                st.plotly_chart(style(go.Figure(go.Scatter(x=daily_pnl["date"], y=daily_pnl["cum"], mode="lines+markers", line=dict(color=BLUE, width=3, shape="spline", smoothing=0.4), marker=dict(size=5), fill="tozeroy", fillcolor="rgba(49,130,246,0.08)", name="누적 수익", hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT<extra></extra>"))), use_container_width=True, config={"displayModeBar": False})
+
+render_pnl_charts(filtered_df)
+
+st.markdown(f"<div class='note-text'>추정 PNL · USDT · KST 기준 · 기간 누적은 선택한 기간의 시작을 0으로 계산합니다</div>", unsafe_allow_html=True)
+
+
+# =============================================================================
+# 9.5 [FRAGMENT] 심층 성과 분석 (2x3 Grid)
+# =============================================================================
+st.markdown("<div style='margin-top: 40px;'></div>", unsafe_allow_html=True)
+st.markdown(f"<div style='font-size: 19px; font-weight: 800; color: {TEXT}; margin-bottom: 14px;'> 심층 성과 분석</div>", unsafe_allow_html=True)
+
+@st.fragment(run_every=3600)
+def render_performance_metrics(f_df):
+    if f_df.empty:
+        st.markdown(f"<div class='card' style='text-align:center; color:{SUB}; padding:32px;'>데이터가 부족합니다</div>", unsafe_allow_html=True)
+        return
+
+    closes = f_df[f_df["bucket"] == "축소"]
+    wins = closes[closes["result"] == "익절"]["pnl"]
+    losses = closes[closes["result"] == "손절"]["pnl"]
+    
+    win_rate = (len(wins) / len(closes) * 100) if len(closes) > 0 else 0
+    avg_win = wins.mean() if not wins.empty else 0
+    avg_loss = losses.mean() if not losses.empty else 0
+    
+    gross_profit = wins.sum() if not wins.empty else 0
+    gross_loss = abs(losses.sum()) if not losses.empty else 0
+    profit_factor = (gross_profit / gross_loss) if gross_loss > 0 else (99.99 if gross_profit > 0 else 0)
+
+    max_win_streak, max_loss_streak = 0, 0
+    cur_win, cur_loss = 0, 0
+    for res in closes["result"].iloc[::-1]: 
+        if res == "익절":
+            cur_win += 1; cur_loss = 0
+            max_win_streak = max(max_win_streak, cur_win)
+        elif res == "손절":
+            cur_loss += 1; cur_win = 0
+            max_loss_streak = max(max_loss_streak, cur_loss)
+        else:
+            cur_win = 0; cur_loss = 0
+
+    def metric_box(title, value, val_color=TEXT):
+        return f"""
+        <div style="flex: 1; padding: 18px 20px; text-align: center; border-right: 1px solid {DIVIDER}; border-bottom: 1px solid {DIVIDER};">
+            <div style="font-size: 13px; font-weight: 600; color: {SUB}; margin-bottom: 8px;">{title}</div>
+            <div style="font-size: 22px; font-weight: 800; color: {val_color};">{value}</div>
+        </div>
+        """
+    
+    grid_html = f"""
+    <div class="card" style="padding: 0; overflow: hidden; border: 1px solid {DIVIDER}; box-shadow: 0 2px 14px rgba(15,23,42,0.03);">
+        <div style="display: flex;">
+            {metric_box("승률 (Win Rate)", f"{win_rate:.1f}%")}
+            {metric_box("Profit Factor", f"{profit_factor:.2f}")}
+        </div>
+        <div style="display: flex;">
+            {metric_box("평균 익절", f"+${avg_win:,.0f}", GREEN)}
+            {metric_box("평균 손절", f"-${abs(avg_loss):,.0f}", RED)}
+        </div>
+        <div style="display: flex;">
+            <div style="flex: 1; padding: 18px 20px; text-align: center; border-right: 1px solid {DIVIDER}; border-bottom: none;">
+                <div style="font-size: 13px; font-weight: 600; color: {SUB}; margin-bottom: 8px;">최대 연속 수익 (연승)</div>
+                <div style="font-size: 22px; font-weight: 800; color: {GREEN};">{max_win_streak} <span style="font-size:14px;">연승</span></div>
+            </div>
+            <div style="flex: 1; padding: 18px 20px; text-align: center; border-bottom: none;">
+                <div style="font-size: 13px; font-weight: 600; color: {SUB}; margin-bottom: 8px;">최대 연속 손실 (연패)</div>
+                <div style="font-size: 22px; font-weight: 800; color: {RED};">{max_loss_streak} <span style="font-size:14px;">연패</span></div>
+            </div>
+        </div>
+    </div>
+    """
+    st.markdown(grid_html, unsafe_allow_html=True)
+
+render_performance_metrics(filtered_df)
+
+
+# =============================================================================
+# 9.6 [FRAGMENT] 월간 PNL 캘린더 (토스 달력 스타일)
+# =============================================================================
+st.markdown("<div style='margin-top: 40px;'></div>", unsafe_allow_html=True)
+
+@st.fragment(run_every=3600)
+def render_pnl_calendar(f_df):
+    target_year = today_kst.year
+    target_month = today_kst.month
+
+    st.markdown(f"""
+    <div style='display:flex; align-items:center; justify-content:space-between; margin-bottom: 14px;'>
+        <div style='font-size: 19px; font-weight: 800; color: {TEXT};'>{target_month}월 수익 캘린더</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    if f_df.empty:
+        st.markdown(f"<div class='card' style='text-align:center; color:{SUB}; padding:32px;'>이번 달 거래 내역이 없습니다</div>", unsafe_allow_html=True)
+        return
+
+    daily_pnl = f_df.groupby("date")["pnl"].sum().to_dict()
+    
+    cal = calendar.Calendar(firstweekday=0)
+    month_days = cal.monthdatescalendar(target_year, target_month)
+
+    max_abs_pnl = max([abs(v) for v in daily_pnl.values()] + [1]) 
+
+    days_kr = ["월", "화", "수", "목", "금", "토", "일"]
+    header_html = "".join([f"<div style='flex:1; text-align:center; font-size:12px; font-weight:600; color:{SUB}; padding-bottom:12px;'>{d}</div>" for d in days_kr])
+    
+    cal_html = f"<div class='card' style='padding: 24px 20px;'><div style='display:flex; width:100%; border-bottom:1px solid {DIVIDER}; margin-bottom:12px;'>{header_html}</div>"
+
+    for week in month_days:
+        cal_html += "<div style='display:flex; width:100%; margin-bottom:6px;'>"
+        for date_obj in week:
+            date_str = date_obj.strftime("%Y-%m-%d")
+            day_num = date_obj.day
+            
+            if date_obj.month != target_month:
+                cal_html += f"<div style='flex:1; height:65px; padding:6px; text-align:center; opacity:0.3;'><div style='font-size:13px; font-weight:600; color:{SUB};'>{day_num}</div></div>"
+                continue
+
+            pnl = daily_pnl.get(date_str, 0)
+            
+            if pnl > 0:
+                intensity = min(0.8, max(0.1, pnl / max_abs_pnl))
+                bg_color = f"rgba(8, 153, 129, {intensity})"
+                text_color = "#ffffff" if intensity > 0.4 else GREEN
+                pnl_str = f"+{pnl:,.0f}"
+            elif pnl < 0:
+                intensity = min(0.8, max(0.1, abs(pnl) / max_abs_pnl))
+                bg_color = f"rgba(240, 68, 82, {intensity})"
+                text_color = "#ffffff" if intensity > 0.4 else RED
+                pnl_str = f"{pnl:,.0f}"
+            else:
+                bg_color = "transparent"
+                text_color = SUB
+                pnl_str = ""
+
+            is_today = (date_obj == today_kst)
+            today_border = f"border: 2px solid {BLUE}; border-radius: 8px;" if is_today else "border-radius: 8px;"
+            day_color = BLUE if is_today else TEXT
+
+            cal_html += f"""
+            <div style='flex:1; height:65px; padding:4px; text-align:center; {today_border} margin: 0 2px;'>
+                <div style='font-size:13px; font-weight:700; color:{day_color}; margin-bottom:4px;'>{day_num}</div>
+                <div style='background:{bg_color}; color:{text_color}; font-size:11.5px; font-weight:800; border-radius:6px; padding:4px 0; min-height:22px; display:flex; align-items:center; justify-content:center;'>
+                    {pnl_str}
+                </div>
+            </div>
+            """
+        cal_html += "</div>"
+    
+    cal_html += "</div>"
+    st.markdown(cal_html, unsafe_allow_html=True)
+
+render_pnl_calendar(df_trades) 
+
+# -----------------------------------------------------------------------------
+# 10. 상세 매매 내역 — 토스 거래내역 스타일 리스트
+# -----------------------------------------------------------------------------
+st.markdown(f"<div style='font-size: 17px; font-weight: 800; color: {TEXT}; margin: 32px 0 14px;'>상세 매매 내역</div>", unsafe_allow_html=True)
+
+@st.fragment(run_every=3600)
+def render_trade_logs(f_df):
+    if f_df.empty:
+        st.markdown(f"<div class='card' style='text-align:center; color:{SUB}; padding:32px;'>아직 등록된 거래 내역이 없습니다</div>", unsafe_allow_html=True)
+        return
+
+    rows = []
+    for _, r in f_df.head(100).iterrows():
+        dt_str = r['datetime'].strftime('%m.%d %H:%M')
+
+        is_payback = r['symbol'] == "FEE/PAYBACK"
+        base = "💰" if is_payback else (r['symbol'].split('/')[0] if '/' in r['symbol'] else r['symbol'])[:1]
+        sym_name = "수수료 페이백" if is_payback else r['symbol']
+        side_name = "입금" if is_payback else r['side']
+
+        side_color = GREEN if (r['side'] == 'LONG' or is_payback) else RED
+        side_soft = GREEN_SOFT if (r['side'] == 'LONG' or is_payback) else RED_SOFT
+        price = f"${r['price']:,.2f}" if pd.notnull(r['price']) and r['price'] > 0 else "-"
+        pnl_val, res = r['pnl'], r['result']
+
+        if res == '익절':
+            pnl_color, chip_bg, pnl_txt = GREEN, GREEN_SOFT, f"+{pnl_val:,.2f}"
+        elif res == '손절':
+            pnl_color, chip_bg, pnl_txt = RED, RED_SOFT, f"{pnl_val:,.2f}"
+        elif res == '본전':
+            pnl_color, chip_bg, pnl_txt = SUB, "rgba(139,149,161,0.12)", "0.00"
+        else:
+            pnl_color, chip_bg, pnl_txt = SUB, "rgba(139,149,161,0.12)", "-"
+
+        rows.append(
+            "<div class='log-row'>"
+            f"<div class='log-left'><div class='sym-badge' style='background:{side_soft};color:{side_color};'>{base}</div>"
+            f"<div><div class='row-title'>{sym_name} <span class='pill' style='background:{side_soft};color:{side_color};'>{side_name}</span></div>"
+            f"<div class='row-sub'>{dt_str} · {r['bucket']}</div></div></div>"
+            f"<div class='row-right'><div class='row-price'>{price}</div>"
+            f"<div class='row-pnl' style='color:{pnl_color};'>{pnl_txt}<span class='chip' style='background:{chip_bg};color:{pnl_color};'>{res}</span></div></div>"
+            "</div>"
+        )
+
+    list_html = "<div class='card' style='padding:6px 20px; max-height:560px; overflow-y:auto;'>" + "".join(rows) + "</div>"
+    st.markdown(list_html, unsafe_allow_html=True)
+
+render_trade_logs(filtered_df)
