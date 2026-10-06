@@ -712,4 +712,91 @@ def render_pnl_charts(f_df):
     last_sign = "+" if last_val >= 0 else ""
 
     with st.container(key="pnl_card"):
-        html_pnl = f"""<div style='display:flex; justify-content:space-between; align-items:baseline;'><span style='font-size:13px; color:{TEXT}; font-weight:700;'>선택 기간 추정 PNL</span><span style='font-size:12px; color:{SUB
+        html_pnl = f"""<div style='display:flex; justify-content:space-between; align-items:baseline;'><span style='font-size:13px; color:{TEXT}; font-weight:700;'>선택 기간 추정 PNL</span><span style='font-size:12px; color:{SUB};'>{last_date} <b style='color:{GREEN if last_val >= 0 else RED};'>{last_sign}${last_val:,.2f}</b></span></div><div style='font-size:30px; font-weight:800; color:{pnl_color}; margin-top:8px; letter-spacing:-0.02em;'>{pnl_sign}${period_sum:,.2f} <span style='font-size:14px; color:{SUB}; font-weight:600;'>USDT</span></div><div style="border-bottom: 1px solid {DIVIDER}; margin: 16px 0 6px 0;"></div>"""
+        st.markdown(html_pnl, unsafe_allow_html=True)
+
+        tab1, tab2 = st.tabs(["일별 손익", "기간 누적"])
+        n_days = len(daily_pnl)
+        if n_days == 0:
+            tickvals = []
+        elif n_days <= 10:
+            tickvals = list(daily_pnl["date"])
+        else:
+            step = max(1, n_days // 6)
+            idxs = sorted(set(range(0, n_days, step)) | {n_days - 1})
+            tickvals = [daily_pnl["date"].iloc[i] for i in idxs]
+
+        def style(fig):
+            fig.update_layout(
+                template="plotly_white", margin=dict(t=20, b=10, l=10, r=10), height=350,
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", hovermode="x unified",
+                xaxis=dict(showgrid=False, zeroline=False, type='category', tickmode='array', tickvals=tickvals),
+                yaxis=dict(showgrid=True, gridcolor="#F2F4F6", zeroline=True, zerolinecolor="#E5E8EB", zerolinewidth=1.5, nticks=5),
+            )
+            return fig
+
+        with tab1:
+            if not daily_pnl.empty:
+                try:
+                    bar = go.Bar(x=daily_pnl["date"], y=daily_pnl["pnl"], marker=dict(color=daily_pnl["color"], line_width=0, cornerradius=8), name="일별 수익", hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT<extra></extra>")
+                except Exception:
+                    bar = go.Bar(x=daily_pnl["date"], y=daily_pnl["pnl"], marker_color=daily_pnl["color"], marker_line_width=0, name="일별 수익", hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT<extra></extra>")
+                st.plotly_chart(style(go.Figure(bar)), use_container_width=True, config={"displayModeBar": False})
+            else: st.caption("선택한 기간에 거래가 없습니다")
+
+        with tab2:
+            if not daily_pnl.empty:
+                st.plotly_chart(style(go.Figure(go.Scatter(x=daily_pnl["date"], y=daily_pnl["cum"], mode="lines+markers", line=dict(color=BLUE, width=3, shape="spline", smoothing=0.4), marker=dict(size=5), fill="tozeroy", fillcolor="rgba(49,130,246,0.08)", name="누적 수익", hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT<extra></extra>"))), use_container_width=True, config={"displayModeBar": False})
+
+render_pnl_charts(filtered_df)
+
+st.markdown(f"<div class='note-text'>추정 PNL · USDT · KST 기준 · 기간 누적은 선택한 기간의 시작을 0으로 계산합니다</div>", unsafe_allow_html=True)
+
+# -----------------------------------------------------------------------------
+# 10. 상세 매매 내역 — 토스 거래내역 스타일 리스트
+# -----------------------------------------------------------------------------
+st.markdown(f"<div style='font-size: 17px; font-weight: 800; color: {TEXT}; margin: 32px 0 14px;'>상세 매매 내역</div>", unsafe_allow_html=True)
+
+@st.fragment(run_every=3600)
+def render_trade_logs(f_df):
+    if f_df.empty:
+        st.markdown(f"<div class='card' style='text-align:center; color:{SUB}; padding:32px;'>아직 등록된 거래 내역이 없습니다</div>", unsafe_allow_html=True)
+        return
+
+    rows = []
+    for _, r in f_df.head(100).iterrows():
+        dt_str = r['datetime'].strftime('%m.%d %H:%M')
+
+        is_payback = r['symbol'] == "FEE/PAYBACK"
+        base = "💰" if is_payback else (r['symbol'].split('/')[0] if '/' in r['symbol'] else r['symbol'])[:1]
+        sym_name = "수수료 페이백" if is_payback else r['symbol']
+        side_name = "입금" if is_payback else r['side']
+
+        side_color = GREEN if (r['side'] == 'LONG' or is_payback) else RED
+        side_soft = GREEN_SOFT if (r['side'] == 'LONG' or is_payback) else RED_SOFT
+        price = f"${r['price']:,.2f}" if pd.notnull(r['price']) and r['price'] > 0 else "-"
+        pnl_val, res = r['pnl'], r['result']
+
+        if res == '익절':
+            pnl_color, chip_bg, pnl_txt = GREEN, GREEN_SOFT, f"+{pnl_val:,.2f}"
+        elif res == '손절':
+            pnl_color, chip_bg, pnl_txt = RED, RED_SOFT, f"{pnl_val:,.2f}"
+        elif res == '본전':
+            pnl_color, chip_bg, pnl_txt = SUB, "rgba(139,149,161,0.12)", "0.00"
+        else:
+            pnl_color, chip_bg, pnl_txt = SUB, "rgba(139,149,161,0.12)", "-"
+
+        rows.append(
+            "<div class='log-row'>"
+            f"<div class='log-left'><div class='sym-badge' style='background:{side_soft};color:{side_color};'>{base}</div>"
+            f"<div><div class='row-title'>{sym_name} <span class='pill' style='background:{side_soft};color:{side_color};'>{side_name}</span></div>"
+            f"<div class='row-sub'>{dt_str} · {r['bucket']}</div></div></div>"
+            f"<div class='row-right'><div class='row-price'>{price}</div>"
+            f"<div class='row-pnl' style='color:{pnl_color};'>{pnl_txt}<span class='chip' style='background:{chip_bg};color:{pnl_color};'>{res}</span></div></div>"
+            "</div>"
+        )
+
+    list_html = "<div class='card' style='padding:6px 20px; max-height:560px; overflow-y:auto;'>" + "".join(rows) + "</div>"
+    st.markdown(list_html, unsafe_allow_html=True)
+
+render_trade_logs(filtered_df)
