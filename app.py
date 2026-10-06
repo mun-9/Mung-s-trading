@@ -110,4 +110,12 @@ div[class*="st-key-tf_radio_"] { margin-bottom: 12px; overflow: visible !importa
 div[class*="st-key-tf_radio_"] div[role="radiogroup"] { display: flex !important; flex-wrap: wrap !important; gap: 8px !important; }
 div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] {
     background-color: #F2F4F6 !important; color: #6b7280 !important; padding: 8px 16px !important;
-    border-radius: 999px;
+    border-radius: 999px; margin: 0 !important; cursor: pointer; transition: background .15s; height: auto !important;
+}
+div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] p {
+    color: #6b7280 !important; font-size: 13.5px !important; margin: 0 !important; font-weight: 600 !important;
+    line-height: 1.4 !important; white-space: nowrap !important; opacity: 1 !important;
+}
+div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] div:first-child { display: none; }
+div[class*="st-key-tf_radio_"] label[data-baseweb="radio"][aria-checked="true"] { background-color: #3182F6 !important; color: #ffffff !important; }
+div[class*="st-key-tf_radio_"] label[data-baseweb="radio"][aria-checked="true"] p { color: #ffffff !important; font-weight:
