@@ -51,35 +51,31 @@ html, body, .stApp { background-color: #F2F4F6 !important; }
 [data-testid="stHeader"] { background-color: transparent !important; }
 [data-testid="stToolbar"] { display: none !important; }
 
-/* 🌟 "보유 포지션" 헤더행 겹침/줄바꿈 완벽 방지 (Flexbox 가로 강제 1줄) */
-div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] {
+/* 🌟 "보유 포지션" 헤더행 모바일 줄바꿈 방지 & 컬럼 정렬 */
+div[class*="st-key-pos_header_row"] > div > div[data-testid="stHorizontalBlock"] {
     display: flex !important;
-    flex-direction: row !important; /* 모바일에서도 세로 정렬 무시하고 가로 1줄 강제 */
+    flex-direction: row !important;  /* 모바일 세로정렬 강제 무시하고 가로 1줄 유지 */
     flex-wrap: nowrap !important;
     align-items: center !important;
-    justify-content: space-between !important;
-    width: 100% !important;
-    padding: 0 !important;
-    gap: 0 !important;
 }
 
-div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"]:first-child {
-    width: auto !important;
-    flex: 1 1 auto !important; /* 왼쪽 텍스트는 가능한 모든 공간 차지 */
+/* 왼쪽 헤더 텍스트 컬럼 */
+div[class*="st-key-pos_header_row"] [data-testid="column"]:first-child {
     min-width: 0 !important;
 }
 
-div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"]:last-child {
-    width: 40px !important;
-    min-width: 40px !important;
-    flex: 0 0 40px !important; /* 오른쪽 버튼 공간은 딱 40px 고정 */
+/* 오른쪽 버튼 컬럼 */
+div[class*="st-key-pos_header_row"] [data-testid="column"]:last-child {
+    min-width: 0 !important;
     display: flex !important;
-    justify-content: flex-end !important;
+    justify-content: flex-end !important; /* 내부 요소를 우측으로 쫙 밀어줌 */
 }
 
 /* 새로고침 버튼 디자인 및 완벽한 우측 끝 밀착 */
 div[class*="st-key-manual_refresh_main"] {
-    width: auto !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
 }
@@ -423,7 +419,8 @@ st.markdown(f"<div style='border-top:1px solid {LINE_COLOR}; margin: 6px 0 20px 
 # 6. [FRAGMENT] 🎯 현재 보유 포지션 & 실시간 차트
 # -----------------------------------------------------------------------------
 with st.container(key="pos_header_row"):
-    col_hp1, col_hp2 = st.columns([1, 1])
+    # 🌟 8:2 비율로 주어서 버튼 공간을 확실히 우측에 확보
+    col_hp1, col_hp2 = st.columns([8, 2])
     with col_hp1:
         st.markdown(f"<div style='font-size: 19px; font-weight: 800; color: {TEXT}; line-height: 36px;'> 보유 포지션</div>", unsafe_allow_html=True)
     with col_hp2:
