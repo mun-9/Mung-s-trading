@@ -155,7 +155,7 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
 """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 2. 체결 분류 유틸
+# 2. 체결 분류 유틸 (💡 수수료 차감 로직 추가)
 # -----------------------------------------------------------------------------
 def classify_fill(t):
     info = t.get("info", {}) or {}
@@ -166,13 +166,10 @@ def classify_fill(t):
     pnl = float(raw or 0)
     price = float(t.get("price") or t.get("average") or 0.0)
 
-    # 💡 CCXT 표준 fee 구조에서 cost(수수료 비용) 가져오기
+    # 💡 [추가된 부분] 수수료(fee) 정보를 가져와 PnL에서 차감합니다.
     fee_info = t.get("fee") or {}
     fee_cost = float(fee_info.get("cost", 0) or 0)
-    
-    # 만약 수수료 통화가 USDT인 경우 PnL에서 수수료 차감 (지출된 수수료는 마이너스로 반영)
-    # 거래소 API에 따라 fee['cost']가 양수로 오므로 순수익 계산 시 빼줍니다.
-    if fee_cost > 0 and fee_info.get("currency", "").upper() == "USDT":
+    if fee_cost > 0:
         pnl -= fee_cost
 
     if "open" in ts: is_close = False
@@ -186,6 +183,7 @@ def classify_fill(t):
     else: side = "LONG" if t["side"].upper() == "BUY" else "SHORT"
 
     return side, is_close, has_pnl, pnl, price
+
 def result_of(bucket, has_pnl, pnl):
     if bucket == "증가": return "진입"
     if not has_pnl: return "미확인"
