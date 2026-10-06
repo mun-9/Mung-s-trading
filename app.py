@@ -51,37 +51,54 @@ html, body, .stApp { background-color: #F2F4F6 !important; }
 [data-testid="stHeader"] { background-color: transparent !important; }
 [data-testid="stToolbar"] { display: none !important; }
 
-/* 🌟 새로고침 버튼 스타일 및 우측 정렬 */
-div[class*="st-key-manual_refresh_main"] {
+/* 🌟 "보유 포지션" 헤더행 강제 한 줄 & 우측 끝 정렬 (모바일/PC 공통) */
+div[class*="st-key-pos_header_row"] > div > div[data-testid="stHorizontalBlock"] {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    gap: 0 !important;
+}
+div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"]:first-child {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+}
+div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"]:last-child {
+    flex: 0 0 40px !important;
+    width: 40px !important;
+    min-width: 40px !important;
     display: flex !important;
     justify-content: flex-end !important;
 }
-div[class*="st-key-manual_refresh_main"] button {
-    width: 36px !important; height: 36px !important; min-height: 36px !important; padding: 0 !important;
-    border-radius: 12px !important; display: flex !important; align-items: center !important; justify-content: center !important;
-    background-color: #ffffff !important; border: 1px solid rgba(15,23,42,0.08) !important;
-    box-shadow: 0 2px 8px rgba(15,23,42,0.03) !important; transition: all 0.15s ease !important;
-    margin-left: 0 !important;
-}
-div[class*="st-key-manual_refresh_main"] button:hover { border-color: #3182F6 !important; background-color: #F8FAFC !important; }
 
-/* 🌟 "보유 포지션" 제목 + 새로고침 버튼 행 — 비트겟 배지와 오른쪽 라인 일치화 */
-div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] {
+/* 🌟 새로고침 버튼 고정 크기 및 완전한 우측 정렬 */
+div[class*="st-key-manual_refresh_main"] {
     display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    gap: 0 !important;
+    justify-content: flex-end !important;
+    margin: 0 !important;
     width: 100% !important;
 }
-div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+div[class*="st-key-manual_refresh_main"] button {
+    width: 36px !important; 
+    height: 36px !important; 
+    min-width: 36px !important; 
+    min-height: 36px !important; 
     padding: 0 !important;
+    margin-left: auto !important;
+    margin-right: 0 !important;
+    border-radius: 12px !important; 
+    display: flex !important; 
+    align-items: center !important; 
+    justify-content: center !important;
+    background-color: #ffffff !important; 
+    border: 1px solid rgba(15,23,42,0.08) !important;
+    box-shadow: 0 2px 8px rgba(15,23,42,0.03) !important; 
+    transition: all 0.15s ease !important;
 }
-div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"]:first-child {
-    flex: 1 1 auto !important; min-width: 0 !important;
-}
-div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"]:last-child {
-    flex: 0 0 auto !important; width: auto !important; display: flex !important; justify-content: flex-end !important;
-}
+div[class*="st-key-manual_refresh_main"] button:hover { border-color: #3182F6 !important; background-color: #F8FAFC !important; }
 
 /* 🌟 로딩 스피너 디자인 */
 [data-testid="stSpinner"] {
@@ -147,22 +164,8 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
 /* 📱 모바일 환경(768px 이하) 대응 CSS */
 @media (max-width: 768px) {
     .pos-divider { border-left: none !important; border-top: 1px solid rgba(15,23,42,0.06) !important; padding-top: 14px !important; margin-top: 6px !important; }
-    
     .hide-on-mobile { display: none !important; }
     .hdr-title-text { font-size: 19px !important; }
-
-    div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] {
-        display: flex !important;
-        justify-content: space-between !important;
-        align-items: center !important;
-        gap: 0 !important;
-    }
-    div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"]:first-child {
-        width: auto !important; flex: 1 1 auto !important;
-    }
-    div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"]:last-child {
-        width: auto !important; flex: 0 0 auto !important;
-    }
 }
 </style>
 """, unsafe_allow_html=True)
@@ -411,20 +414,20 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-df_trades = fetch_slow_data(MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
-
 st.markdown(f"<div style='border-top:1px solid {LINE_COLOR}; margin: 6px 0 20px 0;'></div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
 # 6. [FRAGMENT] 🎯 현재 보유 포지션 & 실시간 차트
 # -----------------------------------------------------------------------------
 with st.container(key="pos_header_row"):
-    col_hp1, col_hp2 = st.columns([11, 1])
+    col_hp1, col_hp2 = st.columns([1, 1])
     with col_hp1:
-        st.markdown(f"<div style='font-size: 19px; font-weight: 800; color: {TEXT}; margin-bottom: 12px; line-height: 36px;'> 보유 포지션</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='font-size: 19px; font-weight: 800; color: {TEXT}; line-height: 36px;'> 보유 포지션</div>", unsafe_allow_html=True)
     with col_hp2:
-        if st.button("🔄", key="manual_refresh_main", use_container_width=True):
+        if st.button("🔄", key="manual_refresh_main"):
             fetch_fast_data.clear(); fetch_slow_data.clear(); fetch_usdt_krw.clear(); fetch_live_ohlcv.clear(); st.rerun()
+
+st.markdown("<div style='margin-bottom:12px;'></div>", unsafe_allow_html=True)
 
 @st.fragment(run_every=10)
 def show_live_positions():
