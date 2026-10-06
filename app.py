@@ -100,17 +100,6 @@ div[class*="st-key-manual_refresh_main"] button {
 }
 div[class*="st-key-manual_refresh_main"] button:hover { border-color: #3182F6 !important; background-color: #F8FAFC !important; }
 
-/* 🌟 로딩 스피너 디자인 */
-[data-testid="stSpinner"] {
-    background: #ffffff; padding: 18px 26px; border-radius: 18px;
-    box-shadow: 0 8px 28px rgba(15,23,42,0.08); border: 1px solid rgba(15,23,42,0.04);
-    margin: 24px auto; display: flex; align-items: center; justify-content: center; max-width: 420px;
-}
-[data-testid="stSpinner"] svg { width: 22px; height: 22px; color: #3182F6 !important; }
-[data-testid="stSpinner"] > div > div:last-child {
-    color: #191F28 !important; font-weight: 700 !important; font-size: 14px !important; margin-left: 12px !important;
-}
-
 .card { background:#ffffff; border-radius:20px; box-shadow:0 2px 14px rgba(15,23,42,0.05); padding:22px 24px; }
 
 div[class*="st-key-pnl_card"] {
@@ -279,7 +268,7 @@ BASE_SYMBOLS = [
     "BNB/USDT", "ADA/USDT", "SUI/USDT", "1000PEPE/USDT", "WIF/USDT"
 ]
 
-@st.cache_data(ttl=3600, show_spinner="거래 내역을 불러오고 있어요")
+@st.cache_data(ttl=3600, show_spinner="거래 내역을 불러오고 있어요...")
 def fetch_slow_data(api_key, secret, pwd):
     if not api_key or not secret:
         rnd = random.Random(42)
@@ -413,6 +402,9 @@ st.markdown(f"""
     </div>
 </div>
 """, unsafe_allow_html=True)
+
+# 💡 누락되었던 데이터 로드 코드 복구
+df_trades = fetch_slow_data(MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
 
 st.markdown(f"<div style='border-top:1px solid {LINE_COLOR}; margin: 6px 0 20px 0;'></div>", unsafe_allow_html=True)
 
