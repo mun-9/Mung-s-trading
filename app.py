@@ -51,48 +51,35 @@ html, body, .stApp { background-color: #F2F4F6 !important; }
 [data-testid="stHeader"] { background-color: transparent !important; }
 [data-testid="stToolbar"] { display: none !important; }
 
-/* 🌟 "보유 포지션" 헤더행 모바일 줄바꿈 방지 & 컬럼 정렬 */
-div[class*="st-key-pos_header_row"] > div > div[data-testid="stHorizontalBlock"] {
-    display: flex !important;
-    flex-direction: row !important;  /* 모바일 세로정렬 강제 무시하고 가로 1줄 유지 */
-    flex-wrap: nowrap !important;
-    align-items: center !important;
+/* 🌟 "보유 포지션" 제목 + 새로고침 버튼 — 컬럼 대신 절대위치로 고정해서
+   화면 폭(PC/모바일)과 상관없이 항상 컨테이너의 진짜 오른쪽 끝에 붙게 함 */
+div[class*="st-key-pos_header_row"] {
+    position: relative !important;
+    min-height: 36px;
+    margin-bottom: 12px;
+}
+div[class*="st-key-pos_header_row"] div[class*="st-key-manual_refresh_main"] {
+    position: absolute !important;
+    top: 0 !important;
+    right: 0 !important;
+    width: auto !important;
 }
 
-/* 왼쪽 헤더 텍스트 컬럼 */
-div[class*="st-key-pos_header_row"] [data-testid="column"]:first-child {
-    min-width: 0 !important;
-}
-
-/* 오른쪽 버튼 컬럼 */
-div[class*="st-key-pos_header_row"] [data-testid="column"]:last-child {
-    min-width: 0 !important;
-    display: flex !important;
-    justify-content: flex-end !important; /* 내부 요소를 우측으로 쫙 밀어줌 */
-}
-
-/* 새로고침 버튼 디자인 및 완벽한 우측 끝 밀착 */
-div[class*="st-key-manual_refresh_main"] {
-    display: flex !important;
-    justify-content: flex-end !important;
-    width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-}
+/* 새로고침 버튼 디자인 */
 div[class*="st-key-manual_refresh_main"] button {
-    width: 36px !important; 
-    height: 36px !important; 
-    min-width: 36px !important; 
-    min-height: 36px !important; 
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
     padding: 0 !important;
     margin: 0 !important;
-    border-radius: 12px !important; 
-    display: flex !important; 
-    align-items: center !important; 
+    border-radius: 12px !important;
+    display: flex !important;
+    align-items: center !important;
     justify-content: center !important;
-    background-color: #ffffff !important; 
+    background-color: #ffffff !important;
     border: 1px solid rgba(15,23,42,0.08) !important;
-    box-shadow: 0 2px 8px rgba(15,23,42,0.03) !important; 
+    box-shadow: 0 2px 8px rgba(15,23,42,0.03) !important;
     transition: all 0.15s ease !important;
 }
 div[class*="st-key-manual_refresh_main"] button:hover { border-color: #3182F6 !important; background-color: #F8FAFC !important; }
@@ -419,15 +406,9 @@ st.markdown(f"<div style='border-top:1px solid {LINE_COLOR}; margin: 6px 0 20px 
 # 6. [FRAGMENT] 🎯 현재 보유 포지션 & 실시간 차트
 # -----------------------------------------------------------------------------
 with st.container(key="pos_header_row"):
-    # 🌟 8:2 비율로 주어서 버튼 공간을 확실히 우측에 확보
-    col_hp1, col_hp2 = st.columns([8, 2])
-    with col_hp1:
-        st.markdown(f"<div style='font-size: 19px; font-weight: 800; color: {TEXT}; line-height: 36px;'> 보유 포지션</div>", unsafe_allow_html=True)
-    with col_hp2:
-        if st.button("🔄", key="manual_refresh_main"):
-            fetch_fast_data.clear(); fetch_slow_data.clear(); fetch_usdt_krw.clear(); fetch_live_ohlcv.clear(); st.rerun()
-
-st.markdown("<div style='margin-bottom:12px;'></div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='font-size: 19px; font-weight: 800; color: {TEXT}; line-height: 36px;'> 보유 포지션</div>", unsafe_allow_html=True)
+    if st.button("🔄", key="manual_refresh_main"):
+        fetch_fast_data.clear(); fetch_slow_data.clear(); fetch_usdt_krw.clear(); fetch_live_ohlcv.clear(); st.rerun()
 
 @st.fragment(run_every=10)
 def show_live_positions():
