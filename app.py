@@ -354,6 +354,36 @@ def fetch_slow_data(api_key, secret, pwd):
 
                 current_since = chunk_until
 
+        try:
+            payback_start_ts = int(datetime(2026, 10, 1, tzinfo=KST).timestamp() * 1000)
+            deposits = exchange.fetch_deposits(since=payback_start_ts)
+            
+            # 💡 방금(30분 이내) 들어온 입금 건을 제외하기 위한 기준 시간 계산 (현재 KST 기준)
+            now_kst_dt = datetime.now(KST)
+            
+            for d in deposits:
+                status = str(d.get("status", "")).lower()
+                if status in ("ok", "success", "completed", "1"):
+                    curr = str(d.get("currency", "")).upper()
+                    if curr == "USDT":
+                        d_utc = datetime.fromtimestamp(d["timestamp"] / 1000, tz=UTC)
+                        d_kst = d_utc.astimezone(KST)
+                        
+                        # 💡 30분 이내에 들어온 입금인지 체크하여 해당 건만 건너뜁니다.
+                        if (now_kst_dt - d_kst) <= timedelta(minutes=30):
+                            continue
+
+                        amount = float(d.get("amount", 0) or 0)
+                        if amount > 0:
+                            dep_id = f"DEPOSIT_{d.get('id', d['timestamp'])}"
+                            rows.append({
+                                "trade_id": dep_id, "order_id": dep_id, "datetime": d_kst.replace(tzinfo=None),
+                                "date": d_kst.strftime("%Y-%m-%d"), "symbol": "FEE/PAYBACK", "side": "LONG",
+                                "bucket": "축소", "has_pnl": True, "pnl": amount, "price": 0.0
+                            })
+        except Exception:
+            pass
+
         if errs:
             st.session_state["_slow_fetch_errors"] = errs
         else:
@@ -735,12 +765,13 @@ def render_trade_logs(f_df):
     for _, r in f_df.head(100).iterrows():
         dt_str = r['datetime'].strftime('%m.%d %H:%M')
 
-        base = (r['symbol'].split('/')[0] if '/' in r['symbol'] else r['symbol'])[:1]
-        sym_name = r['symbol']
-        side_name = r['side']
+        is_payback = r['symbol'] == "FEE/PAYBACK"
+        base = "💰" if is_payback else (r['symbol'].split('/')[0] if '/' in r['symbol'] else r['symbol'])[:1]
+        sym_name = "수수료 페이백" if is_payback else r['symbol']
+        side_name = "입금" if is_payback else r['side']
 
-        side_color = GREEN if r['side'] == 'LONG' else RED
-        side_soft = GREEN_SOFT if r['side'] == 'LONG' else RED_SOFT
+        side_color = GREEN if (r['side'] == 'LONG' or is_payback) else RED
+        side_soft = GREEN_SOFT if (r['side'] == 'LONG' or is_payback) else RED_SOFT
         price = f"${r['price']:,.2f}" if pd.notnull(r['price']) and r['price'] > 0 else "-"
         pnl_val, res = r['pnl'], r['result']
 
