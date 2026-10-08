@@ -52,7 +52,7 @@ html, body, .stApp { background-color: #F2F4F6 !important; }
 [data-testid="stToolbar"] { display: none !important; }
 
 /* 🌟 "보유 포지션" 제목 + 새로고침 버튼 — 컬럼 대신 절대위치로 고정해서
-   화면 폭(PC/모바일)과 상관없이 항상 컨테이너의 진짜 오른쪽 끝에 붙게 함 */
+    화면 폭(PC/모바일)과 상관없이 항상 컨테이너의 진짜 오른쪽 끝에 붙게 함 */
 div[class*="st-key-pos_header_row"] {
     position: relative !important;
     min-height: 36px;
@@ -155,7 +155,7 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
 """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 2. 체결 분류 유틸 (💡 수수료 차감 로직 추가)
+# 2. 체결 분류 유틸 (💡 수수료 차감 로직 포함)
 # -----------------------------------------------------------------------------
 def classify_fill(t):
     info = t.get("info", {}) or {}
@@ -166,7 +166,6 @@ def classify_fill(t):
     pnl = float(raw or 0)
     price = float(t.get("price") or t.get("average") or 0.0)
 
-    # 💡 [추가된 부분] 수수료(fee) 정보를 가져와 PnL에서 차감합니다.
     fee_info = t.get("fee") or {}
     fee_cost = float(fee_info.get("cost", 0) or 0)
     if fee_cost > 0:
@@ -354,27 +353,6 @@ def fetch_slow_data(api_key, secret, pwd):
                         errs.append(f"{sym}: {e2}")
 
                 current_since = chunk_until
-
-        try:
-            payback_start_ts = int(datetime(2026, 10, 1, tzinfo=KST).timestamp() * 1000)
-            deposits = exchange.fetch_deposits(since=payback_start_ts)
-            for d in deposits:
-                status = str(d.get("status", "")).lower()
-                if status in ("ok", "success", "completed", "1"):
-                    curr = str(d.get("currency", "")).upper()
-                    if curr == "USDT":
-                        d_utc = datetime.fromtimestamp(d["timestamp"] / 1000, tz=UTC)
-                        d_kst = d_utc.astimezone(KST)
-                        amount = float(d.get("amount", 0) or 0)
-                        if amount > 0:
-                            dep_id = f"DEPOSIT_{d.get('id', d['timestamp'])}"
-                            rows.append({
-                                "trade_id": dep_id, "order_id": dep_id, "datetime": d_kst.replace(tzinfo=None),
-                                "date": d_kst.strftime("%Y-%m-%d"), "symbol": "FEE/PAYBACK", "side": "LONG",
-                                "bucket": "축소", "has_pnl": True, "pnl": amount, "price": 0.0
-                            })
-        except Exception:
-            pass
 
         if errs:
             st.session_state["_slow_fetch_errors"] = errs
@@ -757,13 +735,12 @@ def render_trade_logs(f_df):
     for _, r in f_df.head(100).iterrows():
         dt_str = r['datetime'].strftime('%m.%d %H:%M')
 
-        is_payback = r['symbol'] == "FEE/PAYBACK"
-        base = "💰" if is_payback else (r['symbol'].split('/')[0] if '/' in r['symbol'] else r['symbol'])[:1]
-        sym_name = "수수료 페이백" if is_payback else r['symbol']
-        side_name = "입금" if is_payback else r['side']
+        base = (r['symbol'].split('/')[0] if '/' in r['symbol'] else r['symbol'])[:1]
+        sym_name = r['symbol']
+        side_name = r['side']
 
-        side_color = GREEN if (r['side'] == 'LONG' or is_payback) else RED
-        side_soft = GREEN_SOFT if (r['side'] == 'LONG' or is_payback) else RED_SOFT
+        side_color = GREEN if r['side'] == 'LONG' else RED
+        side_soft = GREEN_SOFT if r['side'] == 'LONG' else RED_SOFT
         price = f"${r['price']:,.2f}" if pd.notnull(r['price']) and r['price'] > 0 else "-"
         pnl_val, res = r['pnl'], r['result']
 
