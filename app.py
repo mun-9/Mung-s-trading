@@ -358,23 +358,20 @@ def fetch_slow_data(api_key, secret, pwd):
             payback_start_ts = int(datetime(2026, 10, 1, tzinfo=KST).timestamp() * 1000)
             deposits = exchange.fetch_deposits(since=payback_start_ts)
             
-            # 💡 방금(30분 이내) 들어온 입금 건을 제외하기 위한 기준 시간 계산 (현재 KST 기준)
-            now_kst_dt = datetime.now(KST)
-            
             for d in deposits:
                 status = str(d.get("status", "")).lower()
                 if status in ("ok", "success", "completed", "1"):
                     curr = str(d.get("currency", "")).upper()
                     if curr == "USDT":
-                        d_utc = datetime.fromtimestamp(d["timestamp"] / 1000, tz=UTC)
-                        d_kst = d_utc.astimezone(KST)
+                        amount = float(d.get("amount", 0) or 0)
                         
-                        # 💡 30분 이내에 들어온 입금인지 체크하여 해당 건만 건너뜁니다.
-                        if (now_kst_dt - d_kst) <= timedelta(minutes=30):
+                        # 💡 방금 입금된 10,520.59 USDT인 경우만 건너뜁니다.
+                        if abs(amount - 10520.59) < 0.01:
                             continue
 
-                        amount = float(d.get("amount", 0) or 0)
                         if amount > 0:
+                            d_utc = datetime.fromtimestamp(d["timestamp"] / 1000, tz=UTC)
+                            d_kst = d_utc.astimezone(KST)
                             dep_id = f"DEPOSIT_{d.get('id', d['timestamp'])}"
                             rows.append({
                                 "trade_id": dep_id, "order_id": dep_id, "datetime": d_kst.replace(tzinfo=None),
