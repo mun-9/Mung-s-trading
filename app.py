@@ -51,8 +51,6 @@ html, body, .stApp { background-color: #F2F4F6 !important; }
 [data-testid="stHeader"] { background-color: transparent !important; }
 [data-testid="stToolbar"] { display: none !important; }
 
-/* 🌟 "보유 포지션" 제목 + 새로고침 버튼 — 컬럼 대신 절대위치로 고정해서
-   화면 폭(PC/모바일)과 상관없이 항상 컨테이너의 진짜 오른쪽 끝에 붙게 함 */
 div[class*="st-key-pos_header_row"] {
     position: relative !important;
     min-height: 36px;
@@ -65,7 +63,6 @@ div[class*="st-key-pos_header_row"] div[class*="st-key-manual_refresh_main"] {
     width: auto !important;
 }
 
-/* 새로고침 버튼 디자인 */
 div[class*="st-key-manual_refresh_main"] button {
     width: 36px !important;
     height: 36px !important;
@@ -84,7 +81,6 @@ div[class*="st-key-manual_refresh_main"] button {
 }
 div[class*="st-key-manual_refresh_main"] button:hover { border-color: #3182F6 !important; background-color: #F8FAFC !important; }
 
-/* 🌟 로딩 스피너 디자인 */
 [data-testid="stSpinner"] {
     background: #ffffff; padding: 18px 26px; border-radius: 18px;
     box-shadow: 0 8px 28px rgba(15,23,42,0.08); border: 1px solid rgba(15,23,42,0.04);
@@ -106,7 +102,6 @@ div[class*="st-key-pos_container_"] {
     box-shadow: 0 2px 14px rgba(15,23,42,0.05) !important; padding: 22px 24px 14px !important; margin-bottom: 18px !important;
 }
 
-/* 🌟 분봉 라디오 버튼 */
 div[class*="st-key-tf_radio_"] { margin-bottom: 12px; overflow: visible !important; }
 div[class*="st-key-tf_radio_"] div[role="radiogroup"] { display: flex !important; flex-wrap: wrap !important; gap: 8px !important; }
 div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] {
@@ -145,7 +140,6 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
 .row-pnl { font-size:14.5px; font-weight:800; }
 .chip { display:inline-block; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:999px; margin-left:4px; }
 
-/* 📱 모바일 환경(768px 이하) 대응 CSS */
 @media (max-width: 768px) {
     .pos-divider { border-left: none !important; border-top: 1px solid rgba(15,23,42,0.06) !important; padding-top: 14px !important; margin-top: 6px !important; }
     .hide-on-mobile { display: none !important; }
@@ -176,7 +170,7 @@ def classify_fill(t):
     elif "short" in ts: side = "SHORT"
     else: side = "LONG" if t["side"].upper() == "BUY" else "SHORT"
 
-    # 🎯 [수정된 부분] 포지션 진입(증가)일 때는 당일 PNL(수수료 포함)이 마이너스로 잡히지 않도록 강제 0 처리
+    # 🎯 포지션 진입(증가)일 때는 당일 PNL(수수료 포함)이 마이너스로 잡히지 않도록 강제 0 처리
     if not is_close:
         pnl = 0.0
         has_pnl = False
@@ -353,27 +347,9 @@ def fetch_slow_data(api_key, secret, pwd):
                         errs.append(f"{sym}: {e2}")
 
                 current_since = chunk_until
-
-        try:
-            payback_start_ts = int(datetime(2026, 10, 1, tzinfo=KST).timestamp() * 1000)
-            deposits = exchange.fetch_deposits(since=payback_start_ts)
-            for d in deposits:
-                status = str(d.get("status", "")).lower()
-                if status in ("ok", "success", "completed", "1"):
-                    curr = str(d.get("currency", "")).upper()
-                    if curr == "USDT":
-                        d_utc = datetime.fromtimestamp(d["timestamp"] / 1000, tz=UTC)
-                        d_kst = d_utc.astimezone(KST)
-                        amount = float(d.get("amount", 0) or 0)
-                        if amount > 0:
-                            dep_id = f"DEPOSIT_{d.get('id', d['timestamp'])}"
-                            rows.append({
-                                "trade_id": dep_id, "order_id": dep_id, "datetime": d_kst.replace(tzinfo=None),
-                                "date": d_kst.strftime("%Y-%m-%d"), "symbol": "FEE/PAYBACK", "side": "LONG",
-                                "bucket": "축소", "has_pnl": True, "pnl": amount, "price": 0.0
-                            })
-        except Exception:
-            pass
+        
+        # 🎯 [수정된 부분] 입금 내역(Deposit)을 불러와서 PNL(수익)에 더해버리는 로직을 완전히 삭제했습니다.
+        # 기존에 있던 exchange.fetch_deposits(...) 관련 코드를 제거하여 입금액이 잡히지 않도록 수정했습니다.
 
         if errs:
             st.session_state["_slow_fetch_errors"] = errs
