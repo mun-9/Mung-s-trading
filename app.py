@@ -52,7 +52,7 @@ html, body, .stApp { background-color: #F2F4F6 !important; }
 [data-testid="stToolbar"] { display: none !important; }
 
 /* 🌟 "보유 포지션" 제목 + 새로고침 버튼 — 컬럼 대신 절대위치로 고정해서
-    화면 폭(PC/모바일)과 상관없이 항상 컨테이너의 진짜 오른쪽 끝에 붙게 함 */
+   화면 폭(PC/모바일)과 상관없이 항상 컨테이너의 진짜 오른쪽 끝에 붙게 함 */
 div[class*="st-key-pos_header_row"] {
     position: relative !important;
     min-height: 36px;
@@ -155,7 +155,7 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
 """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 2. 체결 분류 유틸 (💡 수수료 차감 로직 포함)
+# 2. 체결 분류 유틸
 # -----------------------------------------------------------------------------
 def classify_fill(t):
     info = t.get("info", {}) or {}
@@ -166,11 +166,6 @@ def classify_fill(t):
     pnl = float(raw or 0)
     price = float(t.get("price") or t.get("average") or 0.0)
 
-    fee_info = t.get("fee") or {}
-    fee_cost = float(fee_info.get("cost", 0) or 0)
-    if fee_cost > 0:
-        pnl -= fee_cost
-
     if "open" in ts: is_close = False
     elif "close" in ts: is_close = True
     elif ro is True: is_close = True
@@ -180,6 +175,11 @@ def classify_fill(t):
     if "long" in ts: side = "LONG"
     elif "short" in ts: side = "SHORT"
     else: side = "LONG" if t["side"].upper() == "BUY" else "SHORT"
+
+    # 🎯 [수정된 부분] 포지션 진입(증가)일 때는 당일 PNL(수수료 포함)이 마이너스로 잡히지 않도록 강제 0 처리
+    if not is_close:
+        pnl = 0.0
+        has_pnl = False
 
     return side, is_close, has_pnl, pnl, price
 
@@ -357,21 +357,15 @@ def fetch_slow_data(api_key, secret, pwd):
         try:
             payback_start_ts = int(datetime(2026, 10, 1, tzinfo=KST).timestamp() * 1000)
             deposits = exchange.fetch_deposits(since=payback_start_ts)
-            
             for d in deposits:
                 status = str(d.get("status", "")).lower()
                 if status in ("ok", "success", "completed", "1"):
                     curr = str(d.get("currency", "")).upper()
                     if curr == "USDT":
+                        d_utc = datetime.fromtimestamp(d["timestamp"] / 1000, tz=UTC)
+                        d_kst = d_utc.astimezone(KST)
                         amount = float(d.get("amount", 0) or 0)
-                        
-                        # 💡 방금 입금된 10,520.59 USDT인 경우만 건너뜁니다.
-                        if abs(amount - 10520.59) < 0.01:
-                            continue
-
                         if amount > 0:
-                            d_utc = datetime.fromtimestamp(d["timestamp"] / 1000, tz=UTC)
-                            d_kst = d_utc.astimezone(KST)
                             dep_id = f"DEPOSIT_{d.get('id', d['timestamp'])}"
                             rows.append({
                                 "trade_id": dep_id, "order_id": dep_id, "datetime": d_kst.replace(tzinfo=None),
