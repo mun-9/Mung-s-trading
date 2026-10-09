@@ -81,14 +81,34 @@ div[class*="st-key-manual_refresh_main"] button {
 }
 div[class*="st-key-manual_refresh_main"] button:hover { border-color: #3182F6 !important; background-color: #F8FAFC !important; }
 
+/* 🌟 로딩 스피너 디자인 (아이콘 숨김 & 점 애니메이션) */
 [data-testid="stSpinner"] {
     background: #ffffff; padding: 18px 26px; border-radius: 18px;
     box-shadow: 0 8px 28px rgba(15,23,42,0.08); border: 1px solid rgba(15,23,42,0.04);
     margin: 24px auto; display: flex; align-items: center; justify-content: center; max-width: 420px;
 }
-[data-testid="stSpinner"] svg { width: 22px; height: 22px; color: #3182F6 !important; }
+/* 빙글빙글 도는 기본 아이콘 숨기기 */
+[data-testid="stSpinner"] svg { display: none !important; }
+
+/* 텍스트 크기 조정 및 위치 중앙 정렬 */
 [data-testid="stSpinner"] > div > div:last-child {
-    color: #191F28 !important; font-weight: 700 !important; font-size: 14px !important; margin-left: 12px !important;
+    color: #191F28 !important; font-weight: 700 !important; font-size: 15px !important; margin-left: 0 !important;
+}
+
+/* 점 1,2,3개 애니메이션 효과 */
+@keyframes loading_dots {
+    0% { content: ""; }
+    25% { content: " ·"; }
+    50% { content: " ·  ·"; }
+    75% { content: " ·  ·  ·"; }
+    100% { content: ""; }
+}
+[data-testid="stSpinner"] > div > div:last-child::after {
+    content: "";
+    display: inline-block;
+    width: 28px; /* 글씨가 흔들리지 않도록 고정 폭 설정 */
+    text-align: left;
+    animation: loading_dots 1.5s infinite steps(1);
 }
 
 .card { background:#ffffff; border-radius:20px; box-shadow:0 2px 14px rgba(15,23,42,0.05); padding:22px 24px; }
@@ -170,7 +190,6 @@ def classify_fill(t):
     elif "short" in ts: side = "SHORT"
     else: side = "LONG" if t["side"].upper() == "BUY" else "SHORT"
 
-    # 🎯 포지션 진입(증가)일 때는 당일 PNL(수수료 포함)이 마이너스로 잡히지 않도록 강제 0 처리
     if not is_close:
         pnl = 0.0
         has_pnl = False
@@ -262,7 +281,8 @@ BASE_SYMBOLS = [
     "BNB/USDT", "ADA/USDT", "SUI/USDT", "1000PEPE/USDT", "WIF/USDT"
 ]
 
-@st.cache_data(ttl=3600, show_spinner="거래 내역을 불러오고 있어요...")
+# 🎯 점 3개가 나오는 텍스트이므로 기존의 "..." 텍스트는 지워주었습니다.
+@st.cache_data(ttl=3600, show_spinner="거래 내역을 불러오고 있어요")
 def fetch_slow_data(api_key, secret, pwd):
     if not api_key or not secret:
         rnd = random.Random(42)
@@ -347,9 +367,6 @@ def fetch_slow_data(api_key, secret, pwd):
                         errs.append(f"{sym}: {e2}")
 
                 current_since = chunk_until
-        
-        # 🎯 [수정된 부분] 입금 내역(Deposit)을 불러와서 PNL(수익)에 더해버리는 로직을 완전히 삭제했습니다.
-        # 기존에 있던 exchange.fetch_deposits(...) 관련 코드를 제거하여 입금액이 잡히지 않도록 수정했습니다.
 
         if errs:
             st.session_state["_slow_fetch_errors"] = errs
