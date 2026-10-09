@@ -281,7 +281,6 @@ BASE_SYMBOLS = [
     "BNB/USDT", "ADA/USDT", "SUI/USDT", "1000PEPE/USDT", "WIF/USDT"
 ]
 
-# 🎯 점 3개가 나오는 텍스트이므로 기존의 "..." 텍스트는 지워주었습니다.
 @st.cache_data(ttl=3600, show_spinner="거래 내역을 불러오고 있어요")
 def fetch_slow_data(api_key, secret, pwd):
     if not api_key or not secret:
@@ -413,7 +412,8 @@ def show_live_positions():
     current_positions, wallet_balance = fetch_fast_data(MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
 
     if not current_positions:
-        st.markdown(f"<div class='card' style='text-align: center; color: {SUB}; font-size: 14px; padding:32px;'>현재 진행 중인 포지션이 없습니다</div>", unsafe_allow_html=True)
+        # 🎯 [수정된 부분] margin-bottom: 28px; 을 추가하여 아래 PNL 카드와 겹치지 않게 여백을 주었습니다.
+        st.markdown(f"<div class='card' style='text-align: center; color: {SUB}; font-size: 14.5px; font-weight: 600; padding: 40px 20px; margin-bottom: 28px;'>현재 진행 중인 포지션이 없습니다</div>", unsafe_allow_html=True)
     else:
         symbol_groups = {}
         for pos in current_positions:
