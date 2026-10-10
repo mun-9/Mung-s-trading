@@ -158,83 +158,25 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
 # 2. 체결 분류 유틸
 # -----------------------------------------------------------------------------
 def classify_fill(t):
-    """
-    Bitget 선물 체결 1건을 분류합니다.
-    PnL은 체결 손익에서 해당 체결의 수수료를 차감한 순손익으로 계산합니다.
-    진입 수수료도 포함되므로 포지션 전체의 실현 순손익에 반영됩니다.
-    """
     info = t.get("info", {}) or {}
     ts = str(info.get("tradeSide", "")).lower()
     ro = info.get("reduceOnly", t.get("reduceOnly"))
-
-    # Bitget의 profit / realizedPnl은 체결 손익(수수료 차감 전)으로 취급합니다.
-    raw = info.get("profit")
-    if raw in (None, ""):
-        raw = info.get("realizedPnl")
-    if raw in (None, ""):
-        raw = t.get("realizedPnl")
-
-    has_gross_pnl = raw not in (None, "")
-    try:
-        gross_pnl = float(raw or 0.0)
-    except (TypeError, ValueError):
-        gross_pnl = 0.0
-        has_gross_pnl = False
-
-    # CCXT 표준 fee 우선, 없으면 Bitget 원본 응답의 수수료 필드를 확인합니다.
-    fee_cost = None
-    fee_currency = None
-    fee = t.get("fee")
-    if isinstance(fee, dict) and fee.get("cost") not in (None, ""):
-        try:
-            fee_cost = abs(float(fee["cost"]))
-            fee_currency = str(fee.get("currency") or "").upper()
-        except (TypeError, ValueError):
-            fee_cost = None
-    if fee_cost is None:
-        for fee_key in ("fee", "fillFee", "tradeFee"):
-            raw_fee = info.get(fee_key)
-            if raw_fee not in (None, ""):
-                try:
-                    fee_cost = abs(float(raw_fee))
-                    fee_currency = str(
-                        info.get("feeCoin") or info.get("feeCurrency") or
-                        info.get("marginCoin") or ""
-                    ).upper()
-                    break
-                except (TypeError, ValueError):
-                    continue
-
-    # USDT 무기한 계약은 보통 수수료도 USDT입니다.
-    # 수수료 통화가 명시적으로 USDT가 아닌 경우 환산 없이 임의 차감하지 않습니다.
-    fee_usdt = 0.0
-    if fee_cost is not None and (not fee_currency or fee_currency == "USDT"):
-        fee_usdt = fee_cost
-
-    if "open" in ts:
-        is_close = False
-    elif "close" in ts:
-        is_close = True
-    elif ro is True or str(ro).lower() == "true":
-        is_close = True
-    elif ro is False or str(ro).lower() == "false":
-        is_close = False
-    else:
-        is_close = has_gross_pnl and gross_pnl != 0
-
-    if "long" in ts:
-        side = "LONG"
-    elif "short" in ts:
-        side = "SHORT"
-    else:
-        side = "LONG" if str(t.get("side", "BUY")).upper() == "BUY" else "SHORT"
-
-    # 진입 체결은 실현손익이 없더라도 수수료를 순손익에 반영합니다.
-    net_pnl = gross_pnl - fee_usdt
-    has_pnl = has_gross_pnl or fee_usdt > 0
+    raw = info.get("profit", info.get("realizedPnl"))
+    has_pnl = raw not in (None, "")
+    pnl = float(raw or 0)
     price = float(t.get("price") or t.get("average") or 0.0)
 
-    return side, is_close, has_pnl, net_pnl, price
+    if "open" in ts: is_close = False
+    elif "close" in ts: is_close = True
+    elif ro is True: is_close = True
+    elif ro is False: is_close = False
+    else: is_close = has_pnl and pnl != 0
+
+    if "long" in ts: side = "LONG"
+    elif "short" in ts: side = "SHORT"
+    else: side = "LONG" if t["side"].upper() == "BUY" else "SHORT"
+
+    return side, is_close, has_pnl, pnl, price
 
 def result_of(bucket, has_pnl, pnl):
     if bucket == "증가": return "진입"
