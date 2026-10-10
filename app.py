@@ -51,6 +51,8 @@ html, body, .stApp { background-color: #F2F4F6 !important; }
 [data-testid="stHeader"] { background-color: transparent !important; }
 [data-testid="stToolbar"] { display: none !important; }
 
+/* 🌟 "보유 포지션" 제목 + 새로고침 버튼 — 컬럼 대신 절대위치로 고정해서
+   화면 폭(PC/모바일)과 상관없이 항상 컨테이너의 진짜 오른쪽 끝에 붙게 함 */
 div[class*="st-key-pos_header_row"] {
     position: relative !important;
     min-height: 36px;
@@ -63,6 +65,7 @@ div[class*="st-key-pos_header_row"] div[class*="st-key-manual_refresh_main"] {
     width: auto !important;
 }
 
+/* 새로고침 버튼 디자인 */
 div[class*="st-key-manual_refresh_main"] button {
     width: 36px !important;
     height: 36px !important;
@@ -87,29 +90,33 @@ div[class*="st-key-manual_refresh_main"] button:hover { border-color: #3182F6 !i
     box-shadow: 0 8px 28px rgba(15,23,42,0.08); border: 1px solid rgba(15,23,42,0.04);
     margin: 24px auto; display: flex; align-items: center; justify-content: center; max-width: 420px;
 }
-[data-testid="stSpinner"] svg { display: none !important; }
+[data-testid="stSpinner"] svg { width: 22px; height: 22px; color: #3182F6 !important; }
 [data-testid="stSpinner"] > div > div:last-child {
-    color: #191F28 !important; font-weight: 700 !important; font-size: 15px !important; margin-left: 0 !important;
-}
-@keyframes loading_dots {
-    0% { content: ""; }
-    25% { content: " ·"; }
-    50% { content: " ·  ·"; }
-    75% { content: " ·  ·  ·"; }
-    100% { content: ""; }
-}
-[data-testid="stSpinner"] > div > div:last-child::after {
-    content: ""; display: inline-block; width: 28px; text-align: left; animation: loading_dots 1.5s infinite steps(1);
+    color: #191F28 !important; font-weight: 700 !important; font-size: 14px !important; margin-left: 12px !important;
 }
 
 .card { background:#ffffff; border-radius:20px; box-shadow:0 2px 14px rgba(15,23,42,0.05); padding:22px 24px; }
-div[class*="st-key-pnl_card"] { background-color: #ffffff !important; border: none !important; border-radius: 20px !important; box-shadow: 0 2px 14px rgba(15,23,42,0.05) !important; padding: 22px 24px !important; }
-div[class*="st-key-pos_container_"] { background-color: #ffffff !important; border: none !important; border-radius: 20px !important; box-shadow: 0 2px 14px rgba(15,23,42,0.05) !important; padding: 22px 24px 14px !important; margin-bottom: 18px !important; }
 
+div[class*="st-key-pnl_card"] {
+    background-color: #ffffff !important; border: none !important; border-radius: 20px !important;
+    box-shadow: 0 2px 14px rgba(15,23,42,0.05) !important; padding: 22px 24px !important;
+}
+div[class*="st-key-pos_container_"] {
+    background-color: #ffffff !important; border: none !important; border-radius: 20px !important;
+    box-shadow: 0 2px 14px rgba(15,23,42,0.05) !important; padding: 22px 24px 14px !important; margin-bottom: 18px !important;
+}
+
+/* 🌟 분봉 라디오 버튼 */
 div[class*="st-key-tf_radio_"] { margin-bottom: 12px; overflow: visible !important; }
 div[class*="st-key-tf_radio_"] div[role="radiogroup"] { display: flex !important; flex-wrap: wrap !important; gap: 8px !important; }
-div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] { background-color: #F2F4F6 !important; color: #6b7280 !important; padding: 8px 16px !important; border-radius: 999px; margin: 0 !important; cursor: pointer; transition: background .15s; height: auto !important; }
-div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] p { color: #6b7280 !important; font-size: 13.5px !important; margin: 0 !important; font-weight: 600 !important; line-height: 1.4 !important; white-space: nowrap !important; opacity: 1 !important; }
+div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] {
+    background-color: #F2F4F6 !important; color: #6b7280 !important; padding: 8px 16px !important;
+    border-radius: 999px; margin: 0 !important; cursor: pointer; transition: background .15s; height: auto !important;
+}
+div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] p {
+    color: #6b7280 !important; font-size: 13.5px !important; margin: 0 !important; font-weight: 600 !important;
+    line-height: 1.4 !important; white-space: nowrap !important; opacity: 1 !important;
+}
 div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] div:first-child { display: none; }
 div[class*="st-key-tf_radio_"] label[data-baseweb="radio"][aria-checked="true"] { background-color: #3182F6 !important; color: #ffffff !important; }
 div[class*="st-key-tf_radio_"] label[data-baseweb="radio"][aria-checked="true"] p { color: #ffffff !important; font-weight: 700 !important; }
@@ -125,7 +132,7 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
 .stButton>button:hover { border-color: #3182F6; color: #3182F6; }
 
 .pill { display:inline-block; font-size:11px; font-weight:800; padding:3px 9px; border-radius:999px; vertical-align:middle; }
-.note-text { font-size:11.5px; line-height:1.7; color:#B0B8C1; margin:16px 2px 0; }
+.note-text { font-size:11.5px; line-height:1.7; color:#B0B8C1; margin:4px 2px 0; }
 
 .log-row { display:flex; justify-content:space-between; align-items:center; padding:15px 6px; border-bottom:1px solid #F2F4F6; }
 .log-row:last-child { border-bottom:none; }
@@ -138,6 +145,7 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
 .row-pnl { font-size:14.5px; font-weight:800; }
 .chip { display:inline-block; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:999px; margin-left:4px; }
 
+/* 📱 모바일 환경(768px 이하) 대응 CSS */
 @media (max-width: 768px) {
     .pos-divider { border-left: none !important; border-top: 1px solid rgba(15,23,42,0.06) !important; padding-top: 14px !important; margin-top: 6px !important; }
     .hide-on-mobile { display: none !important; }
@@ -147,38 +155,26 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
 """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 2. 체결 분류 유틸 (수수료 차감 포함 Net PNL)
+# 2. 체결 분류 유틸
 # -----------------------------------------------------------------------------
 def classify_fill(t):
     info = t.get("info", {}) or {}
     ts = str(info.get("tradeSide", "")).lower()
     ro = info.get("reduceOnly", t.get("reduceOnly"))
-    
     raw = info.get("profit", info.get("realizedPnl"))
     has_pnl = raw not in (None, "")
-    gross_pnl = float(raw or 0)
-    
-    fee_cost = 0.0
-    if "fee" in t and isinstance(t["fee"], dict):
-        fee_cost = float(t["fee"].get("cost", 0.0))
+    pnl = float(raw or 0)
+    price = float(t.get("price") or t.get("average") or 0.0)
 
     if "open" in ts: is_close = False
     elif "close" in ts: is_close = True
     elif ro is True: is_close = True
     elif ro is False: is_close = False
-    else: is_close = has_pnl and gross_pnl != 0
+    else: is_close = has_pnl and pnl != 0
 
     if "long" in ts: side = "LONG"
     elif "short" in ts: side = "SHORT"
     else: side = "LONG" if t["side"].upper() == "BUY" else "SHORT"
-
-    if not is_close:
-        pnl = -fee_cost
-        has_pnl = fee_cost > 0
-    else:
-        pnl = gross_pnl - fee_cost
-
-    price = float(t.get("price") or t.get("average") or 0.0)
 
     return side, is_close, has_pnl, pnl, price
 
@@ -264,11 +260,10 @@ def fetch_fast_data(api_key, secret, pwd):
 
 BASE_SYMBOLS = [
     "BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT", "DOGE/USDT",
-    "BNB/USDT", "ADA/USDT", "SUI/USDT", "1000PEPE/USDT", "WIF/USDT",
-    "QQQ/USDT"
+    "BNB/USDT", "ADA/USDT", "SUI/USDT", "1000PEPE/USDT", "WIF/USDT"
 ]
 
-@st.cache_data(ttl=300, show_spinner="거래 내역을 불러오고 있어요")
+@st.cache_data(ttl=3600, show_spinner="거래 내역을 불러오고 있어요...")
 def fetch_slow_data(api_key, secret, pwd):
     if not api_key or not secret:
         rnd = random.Random(42)
@@ -278,7 +273,7 @@ def fetch_slow_data(api_key, secret, pwd):
             t = now - timedelta(hours=rnd.randint(1, 900))
             t_kst = t.astimezone(KST)
             is_close = rnd.random() < 0.55
-            pnl = rnd.choice([rnd.uniform(50, 900), rnd.uniform(50, 900), rnd.uniform(-700, -40), 0.0]) if is_close else -rnd.uniform(0.1, 2.0)
+            pnl = rnd.choice([rnd.uniform(50, 900), rnd.uniform(50, 900), rnd.uniform(-700, -40), 0.0]) if is_close else 0.0
             sym = rnd.choice(["BTC/USDT", "ETH/USDT"])
             trade_id = f"DEMO_TRADE_{i}"
             rows.append({
@@ -354,41 +349,26 @@ def fetch_slow_data(api_key, secret, pwd):
 
                 current_since = chunk_until
 
-        # 🌟 페이백: Bitget Spot 계좌 원장(bills) raw API 직접 호출
-        #    - ccxt fetch_ledger 파싱/타입 문제를 피하기 위해 직접 호출
-        #    - businessType에 'rebate'가 들어간 입금만 수집
-        #    - 10,000달러 입금건 제외, DASHBOARD_START_DATE 이전 제외
         try:
-            seen_types = set()
-            cur = since_ts
-            while cur < now_ts:
-                until = min(cur + chunk_ms, now_ts)
-                resp = exchange.privateSpotGetV2SpotAccountBills({
-                    'coin': 'USDT', 'startTime': cur, 'endTime': until, 'limit': '500'
-                })
-                for lg in (resp.get('data') or []):
-                    biz = str(lg.get('businessType', '')).lower()
-                    seen_types.add(biz)
-                    amount = float(lg.get('size') or 0)
-                    if amount <= 0 or 9990 <= amount <= 10010:
-                        continue
-                    if 'rebate' not in biz:
-                        continue
-                    ts = int(lg['cTime'])
-                    t_kst = datetime.fromtimestamp(ts / 1000, tz=UTC).astimezone(KST)
-                    if t_kst.strftime("%Y-%m-%d") < DASHBOARD_START_DATE:
-                        continue
-                    tid = str(lg.get('billId') or f"ledger_{ts}_{amount}")
-                    rows.append({
-                        "trade_id": tid, "order_id": tid, "datetime": t_kst.replace(tzinfo=None),
-                        "date": t_kst.strftime("%Y-%m-%d"), "symbol": "FEE/PAYBACK",
-                        "side": "입금", "bucket": "축소", "has_pnl": True,
-                        "pnl": amount, "price": 0.0
-                    })
-                cur = until
-            st.session_state["_ledger_types"] = sorted(seen_types)
-        except Exception as e_ledger:
-            errs.append(f"페이백 조회 실패: {e_ledger}")
+            payback_start_ts = int(datetime(2026, 10, 1, tzinfo=KST).timestamp() * 1000)
+            deposits = exchange.fetch_deposits(since=payback_start_ts)
+            for d in deposits:
+                status = str(d.get("status", "")).lower()
+                if status in ("ok", "success", "completed", "1"):
+                    curr = str(d.get("currency", "")).upper()
+                    if curr == "USDT":
+                        d_utc = datetime.fromtimestamp(d["timestamp"] / 1000, tz=UTC)
+                        d_kst = d_utc.astimezone(KST)
+                        amount = float(d.get("amount", 0) or 0)
+                        if 0 < amount < 10000:
+                            dep_id = f"DEPOSIT_{d.get('id', d['timestamp'])}"
+                            rows.append({
+                                "trade_id": dep_id, "order_id": dep_id, "datetime": d_kst.replace(tzinfo=None),
+                                "date": d_kst.strftime("%Y-%m-%d"), "symbol": "FEE/PAYBACK", "side": "LONG",
+                                "bucket": "축소", "has_pnl": True, "pnl": amount, "price": 0.0
+                            })
+        except Exception:
+            pass
 
         if errs:
             st.session_state["_slow_fetch_errors"] = errs
@@ -420,12 +400,6 @@ st.markdown(f"""
 
 df_trades = fetch_slow_data(MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
 
-# 🔍 디버그: 조회 에러 / 원장 businessType 목록 (페이백 정상 확인 후 지워도 됨)
-if st.session_state.get("_slow_fetch_errors"):
-    st.warning(st.session_state["_slow_fetch_errors"])
-if st.session_state.get("_ledger_types"):
-    st.caption(f"원장 businessType: {st.session_state['_ledger_types']}")
-
 st.markdown(f"<div style='border-top:1px solid {LINE_COLOR}; margin: 6px 0 20px 0;'></div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
@@ -441,7 +415,7 @@ def show_live_positions():
     current_positions, wallet_balance = fetch_fast_data(MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
 
     if not current_positions:
-        st.markdown(f"<div class='card' style='text-align: center; color: {SUB}; font-size: 14.5px; font-weight: 600; padding: 40px 20px; margin-bottom: 28px;'>현재 진행 중인 포지션이 없습니다</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='card' style='text-align: center; color: {SUB}; font-size: 14px; padding:32px; margin: 0 0 28px 0;'>현재 진행 중인 포지션이 없습니다</div>", unsafe_allow_html=True)
     else:
         symbol_groups = {}
         for pos in current_positions:
@@ -536,6 +510,7 @@ def show_live_positions():
                     )
                     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 show_live_positions()
+st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
 # 7. 상단 PNL 카드
@@ -549,21 +524,21 @@ def make_top_card(title, value, sub_left, sub_right="", krw_rate=1350.0):
     return f"""<div class="card" style="min-height: 150px; display:flex; flex-direction:column;"><div><div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700; color:{TEXT};"><span>{title}</span> <span style="color:{SUB}; font-weight:500;">{sub_right}</span></div><div style="display:flex; align-items:baseline; gap:8px; margin:14px 0 2px;"><span style="font-size:30px; font-weight:800; color:{val_color}; letter-spacing:-0.02em;">{sign}${value:,.2f}</span><span style="font-size:13px; font-weight:600; color:{SUB};">{krw_str}</span></div></div><div style="font-size:12px; color:{SUB}; margin-top:auto; padding-top:10px;">{sub_left}</div></div>"""
 
 with col_s1:
-    @st.fragment(run_every=300)
+    @st.fragment(run_every=3600)
     def render_today_pnl():
         k_rate = fetch_usdt_krw()
         today_str = datetime.now(KST).strftime("%Y-%m-%d")
         today_pnl = df_trades[df_trades["date"] == today_str]["pnl"].sum() if not df_trades.empty else 0.0
-        st.markdown(make_top_card("오늘 추정 PNL", today_pnl, "5분마다 갱신 (KST)", "", k_rate), unsafe_allow_html=True)
+        st.markdown(make_top_card("오늘 추정 PNL", today_pnl, "1시간마다 갱신 (KST)", "", k_rate), unsafe_allow_html=True)
     render_today_pnl()
 
 with col_s2:
-    @st.fragment(run_every=300)
+    @st.fragment(run_every=3600)
     def render_month_pnl():
         k_rate = fetch_usdt_krw()
         month_str = datetime.now(KST).strftime("%Y-%m")
         month_pnl = df_trades[df_trades["date"].str.startswith(month_str)]["pnl"].sum() if not df_trades.empty else 0.0
-        st.markdown(make_top_card("이번 달 추정 PNL", month_pnl, "5분마다 갱신 (KST)", "", k_rate), unsafe_allow_html=True)
+        st.markdown(make_top_card("이번 달 추정 PNL", month_pnl, "1시간마다 갱신 (KST)", "", k_rate), unsafe_allow_html=True)
     render_month_pnl()
 
 with col_s3:
@@ -628,7 +603,7 @@ filtered_df = df_trades[(df_trades["date"] >= filter_start_str) & (df_trades["da
 
 st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
 
-@st.fragment(run_every=300)
+@st.fragment(run_every=3600)
 def render_trade_stats(f_df):
     all_df = fetch_slow_data(MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
     col_t1, col_t2, col_t3 = st.columns([1, 1, 1.2])
@@ -703,7 +678,7 @@ render_trade_stats(filtered_df)
 # -----------------------------------------------------------------------------
 st.markdown("<div style='margin-top: 32px;'></div>", unsafe_allow_html=True)
 
-@st.fragment(run_every=300)
+@st.fragment(run_every=3600)
 def render_pnl_charts(f_df):
     period_sum = f_df["pnl"].sum() if not f_df.empty else 0.0
     pnl_color, pnl_sign = (GREEN, "+") if period_sum >= 0 else (RED, "")
@@ -767,7 +742,7 @@ st.markdown(f"<div class='note-text'>추정 PNL · USDT · KST 기준 · 기간 
 # -----------------------------------------------------------------------------
 st.markdown(f"<div style='font-size: 17px; font-weight: 800; color: {TEXT}; margin: 32px 0 14px;'>상세 매매 내역</div>", unsafe_allow_html=True)
 
-@st.fragment(run_every=300)
+@st.fragment(run_every=3600)
 def render_trade_logs(f_df):
     if f_df.empty:
         st.markdown(f"<div class='card' style='text-align:center; color:{SUB}; padding:32px;'>아직 등록된 거래 내역이 없습니다</div>", unsafe_allow_html=True)
@@ -787,20 +762,12 @@ def render_trade_logs(f_df):
         price = f"${r['price']:,.2f}" if pd.notnull(r['price']) and r['price'] > 0 else "-"
         pnl_val, res = r['pnl'], r['result']
 
-        if is_payback:
-            res = '입금'
-            pnl_color, chip_bg, pnl_txt = GREEN, GREEN_SOFT, f"+{pnl_val:,.2f}"
-        elif res == '익절':
+        if res == '익절':
             pnl_color, chip_bg, pnl_txt = GREEN, GREEN_SOFT, f"+{pnl_val:,.2f}"
         elif res == '손절':
             pnl_color, chip_bg, pnl_txt = RED, RED_SOFT, f"{pnl_val:,.2f}"
         elif res == '본전':
             pnl_color, chip_bg, pnl_txt = SUB, "rgba(139,149,161,0.12)", "0.00"
-        elif res == '진입':
-            if pnl_val < 0:
-                pnl_color, chip_bg, pnl_txt = SUB, "rgba(139,149,161,0.12)", f"{pnl_val:,.3f}" 
-            else:
-                pnl_color, chip_bg, pnl_txt = SUB, "rgba(139,149,161,0.12)", "-"
         else:
             pnl_color, chip_bg, pnl_txt = SUB, "rgba(139,149,161,0.12)", "-"
 
