@@ -353,53 +353,42 @@ def fetch_slow_data(api_key, secret, pwd):
                         errs.append(f"{sym}: {e2}")
 
                 current_since = chunk_until
-        
-        # 🌟 현물(Spot) 계좌 원장(Ledger) 조회를 통한 순수 페이백만 수집!
+
+        # 🌟 페이백: Bitget Spot 계좌 원장(bills) raw API 직접 호출
+        #    - ccxt fetch_ledger 파싱/타입 문제를 피하기 위해 직접 호출
+        #    - businessType에 'rebate'가 들어간 입금만 수집
+        #    - 10,000달러 입금건 제외, DASHBOARD_START_DATE 이전 제외
         try:
-            current_since = since_ts
-            while current_since < now_ts:
-                chunk_until = min(current_since + chunk_ms, now_ts)
-                
-                try:
-                    # 유저 피드백 반영: 페이백은 Spot 계좌로만 들어오므로 Spot만 조회
-                    params = {'endTime': chunk_until, 'until': chunk_until, 'type': 'spot'}
-                    ledgers = exchange.fetch_ledger('USDT', since=current_since, limit=1000, params=params)
-                    
-                    for lg in ledgers:
-                        amount = float(lg.get('amount', 0) or 0)
-                        if amount > 0:
-                            # 10,000달러 입금건 제외 로직 유지
-                            if 9990 <= amount <= 10010:
-                                continue
-                                
-                            lg_type = str(lg.get('type', '')).lower()
-                            info = lg.get('info', {}) or {}
-                            biz_type = str(info.get('businessType', info.get('type', ''))).lower()
-                            
-                            # 🌟 내부 자금이동(transfer), 일반 입금(deposit) 싹 제외! 순수 페이백 키워드만.
-                            payback_kws = ['rebate', 'rebat', 'commission', 'reward', 'partner', 'bonus']
-                            is_payback = any(kw in lg_type for kw in payback_kws) or any(kw in biz_type for kw in payback_kws)
-                            
-                            if is_payback:
-                                lg_time = lg.get('timestamp')
-                                if not lg_time: continue
-                                t_utc = datetime.fromtimestamp(lg_time / 1000, tz=UTC)
-                                t_kst = t_utc.astimezone(KST)
-                                
-                                trade_id = str(lg.get('id') or f"ledger_spot_{lg_time}_{amount}")
-                                
-                                rows.append({
-                                    "trade_id": trade_id, "order_id": trade_id, "datetime": t_kst.replace(tzinfo=None),
-                                    "date": t_kst.strftime("%Y-%m-%d"), "symbol": "FEE/PAYBACK",
-                                    "side": "입금", "bucket": "축소", "has_pnl": True,
-                                    "pnl": amount, "price": 0.0
-                                })
-                except Exception:
-                    pass
-                
-                current_since = chunk_until
+            seen_types = set()
+            cur = since_ts
+            while cur < now_ts:
+                until = min(cur + chunk_ms, now_ts)
+                resp = exchange.privateSpotGetV2SpotAccountBills({
+                    'coin': 'USDT', 'startTime': cur, 'endTime': until, 'limit': '500'
+                })
+                for lg in (resp.get('data') or []):
+                    biz = str(lg.get('businessType', '')).lower()
+                    seen_types.add(biz)
+                    amount = float(lg.get('size') or 0)
+                    if amount <= 0 or 9990 <= amount <= 10010:
+                        continue
+                    if 'rebate' not in biz:
+                        continue
+                    ts = int(lg['cTime'])
+                    t_kst = datetime.fromtimestamp(ts / 1000, tz=UTC).astimezone(KST)
+                    if t_kst.strftime("%Y-%m-%d") < DASHBOARD_START_DATE:
+                        continue
+                    tid = str(lg.get('billId') or f"ledger_{ts}_{amount}")
+                    rows.append({
+                        "trade_id": tid, "order_id": tid, "datetime": t_kst.replace(tzinfo=None),
+                        "date": t_kst.strftime("%Y-%m-%d"), "symbol": "FEE/PAYBACK",
+                        "side": "입금", "bucket": "축소", "has_pnl": True,
+                        "pnl": amount, "price": 0.0
+                    })
+                cur = until
+            st.session_state["_ledger_types"] = sorted(seen_types)
         except Exception as e_ledger:
-            errs.append(f"원장(페이백) 조회 실패: {e_ledger}")
+            errs.append(f"페이백 조회 실패: {e_ledger}")
 
         if errs:
             st.session_state["_slow_fetch_errors"] = errs
@@ -430,6 +419,12 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 df_trades = fetch_slow_data(MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
+
+# 🔍 디버그: 조회 에러 / 원장 businessType 목록 (페이백 정상 확인 후 지워도 됨)
+if st.session_state.get("_slow_fetch_errors"):
+    st.warning(st.session_state["_slow_fetch_errors"])
+if st.session_state.get("_ledger_types"):
+    st.caption(f"원장 businessType: {st.session_state['_ledger_types']}")
 
 st.markdown(f"<div style='border-top:1px solid {LINE_COLOR}; margin: 6px 0 20px 0;'></div>", unsafe_allow_html=True)
 
