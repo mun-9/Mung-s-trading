@@ -268,7 +268,6 @@ BASE_SYMBOLS = [
     "QQQ/USDT"
 ]
 
-# 🌟 캐시 시간을 3600초(1시간) -> 300초(5분)로 변경하여 실시간성을 강화했습니다
 @st.cache_data(ttl=300, show_spinner="거래 내역을 불러오고 있어요")
 def fetch_slow_data(api_key, secret, pwd):
     if not api_key or not secret:
@@ -355,38 +354,51 @@ def fetch_slow_data(api_key, secret, pwd):
 
                 current_since = chunk_until
         
-        # 🌟 원장(Ledger) 조회를 통한 페이백/입금 수집 로직 강화
+        # 🌟 FIX: 페이백/입금 스캔을 현물(Spot)과 선물(Swap) 양쪽에서 기간별로 꼼꼼하게 진행합니다.
         try:
-            ledgers = exchange.fetch_ledger('USDT', since=since_ts, limit=1000)
-            for lg in ledgers:
-                amount = float(lg.get('amount', 0) or 0)
-                if amount > 0:
-                    # 10,000달러 입금건 제외 (오차범위 포함)
-                    if 9990 <= amount <= 10010:
-                        continue
+            current_since = since_ts
+            while current_since < now_ts:
+                chunk_until = min(current_since + chunk_ms, now_ts)
+                
+                # 선물 계좌로 들어오는 페이백까지 완벽하게 스캔
+                for acc_type in ['spot', 'swap']:
+                    try:
+                        params = {'endTime': chunk_until, 'until': chunk_until, 'type': acc_type}
+                        ledgers = exchange.fetch_ledger('USDT', since=current_since, limit=1000, params=params)
                         
-                    lg_type = str(lg.get('type', '')).lower()
-                    info = lg.get('info', {}) or {}
-                    biz_type = str(info.get('businessType', info.get('type', ''))).lower()
-                    
-                    # 비트겟에서 쓰이는 리베이트/페이백/입금 관련 키워드 대폭 확장
-                    payback_keywords = ['deposit', 'rebate', 'rebat', 'commission', 'reward', 'transfer', 'bonus', 'voucher', 'other']
-                    is_payback = any(kw in lg_type for kw in payback_keywords) or any(kw in biz_type for kw in payback_keywords)
-                                 
-                    if is_payback or amount > 0:
-                        lg_time = lg.get('timestamp')
-                        if not lg_time: continue
-                        t_utc = datetime.fromtimestamp(lg_time / 1000, tz=UTC)
-                        t_kst = t_utc.astimezone(KST)
-                        
-                        trade_id = str(lg.get('id') or f"ledger_{lg_time}_{amount}")
-                        
-                        rows.append({
-                            "trade_id": trade_id, "order_id": trade_id, "datetime": t_kst.replace(tzinfo=None),
-                            "date": t_kst.strftime("%Y-%m-%d"), "symbol": "FEE/PAYBACK",
-                            "side": "입금", "bucket": "축소", "has_pnl": True,
-                            "pnl": amount, "price": 0.0
-                        })
+                        for lg in ledgers:
+                            amount = float(lg.get('amount', 0) or 0)
+                            if amount > 0:
+                                # 기존 요청사항: 10,000달러 입금건 제외 (오차범위 반영)
+                                if 9990 <= amount <= 10010:
+                                    continue
+                                    
+                                lg_type = str(lg.get('type', '')).lower()
+                                info = lg.get('info', {}) or {}
+                                biz_type = str(info.get('businessType', info.get('type', ''))).lower()
+                                
+                                # 페이백/입금/보너스와 관련된 모든 비트겟 키워드 포함
+                                payback_kws = ['deposit', 'rebate', 'rebat', 'commission', 'reward', 'bonus', 'voucher', 'airdrop', 'transfer']
+                                is_payback = any(kw in lg_type for kw in payback_kws) or any(kw in biz_type for kw in payback_kws)
+                                
+                                if is_payback:
+                                    lg_time = lg.get('timestamp')
+                                    if not lg_time: continue
+                                    t_utc = datetime.fromtimestamp(lg_time / 1000, tz=UTC)
+                                    t_kst = t_utc.astimezone(KST)
+                                    
+                                    trade_id = str(lg.get('id') or f"ledger_{acc_type}_{lg_time}_{amount}")
+                                    
+                                    rows.append({
+                                        "trade_id": trade_id, "order_id": trade_id, "datetime": t_kst.replace(tzinfo=None),
+                                        "date": t_kst.strftime("%Y-%m-%d"), "symbol": "FEE/PAYBACK",
+                                        "side": "입금", "bucket": "축소", "has_pnl": True,
+                                        "pnl": amount, "price": 0.0
+                                    })
+                    except Exception:
+                        pass # 해당 계좌 타입에 원장이 없거나 권한 오류시 패스
+                
+                current_since = chunk_until
         except Exception as e_ledger:
             errs.append(f"원장(페이백/입금) 조회 실패: {e_ledger}")
 
