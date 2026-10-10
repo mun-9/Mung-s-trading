@@ -47,65 +47,44 @@ st.markdown("""
 html, body, .stApp { background-color: #F2F4F6 !important; }
 .stApp, .stApp p, .stApp span, .stApp div, .stApp label { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif; letter-spacing:-0.01em; }
 
-.block-container { padding-top: 2rem; max-width: 1240px; box-sizing: border-box !important; }
+.block-container { padding-top: 2rem; max-width: 1240px; }
 [data-testid="stHeader"] { background-color: transparent !important; }
 [data-testid="stToolbar"] { display: none !important; }
 
-div[class*="st-key-manual_refresh_main"] button {
-    width: 36px !important; height: 36px !important; min-height: 36px !important; padding: 0 !important;
-    border-radius: 12px !important; display: flex !important; align-items: center !important; justify-content: center !important;
-    margin-left: auto !important; background-color: #ffffff !important; border: 1px solid rgba(15,23,42,0.08) !important;
-    box-shadow: 0 2px 8px rgba(15,23,42,0.03) !important; transition: all 0.15s ease !important;
+/* 🌟 "보유 포지션" 제목 + 새로고침 버튼 — 컬럼 대신 절대위치로 고정해서
+   화면 폭(PC/모바일)과 상관없이 항상 컨테이너의 진짜 오른쪽 끝에 붙게 함 */
+div[class*="st-key-pos_header_row"] {
+    position: relative !important;
+    min-height: 36px;
+    margin-bottom: 12px;
 }
-div[class*="st-key-manual_refresh_main"] {
-    display: flex !important;
-    justify-content: flex-end !important;
-    align-items: center !important;
-    width: 100% !important;
-    max-width: 48px !important;
-    min-width: 48px !important;
-    margin: 0 !important;
+div[class*="st-key-pos_header_row"] div[class*="st-key-manual_refresh_main"] {
+    position: absolute !important;
+    top: 0 !important;
+    right: 0 !important;
+    width: auto !important;
+}
+
+/* 새로고침 버튼 디자인 */
+div[class*="st-key-manual_refresh_main"] button {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
     padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background-color: #ffffff !important;
+    border: 1px solid rgba(15,23,42,0.08) !important;
+    box-shadow: 0 2px 8px rgba(15,23,42,0.03) !important;
+    transition: all 0.15s ease !important;
 }
 div[class*="st-key-manual_refresh_main"] button:hover { border-color: #3182F6 !important; background-color: #F8FAFC !important; }
 
-/* 🌟 "보유 포지션" 제목 오른쪽 끝 + 새로고침 버튼 */
-div[class*="st-key-pos_header_row"] {
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-    overflow: visible !important;
-}
-div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] {
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    align-items: center !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-    gap: 0 !important;
-}
-div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"] {
-    min-width: 0 !important;
-    max-width: 100% !important;
-}
-div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"]:first-child {
-    flex: 1 1 auto !important;
-    width: calc(100% - 48px) !important;
-    max-width: calc(100% - 48px) !important;
-    min-width: 0 !important;
-}
-div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"]:last-child {
-    flex: 0 0 48px !important;
-    width: 48px !important;
-    max-width: 48px !important;
-    min-width: 48px !important;
-    padding: 0 !important;
-    margin: 0 !important;
-}
-
-/* 🌟 로딩 스피너 디자인 — 더 깔끔하고 또렷하게 */
+/* 🌟 로딩 스피너 디자인 */
 [data-testid="stSpinner"] {
     background: #ffffff; padding: 18px 26px; border-radius: 18px;
     box-shadow: 0 8px 28px rgba(15,23,42,0.08); border: 1px solid rgba(15,23,42,0.04);
@@ -127,7 +106,7 @@ div[class*="st-key-pos_container_"] {
     box-shadow: 0 2px 14px rgba(15,23,42,0.05) !important; padding: 22px 24px 14px !important; margin-bottom: 18px !important;
 }
 
-/* 🌟 분봉 라디오 버튼 — 라이트/다크 테마와 무관하게 항상 같은 색으로 고정 */
+/* 🌟 분봉 라디오 버튼 */
 div[class*="st-key-tf_radio_"] { margin-bottom: 12px; overflow: visible !important; }
 div[class*="st-key-tf_radio_"] div[role="radiogroup"] { display: flex !important; flex-wrap: wrap !important; gap: 8px !important; }
 div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] {
@@ -141,14 +120,6 @@ div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] p {
 div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] div:first-child { display: none; }
 div[class*="st-key-tf_radio_"] label[data-baseweb="radio"][aria-checked="true"] { background-color: #3182F6 !important; color: #ffffff !important; }
 div[class*="st-key-tf_radio_"] label[data-baseweb="radio"][aria-checked="true"] p { color: #ffffff !important; font-weight: 700 !important; }
-@media (prefers-color-scheme: light) {
-    div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] p { color: #6b7280 !important; }
-    div[class*="st-key-tf_radio_"] label[data-baseweb="radio"][aria-checked="true"] p { color: #ffffff !important; }
-}
-@media (prefers-color-scheme: dark) {
-    div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] p { color: #6b7280 !important; }
-    div[class*="st-key-tf_radio_"] label[data-baseweb="radio"][aria-checked="true"] p { color: #ffffff !important; }
-}
 
 button[data-baseweb="tab"] p { color: #8B95A1 !important; font-weight: 600 !important; font-size: 14.5px !important; }
 button[data-baseweb="tab"][aria-selected="true"] p { color: #3182F6 !important; font-weight: 800 !important; }
@@ -174,151 +145,11 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
 .row-pnl { font-size:14.5px; font-weight:800; }
 .chip { display:inline-block; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:999px; margin-left:4px; }
 
-/* 📱 모바일 환경(768px 이하) 대응을 위한 추가 CSS */
+/* 📱 모바일 환경(768px 이하) 대응 CSS */
 @media (max-width: 768px) {
     .pos-divider { border-left: none !important; border-top: 1px solid rgba(15,23,42,0.06) !important; padding-top: 14px !important; margin-top: 6px !important; }
-    
-    /* 1. 모바일에서 '실시간 연동' 글자를 숨겨서 공간 확보 */
     .hide-on-mobile { display: none !important; }
-    
-    /* 2. 모바일에서 메인 타이틀 폰트 크기 살짝 축소 */
     .hdr-title-text { font-size: 19px !important; }
-
-    /* 모바일: 보유 포지션 오른쪽 끝에 새로고침 버튼 고정 */
-    div[class*="st-key-pos_header_row"] {
-        width: 100% !important;
-        max-width: 100% !important;
-        min-width: 0 !important;
-        overflow: visible !important;
-        box-sizing: border-box !important;
-    }
-
-    div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] {
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        align-items: center !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        min-width: 0 !important;
-        gap: 0 !important;
-        box-sizing: border-box !important;
-    }
-
-    div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"] {
-        box-sizing: border-box !important;
-        min-width: 0 !important;
-        padding-left: 0 !important;
-        padding-right: 0 !important;
-    }
-
-    div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"]:first-child {
-        width: calc(100% - 48px) !important;
-        max-width: calc(100% - 48px) !important;
-        flex: 1 1 auto !important;
-        min-width: 0 !important;
-    }
-
-    div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"]:last-child {
-        width: 48px !important;
-        max-width: 48px !important;
-        min-width: 48px !important;
-        flex: 0 0 48px !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-
-    div[class*="st-key-manual_refresh_main"] {
-        width: 48px !important;
-        max-width: 48px !important;
-        min-width: 48px !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        display: flex !important;
-        justify-content: flex-end !important;
-        align-items: center !important;
-        box-sizing: border-box !important;
-        overflow: visible !important;
-    }
-
-    div[class*="st-key-manual_refresh_main"] button {
-        width: 36px !important;
-        max-width: 36px !important;
-        min-width: 36px !important;
-        height: 36px !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-
-    /* 모바일 전체 페이지의 불필요한 가로 스크롤 방지 */
-    html, body, .stApp {
-        max-width: 100% !important;
-        overflow-x: hidden !important;
-    }
-
-    .block-container {
-        width: 100% !important;
-        max-width: 100% !important;
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
-        box-sizing: border-box !important;
-        overflow-x: hidden !important;
-    }
-
-    /* 3. 보유 포지션 + 새로고침 버튼 — 모바일 화면 밖으로 밀리지 않도록 고정 */
-    div[class*="st-key-pos_header_row"] {
-        width: 100% !important;
-        max-width: 100% !important;
-        overflow: visible !important;
-    }
-
-    div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] {
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        align-items: center !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        min-width: 0 !important;
-        gap: 0 !important;
-    }
-
-    div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"] {
-        min-width: 0 !important;
-        max-width: 100% !important;
-    }
-
-    div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"]:first-child {
-        width: calc(100% - 48px) !important;
-        max-width: calc(100% - 48px) !important;
-        flex: 1 1 auto !important;
-        min-width: 0 !important;
-    }
-
-    div[class*="st-key-pos_header_row"] [data-testid="stHorizontalBlock"] > div[data-testid="column"]:last-child {
-        width: 48px !important;
-        max-width: 48px !important;
-        flex: 0 0 48px !important;
-        min-width: 48px !important;
-        margin-left: 0 !important;
-        padding: 0 !important;
-    }
-
-    div[class*="st-key-manual_refresh_main"] {
-        width: 48px !important;
-        max-width: 48px !important;
-        min-width: 48px !important;
-        margin-left: 0 !important;
-        overflow: visible !important;
-    }
-
-    div[class*="st-key-manual_refresh_main"] button {
-        width: 36px !important;
-        max-width: 36px !important;
-        min-width: 36px !important;
-        margin-left: auto !important;
-        margin-right: 0 !important;
-    }
 }
 </style>
 """, unsafe_allow_html=True)
@@ -330,40 +161,21 @@ def classify_fill(t):
     info = t.get("info", {}) or {}
     ts = str(info.get("tradeSide", "")).lower()
     ro = info.get("reduceOnly", t.get("reduceOnly"))
-
     raw = info.get("profit", info.get("realizedPnl"))
     has_pnl = raw not in (None, "")
-    gross_pnl = float(raw or 0)
-
-    fee_cost = 0.0
-    if isinstance(t.get("fee"), dict):
-        fee_cost = float(t["fee"].get("cost", 0.0) or 0.0)
-
-    if "open" in ts:
-        is_close = False
-    elif "close" in ts:
-        is_close = True
-    elif ro is True:
-        is_close = True
-    elif ro is False:
-        is_close = False
-    else:
-        is_close = has_pnl and gross_pnl != 0
-
-    if "long" in ts:
-        side = "LONG"
-    elif "short" in ts:
-        side = "SHORT"
-    else:
-        side = "LONG" if str(t.get("side", "BUY")).upper() == "BUY" else "SHORT"
-
-    if not is_close:
-        pnl = -fee_cost
-        has_pnl = fee_cost > 0
-    else:
-        pnl = gross_pnl - fee_cost
-
+    pnl = float(raw or 0)
     price = float(t.get("price") or t.get("average") or 0.0)
+
+    if "open" in ts: is_close = False
+    elif "close" in ts: is_close = True
+    elif ro is True: is_close = True
+    elif ro is False: is_close = False
+    else: is_close = has_pnl and pnl != 0
+
+    if "long" in ts: side = "LONG"
+    elif "short" in ts: side = "SHORT"
+    else: side = "LONG" if t["side"].upper() == "BUY" else "SHORT"
+
     return side, is_close, has_pnl, pnl, price
 
 def result_of(bucket, has_pnl, pnl):
@@ -448,10 +260,10 @@ def fetch_fast_data(api_key, secret, pwd):
 
 BASE_SYMBOLS = [
     "BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT", "DOGE/USDT",
-    "BNB/USDT", "ADA/USDT", "SUI/USDT", "1000PEPE/USDT", "WIF/USDT", "QQQ/USDT"
+    "BNB/USDT", "ADA/USDT", "SUI/USDT", "1000PEPE/USDT", "WIF/USDT"
 ]
 
-@st.cache_data(ttl=300, show_spinner="거래 내역을 불러오고 있어요")
+@st.cache_data(ttl=3600, show_spinner="거래 내역을 불러오고 있어요...")
 def fetch_slow_data(api_key, secret, pwd):
     if not api_key or not secret:
         rnd = random.Random(42)
@@ -537,47 +349,26 @@ def fetch_slow_data(api_key, secret, pwd):
 
                 current_since = chunk_until
 
-        # 현물 계좌 원장에서 수수료 페이백/리워드만 수집하고, 10,000 USDT 이상은 제외
         try:
-            current_since = since_ts
-            while current_since < now_ts:
-                chunk_until = min(current_since + chunk_ms, now_ts)
-                try:
-                    params = {"endTime": chunk_until, "until": chunk_until, "type": "spot"}
-                    ledgers = exchange.fetch_ledger("USDT", since=current_since, limit=1000, params=params)
-                    for lg in ledgers:
-                        amount = float(lg.get("amount", 0) or 0)
-                        if amount <= 0 or amount >= 10000:
-                            continue
-                        lg_type = str(lg.get("type", "")).lower()
-                        info = lg.get("info", {}) or {}
-                        biz_type = str(info.get("businessType", info.get("type", ""))).lower()
-                        payback_kws = ["rebate", "rebat", "commission", "reward", "partner", "bonus"]
-                        is_payback = (
-                            any(kw in lg_type for kw in payback_kws)
-                            or any(kw in biz_type for kw in payback_kws)
-                        )
-                        if not is_payback:
-                            continue
-                        lg_time = lg.get("timestamp")
-                        if not lg_time:
-                            continue
-                        t_utc = datetime.fromtimestamp(lg_time / 1000, tz=UTC)
-                        t_kst = t_utc.astimezone(KST)
-                        trade_id = str(lg.get("id") or f"ledger_spot_{lg_time}_{amount}")
-                        rows.append({
-                            "trade_id": trade_id, "order_id": trade_id,
-                            "datetime": t_kst.replace(tzinfo=None),
-                            "date": t_kst.strftime("%Y-%m-%d"),
-                            "symbol": "FEE/PAYBACK", "side": "입금",
-                            "bucket": "축소", "has_pnl": True,
-                            "pnl": amount, "price": 0.0
-                        })
-                except Exception:
-                    pass
-                current_since = chunk_until
-        except Exception as e_ledger:
-            errs.append(f"원장(페이백) 조회 실패: {e_ledger}")
+            payback_start_ts = int(datetime(2026, 10, 1, tzinfo=KST).timestamp() * 1000)
+            deposits = exchange.fetch_deposits(since=payback_start_ts)
+            for d in deposits:
+                status = str(d.get("status", "")).lower()
+                if status in ("ok", "success", "completed", "1"):
+                    curr = str(d.get("currency", "")).upper()
+                    if curr == "USDT":
+                        d_utc = datetime.fromtimestamp(d["timestamp"] / 1000, tz=UTC)
+                        d_kst = d_utc.astimezone(KST)
+                        amount = float(d.get("amount", 0) or 0)
+                        if amount > 0:
+                            dep_id = f"DEPOSIT_{d.get('id', d['timestamp'])}"
+                            rows.append({
+                                "trade_id": dep_id, "order_id": dep_id, "datetime": d_kst.replace(tzinfo=None),
+                                "date": d_kst.strftime("%Y-%m-%d"), "symbol": "FEE/PAYBACK", "side": "LONG",
+                                "bucket": "축소", "has_pnl": True, "pnl": amount, "price": 0.0
+                            })
+        except Exception:
+            pass
 
         if errs:
             st.session_state["_slow_fetch_errors"] = errs
@@ -615,26 +406,16 @@ st.markdown(f"<div style='border-top:1px solid {LINE_COLOR}; margin: 6px 0 20px 
 # 6. [FRAGMENT] 🎯 현재 보유 포지션 & 실시간 차트
 # -----------------------------------------------------------------------------
 with st.container(key="pos_header_row"):
-    col_hp1, col_hp2 = st.columns([1, 0.07], gap=None)
-    with col_hp1:
-        st.markdown(f"<div style='font-size: 19px; font-weight: 800; color: {TEXT}; margin-bottom: 12px; line-height: 36px; white-space: nowrap;'> 보유 포지션</div>", unsafe_allow_html=True)
-    with col_hp2:
-        if st.button("🔄", key="manual_refresh_main", use_container_width=False):
-            fetch_fast_data.clear()
-            fetch_slow_data.clear()
-            fetch_usdt_krw.clear()
-            fetch_live_ohlcv.clear()
-            st.rerun()
+    st.markdown(f"<div style='font-size: 19px; font-weight: 800; color: {TEXT}; line-height: 36px;'> 보유 포지션</div>", unsafe_allow_html=True)
+    if st.button("🔄", key="manual_refresh_main"):
+        fetch_fast_data.clear(); fetch_slow_data.clear(); fetch_usdt_krw.clear(); fetch_live_ohlcv.clear(); st.rerun()
 
 @st.fragment(run_every=10)
 def show_live_positions():
     current_positions, wallet_balance = fetch_fast_data(MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
 
     if not current_positions:
-        st.markdown(
-            f"""<div style="background:#ffffff; border-radius:20px; box-shadow:0 2px 14px rgba(15,23,42,0.05); text-align:center; color:{SUB}; font-size:14.5px; font-weight:600; padding:40px 20px; margin:0 0 28px 0; box-sizing:border-box; width:100%;">현재 진행 중인 포지션이 없습니다</div>""",
-            unsafe_allow_html=True
-        )
+        st.markdown(f"<div class='card' style='text-align: center; color: {SUB}; font-size: 14px; padding:32px;'>현재 진행 중인 포지션이 없습니다</div>", unsafe_allow_html=True)
     else:
         symbol_groups = {}
         for pos in current_positions:
@@ -742,7 +523,7 @@ def make_top_card(title, value, sub_left, sub_right="", krw_rate=1350.0):
     return f"""<div class="card" style="min-height: 150px; display:flex; flex-direction:column;"><div><div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700; color:{TEXT};"><span>{title}</span> <span style="color:{SUB}; font-weight:500;">{sub_right}</span></div><div style="display:flex; align-items:baseline; gap:8px; margin:14px 0 2px;"><span style="font-size:30px; font-weight:800; color:{val_color}; letter-spacing:-0.02em;">{sign}${value:,.2f}</span><span style="font-size:13px; font-weight:600; color:{SUB};">{krw_str}</span></div></div><div style="font-size:12px; color:{SUB}; margin-top:auto; padding-top:10px;">{sub_left}</div></div>"""
 
 with col_s1:
-    @st.fragment(run_every=300)
+    @st.fragment(run_every=3600)
     def render_today_pnl():
         k_rate = fetch_usdt_krw()
         today_str = datetime.now(KST).strftime("%Y-%m-%d")
@@ -751,7 +532,7 @@ with col_s1:
     render_today_pnl()
 
 with col_s2:
-    @st.fragment(run_every=300)
+    @st.fragment(run_every=3600)
     def render_month_pnl():
         k_rate = fetch_usdt_krw()
         month_str = datetime.now(KST).strftime("%Y-%m")
@@ -771,13 +552,13 @@ with col_s3:
 st.markdown(f"<div style='font-size: 12px; color: {SUB}; margin-top: 10px; margin-bottom: 28px;'> 미실현손익은 일별·월별 추정 PNL 합계에 포함하지 않습니다</div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 8. [FRAGMENT] 매매동향
+# 8. [FRAGMENT] 매매동향 (기본 기간 30일 설정)
 # -----------------------------------------------------------------------------
 st.markdown(f"<div style='font-size: 19px; font-weight: 800; color: {TEXT}; margin-bottom: 14px;'> 매매동향</div>", unsafe_allow_html=True)
 
 today_kst = datetime.now(KST).date()
 dashboard_start = datetime.strptime(DASHBOARD_START_DATE, "%Y-%m-%d").date()
-default_start = max(dashboard_start, today_kst - timedelta(days=6))
+default_start = max(dashboard_start, today_kst - timedelta(days=30))
 
 if "date_range" not in st.session_state:
     st.session_state.date_range = (default_start, today_kst)
@@ -821,7 +602,7 @@ filtered_df = df_trades[(df_trades["date"] >= filter_start_str) & (df_trades["da
 
 st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
 
-@st.fragment(run_every=300)
+@st.fragment(run_every=3600)
 def render_trade_stats(f_df):
     all_df = fetch_slow_data(MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
     col_t1, col_t2, col_t3 = st.columns([1, 1, 1.2])
@@ -896,7 +677,7 @@ render_trade_stats(filtered_df)
 # -----------------------------------------------------------------------------
 st.markdown("<div style='margin-top: 32px;'></div>", unsafe_allow_html=True)
 
-@st.fragment(run_every=300)
+@st.fragment(run_every=3600)
 def render_pnl_charts(f_df):
     period_sum = f_df["pnl"].sum() if not f_df.empty else 0.0
     pnl_color, pnl_sign = (GREEN, "+") if period_sum >= 0 else (RED, "")
@@ -940,7 +721,6 @@ def render_pnl_charts(f_df):
 
         with tab1:
             if not daily_pnl.empty:
-                # 🌟 막대 모서리를 둥글게 (지원 안 하는 plotly 버전이면 조용히 각진 막대로 폴백)
                 try:
                     bar = go.Bar(x=daily_pnl["date"], y=daily_pnl["pnl"], marker=dict(color=daily_pnl["color"], line_width=0, cornerradius=8), name="일별 수익", hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT<extra></extra>")
                 except Exception:
@@ -954,14 +734,14 @@ def render_pnl_charts(f_df):
 
 render_pnl_charts(filtered_df)
 
-st.markdown(f"<div class='note-text' style='margin-top:-24px; margin-bottom:20px; padding-top:0; line-height:1.5;'>추정 PNL · USDT · KST 기준 · 기간 누적은 선택한 기간의 시작을 0으로 계산합니다</div>", unsafe_allow_html=True)
+st.markdown(f"<div class='note-text'>추정 PNL · USDT · KST 기준 · 기간 누적은 선택한 기간의 시작을 0으로 계산합니다</div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
 # 10. 상세 매매 내역 — 토스 거래내역 스타일 리스트
 # -----------------------------------------------------------------------------
 st.markdown(f"<div style='font-size: 17px; font-weight: 800; color: {TEXT}; margin: 32px 0 14px;'>상세 매매 내역</div>", unsafe_allow_html=True)
 
-@st.fragment(run_every=300)
+@st.fragment(run_every=3600)
 def render_trade_logs(f_df):
     if f_df.empty:
         st.markdown(f"<div class='card' style='text-align:center; color:{SUB}; padding:32px;'>아직 등록된 거래 내역이 없습니다</div>", unsafe_allow_html=True)
@@ -981,10 +761,7 @@ def render_trade_logs(f_df):
         price = f"${r['price']:,.2f}" if pd.notnull(r['price']) and r['price'] > 0 else "-"
         pnl_val, res = r['pnl'], r['result']
 
-        if is_payback:
-            res = '입금'
-            pnl_color, chip_bg, pnl_txt = GREEN, GREEN_SOFT, f"+{pnl_val:,.2f}"
-        elif res == '익절':
+        if res == '익절':
             pnl_color, chip_bg, pnl_txt = GREEN, GREEN_SOFT, f"+{pnl_val:,.2f}"
         elif res == '손절':
             pnl_color, chip_bg, pnl_txt = RED, RED_SOFT, f"{pnl_val:,.2f}"
