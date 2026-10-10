@@ -81,18 +81,16 @@ div[class*="st-key-manual_refresh_main"] button {
 }
 div[class*="st-key-manual_refresh_main"] button:hover { border-color: #3182F6 !important; background-color: #F8FAFC !important; }
 
-/* 🌟 로딩 스피너 디자인 (아이콘 숨김 & 점 애니메이션) */
+/* 🌟 로딩 스피너 디자인 */
 [data-testid="stSpinner"] {
     background: #ffffff; padding: 18px 26px; border-radius: 18px;
     box-shadow: 0 8px 28px rgba(15,23,42,0.08); border: 1px solid rgba(15,23,42,0.04);
     margin: 24px auto; display: flex; align-items: center; justify-content: center; max-width: 420px;
 }
 [data-testid="stSpinner"] svg { display: none !important; }
-
 [data-testid="stSpinner"] > div > div:last-child {
     color: #191F28 !important; font-weight: 700 !important; font-size: 15px !important; margin-left: 0 !important;
 }
-
 @keyframes loading_dots {
     0% { content: ""; }
     25% { content: " ·"; }
@@ -101,34 +99,17 @@ div[class*="st-key-manual_refresh_main"] button:hover { border-color: #3182F6 !i
     100% { content: ""; }
 }
 [data-testid="stSpinner"] > div > div:last-child::after {
-    content: "";
-    display: inline-block;
-    width: 28px;
-    text-align: left;
-    animation: loading_dots 1.5s infinite steps(1);
+    content: ""; display: inline-block; width: 28px; text-align: left; animation: loading_dots 1.5s infinite steps(1);
 }
 
 .card { background:#ffffff; border-radius:20px; box-shadow:0 2px 14px rgba(15,23,42,0.05); padding:22px 24px; }
-
-div[class*="st-key-pnl_card"] {
-    background-color: #ffffff !important; border: none !important; border-radius: 20px !important;
-    box-shadow: 0 2px 14px rgba(15,23,42,0.05) !important; padding: 22px 24px !important;
-}
-div[class*="st-key-pos_container_"] {
-    background-color: #ffffff !important; border: none !important; border-radius: 20px !important;
-    box-shadow: 0 2px 14px rgba(15,23,42,0.05) !important; padding: 22px 24px 14px !important; margin-bottom: 18px !important;
-}
+div[class*="st-key-pnl_card"] { background-color: #ffffff !important; border: none !important; border-radius: 20px !important; box-shadow: 0 2px 14px rgba(15,23,42,0.05) !important; padding: 22px 24px !important; }
+div[class*="st-key-pos_container_"] { background-color: #ffffff !important; border: none !important; border-radius: 20px !important; box-shadow: 0 2px 14px rgba(15,23,42,0.05) !important; padding: 22px 24px 14px !important; margin-bottom: 18px !important; }
 
 div[class*="st-key-tf_radio_"] { margin-bottom: 12px; overflow: visible !important; }
 div[class*="st-key-tf_radio_"] div[role="radiogroup"] { display: flex !important; flex-wrap: wrap !important; gap: 8px !important; }
-div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] {
-    background-color: #F2F4F6 !important; color: #6b7280 !important; padding: 8px 16px !important;
-    border-radius: 999px; margin: 0 !important; cursor: pointer; transition: background .15s; height: auto !important;
-}
-div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] p {
-    color: #6b7280 !important; font-size: 13.5px !important; margin: 0 !important; font-weight: 600 !important;
-    line-height: 1.4 !important; white-space: nowrap !important; opacity: 1 !important;
-}
+div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] { background-color: #F2F4F6 !important; color: #6b7280 !important; padding: 8px 16px !important; border-radius: 999px; margin: 0 !important; cursor: pointer; transition: background .15s; height: auto !important; }
+div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] p { color: #6b7280 !important; font-size: 13.5px !important; margin: 0 !important; font-weight: 600 !important; line-height: 1.4 !important; white-space: nowrap !important; opacity: 1 !important; }
 div[class*="st-key-tf_radio_"] label[data-baseweb="radio"] div:first-child { display: none; }
 div[class*="st-key-tf_radio_"] label[data-baseweb="radio"][aria-checked="true"] { background-color: #3182F6 !important; color: #ffffff !important; }
 div[class*="st-key-tf_radio_"] label[data-baseweb="radio"][aria-checked="true"] p { color: #ffffff !important; font-weight: 700 !important; }
@@ -166,30 +147,38 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
 """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 2. 체결 분류 유틸
+# 2. 체결 분류 유틸 (수수료 차감 포함 Net PNL)
 # -----------------------------------------------------------------------------
 def classify_fill(t):
     info = t.get("info", {}) or {}
     ts = str(info.get("tradeSide", "")).lower()
     ro = info.get("reduceOnly", t.get("reduceOnly"))
+    
     raw = info.get("profit", info.get("realizedPnl"))
     has_pnl = raw not in (None, "")
-    pnl = float(raw or 0)
-    price = float(t.get("price") or t.get("average") or 0.0)
+    gross_pnl = float(raw or 0)
+    
+    fee_cost = 0.0
+    if "fee" in t and isinstance(t["fee"], dict):
+        fee_cost = float(t["fee"].get("cost", 0.0))
 
     if "open" in ts: is_close = False
     elif "close" in ts: is_close = True
     elif ro is True: is_close = True
     elif ro is False: is_close = False
-    else: is_close = has_pnl and pnl != 0
+    else: is_close = has_pnl and gross_pnl != 0
 
     if "long" in ts: side = "LONG"
     elif "short" in ts: side = "SHORT"
     else: side = "LONG" if t["side"].upper() == "BUY" else "SHORT"
 
     if not is_close:
-        pnl = 0.0
-        has_pnl = False
+        pnl = -fee_cost
+        has_pnl = fee_cost > 0
+    else:
+        pnl = gross_pnl - fee_cost
+
+    price = float(t.get("price") or t.get("average") or 0.0)
 
     return side, is_close, has_pnl, pnl, price
 
@@ -273,14 +262,14 @@ def fetch_fast_data(api_key, secret, pwd):
     except Exception:
         return [], 0.0
 
-# 🌟 수정: QQQ를 스캔할 수 있도록 BASE_SYMBOLS에 추가했습니다
 BASE_SYMBOLS = [
     "BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT", "DOGE/USDT",
     "BNB/USDT", "ADA/USDT", "SUI/USDT", "1000PEPE/USDT", "WIF/USDT",
     "QQQ/USDT"
 ]
 
-@st.cache_data(ttl=3600, show_spinner="거래 내역을 불러오고 있어요")
+# 🌟 캐시 시간을 3600초(1시간) -> 300초(5분)로 변경하여 실시간성을 강화했습니다
+@st.cache_data(ttl=300, show_spinner="거래 내역을 불러오고 있어요")
 def fetch_slow_data(api_key, secret, pwd):
     if not api_key or not secret:
         rnd = random.Random(42)
@@ -290,7 +279,7 @@ def fetch_slow_data(api_key, secret, pwd):
             t = now - timedelta(hours=rnd.randint(1, 900))
             t_kst = t.astimezone(KST)
             is_close = rnd.random() < 0.55
-            pnl = rnd.choice([rnd.uniform(50, 900), rnd.uniform(50, 900), rnd.uniform(-700, -40), 0.0]) if is_close else 0.0
+            pnl = rnd.choice([rnd.uniform(50, 900), rnd.uniform(50, 900), rnd.uniform(-700, -40), 0.0]) if is_close else -rnd.uniform(0.1, 2.0)
             sym = rnd.choice(["BTC/USDT", "ETH/USDT"])
             trade_id = f"DEMO_TRADE_{i}"
             rows.append({
@@ -366,26 +355,25 @@ def fetch_slow_data(api_key, secret, pwd):
 
                 current_since = chunk_until
         
-        # 🌟 수정: 원장(Ledger) 조회를 통해 '입금' 및 '페이백' 내역을 추가합니다
+        # 🌟 원장(Ledger) 조회를 통한 페이백/입금 수집 로직 강화
         try:
             ledgers = exchange.fetch_ledger('USDT', since=since_ts, limit=1000)
             for lg in ledgers:
-                amount = float(lg.get('amount', 0))
-                # 입금/수익 등 잔고가 늘어나는 양수(+) 내역만 조회
+                amount = float(lg.get('amount', 0) or 0)
                 if amount > 0:
-                    # 🌟 요청사항 유지: 예전에 요청하신 10,000달러 입금건 제외 (오차범위 포함)
+                    # 10,000달러 입금건 제외 (오차범위 포함)
                     if 9990 <= amount <= 10010:
                         continue
                         
                     lg_type = str(lg.get('type', '')).lower()
-                    info = lg.get('info', {})
-                    biz_type = str(info.get('businessType', '')).lower()
+                    info = lg.get('info', {}) or {}
+                    biz_type = str(info.get('businessType', info.get('type', ''))).lower()
                     
-                    # deposit(입금), rebate/commission/reward(페이백 관련) 키워드 확인
-                    is_payback = any(kw in lg_type for kw in ['deposit', 'rebate', 'commission', 'reward']) or \
-                                 any(kw in biz_type for kw in ['deposit', 'rebate', 'commission', 'reward'])
+                    # 비트겟에서 쓰이는 리베이트/페이백/입금 관련 키워드 대폭 확장
+                    payback_keywords = ['deposit', 'rebate', 'rebat', 'commission', 'reward', 'transfer', 'bonus', 'voucher', 'other']
+                    is_payback = any(kw in lg_type for kw in payback_keywords) or any(kw in biz_type for kw in payback_keywords)
                                  
-                    if is_payback:
+                    if is_payback or amount > 0:
                         lg_time = lg.get('timestamp')
                         if not lg_time: continue
                         t_utc = datetime.fromtimestamp(lg_time / 1000, tz=UTC)
@@ -555,21 +543,21 @@ def make_top_card(title, value, sub_left, sub_right="", krw_rate=1350.0):
     return f"""<div class="card" style="min-height: 150px; display:flex; flex-direction:column;"><div><div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700; color:{TEXT};"><span>{title}</span> <span style="color:{SUB}; font-weight:500;">{sub_right}</span></div><div style="display:flex; align-items:baseline; gap:8px; margin:14px 0 2px;"><span style="font-size:30px; font-weight:800; color:{val_color}; letter-spacing:-0.02em;">{sign}${value:,.2f}</span><span style="font-size:13px; font-weight:600; color:{SUB};">{krw_str}</span></div></div><div style="font-size:12px; color:{SUB}; margin-top:auto; padding-top:10px;">{sub_left}</div></div>"""
 
 with col_s1:
-    @st.fragment(run_every=3600)
+    @st.fragment(run_every=300)
     def render_today_pnl():
         k_rate = fetch_usdt_krw()
         today_str = datetime.now(KST).strftime("%Y-%m-%d")
         today_pnl = df_trades[df_trades["date"] == today_str]["pnl"].sum() if not df_trades.empty else 0.0
-        st.markdown(make_top_card("오늘 추정 PNL", today_pnl, "1시간마다 갱신 (KST)", "", k_rate), unsafe_allow_html=True)
+        st.markdown(make_top_card("오늘 추정 PNL", today_pnl, "5분마다 갱신 (KST)", "", k_rate), unsafe_allow_html=True)
     render_today_pnl()
 
 with col_s2:
-    @st.fragment(run_every=3600)
+    @st.fragment(run_every=300)
     def render_month_pnl():
         k_rate = fetch_usdt_krw()
         month_str = datetime.now(KST).strftime("%Y-%m")
         month_pnl = df_trades[df_trades["date"].str.startswith(month_str)]["pnl"].sum() if not df_trades.empty else 0.0
-        st.markdown(make_top_card("이번 달 추정 PNL", month_pnl, "1시간마다 갱신 (KST)", "", k_rate), unsafe_allow_html=True)
+        st.markdown(make_top_card("이번 달 추정 PNL", month_pnl, "5분마다 갱신 (KST)", "", k_rate), unsafe_allow_html=True)
     render_month_pnl()
 
 with col_s3:
@@ -578,7 +566,7 @@ with col_s3:
         k_rate = fetch_usdt_krw()
         pos, bal = fetch_fast_data(MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
         unrealized = sum([p.get("unrealized_pnl", 0.0) for p in pos]) if pos else 0.0
-        st.markdown(make_top_card("현재 미실현손익", unrealized, "전 전체 포지션 합계 · 10초마다 갱신", "", k_rate), unsafe_allow_html=True)
+        st.markdown(make_top_card("현재 미실현손익", unrealized, "전체 포지션 합계 · 10초마다 갱신", "", k_rate), unsafe_allow_html=True)
     render_unrealized_pnl()
 
 st.markdown(f"<div style='font-size: 12px; color: {SUB}; margin-top: 10px; margin-bottom: 28px;'> 미실현손익은 일별·월별 추정 PNL 합계에 포함하지 않습니다</div>", unsafe_allow_html=True)
@@ -634,7 +622,7 @@ filtered_df = df_trades[(df_trades["date"] >= filter_start_str) & (df_trades["da
 
 st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
 
-@st.fragment(run_every=3600)
+@st.fragment(run_every=300)
 def render_trade_stats(f_df):
     all_df = fetch_slow_data(MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
     col_t1, col_t2, col_t3 = st.columns([1, 1, 1.2])
@@ -709,7 +697,7 @@ render_trade_stats(filtered_df)
 # -----------------------------------------------------------------------------
 st.markdown("<div style='margin-top: 32px;'></div>", unsafe_allow_html=True)
 
-@st.fragment(run_every=3600)
+@st.fragment(run_every=300)
 def render_pnl_charts(f_df):
     period_sum = f_df["pnl"].sum() if not f_df.empty else 0.0
     pnl_color, pnl_sign = (GREEN, "+") if period_sum >= 0 else (RED, "")
@@ -773,7 +761,7 @@ st.markdown(f"<div class='note-text'>추정 PNL · USDT · KST 기준 · 기간 
 # -----------------------------------------------------------------------------
 st.markdown(f"<div style='font-size: 17px; font-weight: 800; color: {TEXT}; margin: 32px 0 14px;'>상세 매매 내역</div>", unsafe_allow_html=True)
 
-@st.fragment(run_every=3600)
+@st.fragment(run_every=300)
 def render_trade_logs(f_df):
     if f_df.empty:
         st.markdown(f"<div class='card' style='text-align:center; color:{SUB}; padding:32px;'>아직 등록된 거래 내역이 없습니다</div>", unsafe_allow_html=True)
@@ -793,7 +781,6 @@ def render_trade_logs(f_df):
         price = f"${r['price']:,.2f}" if pd.notnull(r['price']) and r['price'] > 0 else "-"
         pnl_val, res = r['pnl'], r['result']
 
-        # 🌟 수정: 페이백일 경우 결과(res)를 무조건 '입금'으로 표시하도록 덮어씌웁니다
         if is_payback:
             res = '입금'
             pnl_color, chip_bg, pnl_txt = GREEN, GREEN_SOFT, f"+{pnl_val:,.2f}"
@@ -803,6 +790,11 @@ def render_trade_logs(f_df):
             pnl_color, chip_bg, pnl_txt = RED, RED_SOFT, f"{pnl_val:,.2f}"
         elif res == '본전':
             pnl_color, chip_bg, pnl_txt = SUB, "rgba(139,149,161,0.12)", "0.00"
+        elif res == '진입':
+            if pnl_val < 0:
+                pnl_color, chip_bg, pnl_txt = SUB, "rgba(139,149,161,0.12)", f"{pnl_val:,.3f}" 
+            else:
+                pnl_color, chip_bg, pnl_txt = SUB, "rgba(139,149,161,0.12)", "-"
         else:
             pnl_color, chip_bg, pnl_txt = SUB, "rgba(139,149,161,0.12)", "-"
 
