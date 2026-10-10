@@ -87,15 +87,12 @@ div[class*="st-key-manual_refresh_main"] button:hover { border-color: #3182F6 !i
     box-shadow: 0 8px 28px rgba(15,23,42,0.08); border: 1px solid rgba(15,23,42,0.04);
     margin: 24px auto; display: flex; align-items: center; justify-content: center; max-width: 420px;
 }
-/* 빙글빙글 도는 기본 아이콘 숨기기 */
 [data-testid="stSpinner"] svg { display: none !important; }
 
-/* 텍스트 크기 조정 및 위치 중앙 정렬 */
 [data-testid="stSpinner"] > div > div:last-child {
     color: #191F28 !important; font-weight: 700 !important; font-size: 15px !important; margin-left: 0 !important;
 }
 
-/* 점 1,2,3개 애니메이션 효과 */
 @keyframes loading_dots {
     0% { content: ""; }
     25% { content: " ·"; }
@@ -106,7 +103,7 @@ div[class*="st-key-manual_refresh_main"] button:hover { border-color: #3182F6 !i
 [data-testid="stSpinner"] > div > div:last-child::after {
     content: "";
     display: inline-block;
-    width: 28px; /* 글씨가 흔들리지 않도록 고정 폭 설정 */
+    width: 28px;
     text-align: left;
     animation: loading_dots 1.5s infinite steps(1);
 }
@@ -276,9 +273,11 @@ def fetch_fast_data(api_key, secret, pwd):
     except Exception:
         return [], 0.0
 
+# 🌟 수정: QQQ를 스캔할 수 있도록 BASE_SYMBOLS에 추가했습니다
 BASE_SYMBOLS = [
     "BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT", "DOGE/USDT",
-    "BNB/USDT", "ADA/USDT", "SUI/USDT", "1000PEPE/USDT", "WIF/USDT"
+    "BNB/USDT", "ADA/USDT", "SUI/USDT", "1000PEPE/USDT", "WIF/USDT",
+    "QQQ/USDT"
 ]
 
 @st.cache_data(ttl=3600, show_spinner="거래 내역을 불러오고 있어요")
@@ -366,6 +365,42 @@ def fetch_slow_data(api_key, secret, pwd):
                         errs.append(f"{sym}: {e2}")
 
                 current_since = chunk_until
+        
+        # 🌟 수정: 원장(Ledger) 조회를 통해 '입금' 및 '페이백' 내역을 추가합니다
+        try:
+            ledgers = exchange.fetch_ledger('USDT', since=since_ts, limit=1000)
+            for lg in ledgers:
+                amount = float(lg.get('amount', 0))
+                # 입금/수익 등 잔고가 늘어나는 양수(+) 내역만 조회
+                if amount > 0:
+                    # 🌟 요청사항 유지: 예전에 요청하신 10,000달러 입금건 제외 (오차범위 포함)
+                    if 9990 <= amount <= 10010:
+                        continue
+                        
+                    lg_type = str(lg.get('type', '')).lower()
+                    info = lg.get('info', {})
+                    biz_type = str(info.get('businessType', '')).lower()
+                    
+                    # deposit(입금), rebate/commission/reward(페이백 관련) 키워드 확인
+                    is_payback = any(kw in lg_type for kw in ['deposit', 'rebate', 'commission', 'reward']) or \
+                                 any(kw in biz_type for kw in ['deposit', 'rebate', 'commission', 'reward'])
+                                 
+                    if is_payback:
+                        lg_time = lg.get('timestamp')
+                        if not lg_time: continue
+                        t_utc = datetime.fromtimestamp(lg_time / 1000, tz=UTC)
+                        t_kst = t_utc.astimezone(KST)
+                        
+                        trade_id = str(lg.get('id') or f"ledger_{lg_time}_{amount}")
+                        
+                        rows.append({
+                            "trade_id": trade_id, "order_id": trade_id, "datetime": t_kst.replace(tzinfo=None),
+                            "date": t_kst.strftime("%Y-%m-%d"), "symbol": "FEE/PAYBACK",
+                            "side": "입금", "bucket": "축소", "has_pnl": True,
+                            "pnl": amount, "price": 0.0
+                        })
+        except Exception as e_ledger:
+            errs.append(f"원장(페이백/입금) 조회 실패: {e_ledger}")
 
         if errs:
             st.session_state["_slow_fetch_errors"] = errs
@@ -412,7 +447,6 @@ def show_live_positions():
     current_positions, wallet_balance = fetch_fast_data(MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
 
     if not current_positions:
-        # 🎯 [수정된 부분] margin-bottom: 28px; 을 추가하여 아래 PNL 카드와 겹치지 않게 여백을 주었습니다.
         st.markdown(f"<div class='card' style='text-align: center; color: {SUB}; font-size: 14.5px; font-weight: 600; padding: 40px 20px; margin-bottom: 28px;'>현재 진행 중인 포지션이 없습니다</div>", unsafe_allow_html=True)
     else:
         symbol_groups = {}
@@ -544,7 +578,7 @@ with col_s3:
         k_rate = fetch_usdt_krw()
         pos, bal = fetch_fast_data(MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
         unrealized = sum([p.get("unrealized_pnl", 0.0) for p in pos]) if pos else 0.0
-        st.markdown(make_top_card("현재 미실현손익", unrealized, "전체 포지션 합계 · 10초마다 갱신", "", k_rate), unsafe_allow_html=True)
+        st.markdown(make_top_card("현재 미실현손익", unrealized, "전 전체 포지션 합계 · 10초마다 갱신", "", k_rate), unsafe_allow_html=True)
     render_unrealized_pnl()
 
 st.markdown(f"<div style='font-size: 12px; color: {SUB}; margin-top: 10px; margin-bottom: 28px;'> 미실현손익은 일별·월별 추정 PNL 합계에 포함하지 않습니다</div>", unsafe_allow_html=True)
@@ -759,7 +793,11 @@ def render_trade_logs(f_df):
         price = f"${r['price']:,.2f}" if pd.notnull(r['price']) and r['price'] > 0 else "-"
         pnl_val, res = r['pnl'], r['result']
 
-        if res == '익절':
+        # 🌟 수정: 페이백일 경우 결과(res)를 무조건 '입금'으로 표시하도록 덮어씌웁니다
+        if is_payback:
+            res = '입금'
+            pnl_color, chip_bg, pnl_txt = GREEN, GREEN_SOFT, f"+{pnl_val:,.2f}"
+        elif res == '익절':
             pnl_color, chip_bg, pnl_txt = GREEN, GREEN_SOFT, f"+{pnl_val:,.2f}"
         elif res == '손절':
             pnl_color, chip_bg, pnl_txt = RED, RED_SOFT, f"{pnl_val:,.2f}"
