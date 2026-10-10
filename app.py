@@ -132,7 +132,7 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
 .stButton>button:hover { border-color: #3182F6; color: #3182F6; }
 
 .pill { display:inline-block; font-size:11px; font-weight:800; padding:3px 9px; border-radius:999px; vertical-align:middle; }
-.note-text { font-size:11.5px; line-height:1.7; color:#B0B8C1; margin:16px 2px 0; }
+.note-text { font-size:11.5px; line-height:1.7; color:#B0B8C1; margin:4px 2px 0; }
 
 .log-row { display:flex; justify-content:space-between; align-items:center; padding:15px 6px; border-bottom:1px solid #F2F4F6; }
 .log-row:last-child { border-bottom:none; }
@@ -360,7 +360,7 @@ def fetch_slow_data(api_key, secret, pwd):
                         d_utc = datetime.fromtimestamp(d["timestamp"] / 1000, tz=UTC)
                         d_kst = d_utc.astimezone(KST)
                         amount = float(d.get("amount", 0) or 0)
-                        if amount > 0:
+                        if 0 < amount < 10000:
                             dep_id = f"DEPOSIT_{d.get('id', d['timestamp'])}"
                             rows.append({
                                 "trade_id": dep_id, "order_id": dep_id, "datetime": d_kst.replace(tzinfo=None),
@@ -415,7 +415,7 @@ def show_live_positions():
     current_positions, wallet_balance = fetch_fast_data(MY_API_KEY, MY_SECRET_KEY, MY_PASSPHRASE)
 
     if not current_positions:
-        st.markdown(f"<div class='card' style='text-align: center; color: {SUB}; font-size: 14px; padding:32px;'>현재 진행 중인 포지션이 없습니다</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='card' style='text-align: center; color: {SUB}; font-size: 14px; padding:32px; margin: 0 0 28px 0;'>현재 진행 중인 포지션이 없습니다</div>", unsafe_allow_html=True)
     else:
         symbol_groups = {}
         for pos in current_positions:
@@ -510,6 +510,7 @@ def show_live_positions():
                     )
                     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 show_live_positions()
+st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
 # 7. 상단 PNL 카드
