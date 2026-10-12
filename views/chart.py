@@ -31,9 +31,13 @@ _boot.markdown(f"<style>{_css}</style>{_sp}", unsafe_allow_html=True)
 
 keys = D.get_keys()
 positions, _, _ = D.fetch_positions(keys)
-# 차트·시세 모두 OKX 기준 (OKX 조회가 막히면 Bitget 시세를 초기값으로만 사용, 브라우저가 OKX 실시간으로 덮어씀)
+# 차트·시세 기본은 Bitget (화면에서 OKX로 바꿀 수 있음 → 두 거래소에 모두 있는 종목만 목록에 넣음)
 bitget = D.fetch_tickers()
-tickers = (D.fetch_okx_tickers() if hasattr(D, "fetch_okx_tickers") else {}) or bitget
+okx = D.fetch_okx_tickers() if hasattr(D, "fetch_okx_tickers") else {}
+if bitget and okx:
+    tickers = {s: v for s, v in bitget.items() if s in okx}
+else:
+    tickers = bitget or okx
 upbit = D.fetch_upbit_krw()
 
 pos_syms = list(dict.fromkeys(p["symbol"] for p in positions))
