@@ -273,7 +273,6 @@ svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-widt
     <div id="posChips" class="hide-sm"></div>
     <div class="bar-right">
       <div class="engine hide-sm" id="engineSeg" title="실시간: 체결마다 바로 움직이는 차트 · TradingView: 그리기 도구·지표 사용 가능"><button data-e="live">실시간</button><button data-e="tv">TradingView</button></div>
-      <div class="engine hide-sm" id="srcSeg" title="차트·시세를 가져올 거래소"><button data-s="bitget">Bitget</button><button data-s="okx">OKX</button></div>
       <span class="tbtn" title="실시간 시세 연결 상태"><span class="livedot" id="live"></span></span>
     </div>
   </div>
@@ -330,7 +329,7 @@ if (!saved.panes && DATA.initial) panes[0].sym = DATA.initial;
 const state = {
   layout: [1, 2, 3, 4].includes(saved.layout) ? saved.layout : 1,
   active: Number.isInteger(saved.active) ? saved.active : 0,
-  engine: saved.engine === 'tv' ? 'tv' : 'live', src: saved.src === 'okx' ? 'okx' : 'bitget',
+  engine: saved.engine === 'tv' ? 'tv' : 'live', src: 'bitget',
   panel: saved.panel === false ? false : true, view: ['pos', 'book', 'liq'].includes(saved.view) ? saved.view : 'watch', liqFilter: saved.liqFilter || 'all',
   stars: (saved.stars || ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'XRP/USDT']).filter(valid),
   closed: saved.closed || {}, sortKey: saved.sortKey || 'pct', sortDir: saved.sortDir || -1,
@@ -560,12 +559,6 @@ function syncTrades() {
   if (add.length) wsSend(tws, 'subscribe', add.map(x => X.sub('trade', x)));
   if (del.length) wsSend(tws, 'unsubscribe', del.map(x => X.sub('trade', x)));
   add.forEach(x => tSubs.add(x)); del.forEach(x => tSubs.delete(x));
-}
-function renderSrcSeg() {
-  $('srcSeg').querySelectorAll('button').forEach(b => {
-    b.classList.toggle('on', b.dataset.s === state.src);
-    b.onclick = () => { if (b.dataset.s === state.src) return; state.src = b.dataset.s; save(); location.reload(); };
-  });
 }
 function renderEngine() {
   $('engineSeg').querySelectorAll('button').forEach(b => {
@@ -1001,7 +994,7 @@ setTimeout(hideSplash, 6000);
 // ---------- 시작 ----------
 fitHeight(); setTimeout(fitHeight, 400);
 $('spTxt').textContent = X.name + ' 실시간 시세 연결 중';
-renderTabs(); renderEngine(); renderSrcSeg(); renderBar(); renderPanel(); renderStatus(); tickClock();
+renderTabs(); renderEngine(); renderBar(); renderPanel(); renderStatus(); tickClock();
 setInterval(tickClock, 1000);
 buildGrid();
 connectTicker(); connectUpbit(); connectLiq(); connectBinanceLiq(); connectBitgetFunding();
