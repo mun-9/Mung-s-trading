@@ -45,9 +45,17 @@ _CSS = r"""
 #mg-music button:hover { background: rgba(255,255,255,.12); }
 #mg-music button svg { width: 16px; height: 16px; }
 #mg-music .yt { position: fixed; left: -9999px; top: 0; width: 200px; height: 200px; }
+/* 인스타·카톡 같은 앱 안 브라우저: 유튜브 플레이어를 LP 위에 투명하게 겹쳐서, 손가락이 플레이어를 직접 누르게 함 */
+#mg-music.inapp .yt { position: absolute; left: 0; top: 50%; width: 58px; height: 58px; margin-top: -29px; overflow: hidden;
+  border-radius: 50%; opacity: .011; z-index: 3; }
+#mg-music.inapp .yt iframe { width: 200px; height: 200px; transform: scale(.29); transform-origin: 0 0; }
+#mg-music .tip { position: absolute; left: 14px; bottom: 70px; width: 230px; padding: 10px 12px; border-radius: 12px; background: rgba(25,31,40,.94);
+  color: #fff; font-size: 12px; line-height: 1.5; box-shadow: 0 6px 20px rgba(0,0,0,.25); display: none; }
+#mg-music.showtip .tip { display: block; }
 @keyframes mg-spin { to { transform: rotate(360deg); } }
 @keyframes mg-marq { to { transform: translateX(-100%); } }
-@media (max-width: 768px) { #mg-music { bottom: 14px; } #mg-music.in { transform: translateX(-27px); } #mg-music.in.open { transform: translateX(10px); } #mg-music .disc { width: 50px; height: 50px; } #mg-music .label { inset: 15px; } }
+@media (max-width: 768px) { #mg-music { bottom: 14px; } #mg-music.in { transform: translateX(-27px); } #mg-music.in.open { transform: translateX(10px); } #mg-music .disc { width: 50px; height: 50px; } #mg-music .label { inset: 15px; }
+  #mg-music.inapp .yt { width: 50px; height: 50px; margin-top: -25px; } #mg-music.inapp .yt iframe { transform: scale(.25); } }
 """
 
 _JS = r"""
@@ -61,8 +69,11 @@ _JS = r"""
   root.id = 'mg-music';
   root.innerHTML = `<div class="disc" title="눌러서 재생"><div class="label"></div><div class="hint">${P}</div></div>
     <div class="pill"><div class="t"><span></span></div><button class="pp">${P}</button>${TRACKS.length > 1 ? `<button class="nx" title="다음 곡">${NX}</button>` : ''}<button class="cl" title="넣기">${CL}</button></div>
-    <div class="yt"><div id="mg-yt"></div></div>`;
+    <div class="yt"><div id="mg-yt"></div></div><div class="tip">인스타·카톡 앱 안에서는 노래가 막힐 수 있어요.<br>오른쪽 위 <b>⋮</b> → <b>외부 브라우저로 열기</b>로 들어와 주세요.</div>`;
   document.body.appendChild(root);
+  // 앱 안 브라우저는 '진짜 손가락 터치'가 유튜브 플레이어에 직접 닿아야만 소리를 틀어줌
+  const INAPP = /Instagram|FBAN|FBAV|FB_IAB|KAKAOTALK|NAVER\(inapp|DaumApps|Line\/|; wv\)/i.test(navigator.userAgent);
+  if (INAPP) root.classList.add('inapp');
   let idx = 0, player = null, ready = false, playing = false, want = false;
   const $ = s => root.querySelector(s);
   function show() {
@@ -90,7 +101,7 @@ _JS = r"""
       events: {
         onReady: () => { ready = true; player.setVolume(60); if (want) player.playVideo(); },
         onStateChange: e => {
-          if (e.data === 1) setPlaying(true);
+          if (e.data === 1) { setPlaying(true); root.classList.add('open'); root.classList.remove('showtip'); }
           else if (e.data === 2) setPlaying(false);
           else if (e.data === 0) { if (TRACKS.length > 1) next(); else { player.seekTo(0); player.playVideo(); } }
         },
@@ -104,6 +115,12 @@ _JS = r"""
     window.onYouTubeIframeAPIReady = () => { if (prev) prev(); init(); };
     const s = document.createElement('script'); s.src = 'https://www.youtube.com/iframe_api'; document.head.appendChild(s);
   }
+  // 앱 안 브라우저: 플레이어를 눌렀는데 3초 안에 재생이 안 되면 외부 브라우저 안내
+  if (INAPP) window.addEventListener('blur', () => setTimeout(() => {
+    if (document.activeElement && document.activeElement.tagName === 'IFRAME' && root.contains(document.activeElement)) {
+      setTimeout(() => { if (!playing) { root.classList.add('showtip'); setTimeout(() => root.classList.remove('showtip'), 7000); } }, 3000);
+    }
+  }, 0));
   setTimeout(() => root.classList.add('in'), 1200);
 })();
 """
