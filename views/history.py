@@ -422,7 +422,7 @@ with st.container(key="chart_card_hour"):
         fig = go.Figure(go.Bar(x=[f"{h}시" for h in hrs.index], y=hrs["sum"],
                                marker=dict(color=[GREEN if v >= 0 else RED for v in hrs["sum"]], line_width=0, cornerradius=4),
                                customdata=hrs["size"], hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT · %{customdata}건<extra></extra>"))
-        fig = style_fig(fig, height=280, ticks=[f"{h}시" for h in range(0, 24, 2)])
+        fig = style_fig(fig, height=280, ticks=[f"{h}시" for h in range(0, 24, 3)])
         fig.update_layout(hovermode="closest")
         st.plotly_chart(no_zoom(fig), width="stretch", config=PLOT_CFG)
     else:
@@ -495,11 +495,11 @@ else:
         else:
             c = pnl_color(r.net) if r.result in ("익절", "손절") else SUB
             chip_bg = GREEN_SOFT if r.result == "익절" else (RED_SOFT if r.result == "손절" else GRAY_SOFT)
-            right = (f"<div class='row-price'>손익 {money(r.gross)} · 수수료 -${r.fee:,.2f}</div>"
+            right = (f"<div class='row-price'><span>손익 {money(r.gross)}</span><span class='rs-sep'> · </span><span class='rs-d'>수수료 -${r.fee:,.2f}</span></div>"
                      f"<div class='row-pnl' style='color:{c};'>{money(r.net) if r.has_pnl else '-'}<span class='chip' style='background:{chip_bg};color:{c};'>{r.result}</span></div>")
         out.append(f"<div class='log-row'><div class='log-left'><div class='sym-badge' style='background:{ss};color:{sc};'>{coin[:1]}</div>"
                    f"<div><div class='row-title'>{r.symbol} <span class='pill' style='background:{ss};color:{sc};'>{r.side}</span></div>"
-                   f"<div class='row-sub'>{dt_str} · {'진입' if r.bucket == '증가' else '청산'} {qty_txt} @ {price}</div></div></div>"
+                   f"<div class='row-sub'><span>{dt_str}</span><span class='rs-sep'> · </span><span class='rs-d'>{'진입' if r.bucket == '증가' else '청산'} {qty_txt} @ {price}</span></div></div></div>"
                    f"<div class='row-right'>{right}</div></div>")
     html("<div class='card' style='padding:6px 20px;max-height:620px;overflow-y:auto;'>" + "".join(out) + "</div>")
     if len(rows) > 150:

@@ -105,6 +105,34 @@ html:not([data-mg-theme="light"]) ::-webkit-scrollbar-thumb { background: #2A303
 .mg-theme-btn:active { transform: scale(.94); }
 .mg-theme-btn svg { width: 18px; height: 18px; }
 /* 다크: 날짜 입력칸 안쪽 흰 배경 제거 */
+html[data-mg-theme="dark"] [data-testid="stDateInputCalendar"] { background-color: var(--mg-card) !important; color: var(--mg-text) !important; border: 1px solid var(--mg-border) !important; box-shadow: 0 10px 30px rgba(0,0,0,0.45) !important; }
+html[data-mg-theme="dark"] [data-testid="stDateInputCalendar"] * { color: var(--mg-text); border-color: var(--mg-border); }
+html[data-mg-theme="dark"] [data-testid="stDateInputCalendar"] [aria-disabled="true"], html[data-mg-theme="dark"] [data-testid="stDateInputCalendar"] [data-disabled], html[data-mg-theme="dark"] [data-testid="stDateInputCalendar"] [data-outside-month] { color: var(--mg-faint) !important; }
+html[data-mg-theme="dark"] [data-testid="stDateInputCalendar"] [data-selected] { background-color: rgba(91,141,255,0.18); }
+html[data-mg-theme="dark"] [data-testid="stDateInputCalendar"] [data-selection-start], html[data-mg-theme="dark"] [data-testid="stDateInputCalendar"] [data-selection-end] { color: #fff !important; }
+html[data-mg-theme="dark"] [data-testid="stDateInputCalendar"] select, html[data-mg-theme="dark"] [data-testid="stDateInputCalendar"] button { background-color: transparent; }
+@media (prefers-color-scheme: dark) {
+html:not([data-mg-theme="light"]) [data-testid="stDateInputCalendar"] { background-color: var(--mg-card) !important; color: var(--mg-text) !important; border: 1px solid var(--mg-border) !important; box-shadow: 0 10px 30px rgba(0,0,0,0.45) !important; }
+html:not([data-mg-theme="light"]) [data-testid="stDateInputCalendar"] * { color: var(--mg-text); border-color: var(--mg-border); }
+html:not([data-mg-theme="light"]) [data-testid="stDateInputCalendar"] [aria-disabled="true"], html:not([data-mg-theme="light"]) [data-testid="stDateInputCalendar"] [data-disabled], html:not([data-mg-theme="light"]) [data-testid="stDateInputCalendar"] [data-outside-month] { color: var(--mg-faint) !important; }
+html:not([data-mg-theme="light"]) [data-testid="stDateInputCalendar"] [data-selected] { background-color: rgba(91,141,255,0.18); }
+html:not([data-mg-theme="light"]) [data-testid="stDateInputCalendar"] [data-selection-start], html:not([data-mg-theme="light"]) [data-testid="stDateInputCalendar"] [data-selection-end] { color: #fff !important; }
+html:not([data-mg-theme="light"]) [data-testid="stDateInputCalendar"] select, html:not([data-mg-theme="light"]) [data-testid="stDateInputCalendar"] button { background-color: transparent; }
+}
+html[data-mg-theme="dark"] [data-testid="stSelectbox"] [role="group"] { background-color: var(--mg-card) !important; border-color: var(--mg-border) !important; color: var(--mg-text) !important; }
+html[data-mg-theme="dark"] [data-testid="stSelectbox"] *, html[data-mg-theme="dark"] [data-testid="stSelectbox"] svg { color: var(--mg-text) !important; }
+html[data-mg-theme="dark"] [role="listbox"], html[data-mg-theme="dark"] [data-rac][role="dialog"], html[data-mg-theme="dark"] .react-aria-Popover { background-color: var(--mg-card) !important; color: var(--mg-text) !important; border-color: var(--mg-border) !important; }
+html[data-mg-theme="dark"] [role="option"] { color: var(--mg-text) !important; background-color: transparent !important; }
+html[data-mg-theme="dark"] [role="option"][data-focused], html[data-mg-theme="dark"] [role="option"][data-hovered], html[data-mg-theme="dark"] [role="option"][aria-selected="true"] { background-color: var(--mg-soft) !important; }
+html[data-mg-theme="dark"] [role="dialog"] [role="gridcell"], html[data-mg-theme="dark"] [role="dialog"] button, html[data-mg-theme="dark"] [role="dialog"] th, html[data-mg-theme="dark"] [role="dialog"] h2 { color: var(--mg-text) !important; }
+@media (prefers-color-scheme: dark) {
+html:not([data-mg-theme="light"]) [data-testid="stSelectbox"] [role="group"] { background-color: var(--mg-card) !important; border-color: var(--mg-border) !important; color: var(--mg-text) !important; }
+html:not([data-mg-theme="light"]) [data-testid="stSelectbox"] *, html:not([data-mg-theme="light"]) [data-testid="stSelectbox"] svg { color: var(--mg-text) !important; }
+html:not([data-mg-theme="light"]) [role="listbox"], html:not([data-mg-theme="light"]) [data-rac][role="dialog"], html:not([data-mg-theme="light"]) .react-aria-Popover { background-color: var(--mg-card) !important; color: var(--mg-text) !important; border-color: var(--mg-border) !important; }
+html:not([data-mg-theme="light"]) [role="option"] { color: var(--mg-text) !important; background-color: transparent !important; }
+html:not([data-mg-theme="light"]) [role="option"][data-focused], html:not([data-mg-theme="light"]) [role="option"][data-hovered], html:not([data-mg-theme="light"]) [role="option"][aria-selected="true"] { background-color: var(--mg-soft) !important; }
+html:not([data-mg-theme="light"]) [role="dialog"] [role="gridcell"], html:not([data-mg-theme="light"]) [role="dialog"] button, html:not([data-mg-theme="light"]) [role="dialog"] th, html:not([data-mg-theme="light"]) [role="dialog"] h2 { color: var(--mg-text) !important; }
+}
 html[data-mg-theme="dark"] [data-testid="stDateInputField"], html[data-mg-theme="dark"] [data-testid="stDateInput"] input { background-color: var(--mg-card) !important; color: var(--mg-text) !important; border-color: var(--mg-border) !important; }
 html[data-mg-theme="dark"] [data-testid="stDateInput"] span { color: var(--mg-text) !important; } html[data-mg-theme="dark"] [data-testid="stDateInput"] svg { color: var(--mg-sub) !important; }
 @media (prefers-color-scheme: dark) {
@@ -324,7 +352,11 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
 .row-sub { font-size:12px; color:var(--mg-sub); margin-top:3px; }
 .row-right { text-align:right; }
 .row-price { font-size:12px; color:var(--mg-sub); margin-bottom:4px; }
-.row-pnl { font-size:14.5px; font-weight:800; }
+.row-pnl { font-size:14.5px; font-weight:800; white-space:nowrap; }
+.log-left { min-width:0; }
+.log-left > div:last-child { min-width:0; }
+.row-right { flex-shrink:0; padding-left:10px; }
+.row-price { white-space:nowrap; }
 .chip { display:inline-block; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:999px; margin-left:4px; }
 
 @media (max-width: 768px) {
@@ -344,6 +376,18 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
     .ph-title { font-size: 21px; }
     .pos-divider { border-left: none !important; border-top: 1px solid var(--mg-border) !important; padding-top: 14px !important; margin-top: 6px !important; }
     .hide-on-mobile { display: none !important; }
+    /* 상세 매매 내역: 휴대폰에서는 날짜 / 수량·가격, 손익 / 수수료를 줄을 나눠서 깔끔하게 */
+    .log-row { padding: 13px 2px; align-items: flex-start; }
+    .log-left { gap: 10px; align-items: flex-start; }
+    .sym-badge { width: 32px; height: 32px; min-width: 32px; font-size: 12px; margin-top: 2px; }
+    .row-title { font-size: 14px; white-space: nowrap; }
+    .row-title .pill { font-size: 10px; padding: 2px 7px; }
+    .row-sub { font-size: 11.5px; line-height: 1.55; }
+    .row-sub .rs-sep, .row-price .rs-sep { display: none; }
+    .row-sub .rs-d, .row-price .rs-d { display: block; }
+    .row-price { font-size: 11px; line-height: 1.5; margin-bottom: 3px; }
+    .row-pnl { font-size: 14px; }
+    .row-pnl .chip { font-size: 10px; padding: 2px 6px; }
     .kpi-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
     .pt-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
     div[data-testid="stButtonGroup"] button { padding: 0 10px !important; min-height: 34px !important; }
