@@ -20,7 +20,7 @@ svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-widt
 
 #app { display: flex; flex-direction: column; height: 100vh; }
 
-/* 로딩 화면 */
+/* SPLASH-CSS-START */
 #splash { position: fixed; inset: 0; z-index: 100; background: radial-gradient(ellipse at 50% 40%, #182038 0%, #0D1018 70%); display: flex; align-items: center; justify-content: center; transition: opacity .5s ease, visibility .5s; }
 #splash.hide { opacity: 0; visibility: hidden; }
 .sp-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(41,98,255,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(41,98,255,.07) 1px, transparent 1px);
@@ -44,6 +44,7 @@ svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-widt
 @keyframes sp-run { to { left: 100%; } }
 .sp-txt { font-size: 12.5px; color: #787B86; letter-spacing: .5px; }
 
+/* SPLASH-CSS-END */
 /* ① 맨 위 줄: 로고 · 화면 탭 · 매매 히스토리 */
 #upper { display: flex; align-items: center; height: 34px; padding: 0 8px 0 12px; background: var(--top); flex-shrink: 0; gap: 4px; }
 .logo { display: flex; align-items: center; gap: 7px; margin-right: 18px; color: var(--strong); font-size: 14px; font-weight: 700; white-space: nowrap; }
@@ -241,7 +242,7 @@ svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-widt
 </style>
 </head>
 <body>
-<div id="splash">
+<!-- SPLASH-START --><div id="splash">
   <div class="sp-grid"></div>
   <div class="sp-in">
     <div class="sp-logo"><i></i><i></i><i></i></div>
@@ -256,6 +257,7 @@ svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-widt
     <div class="sp-txt" id="spTxt">OKX 실시간 시세 연결 중</div>
   </div>
 </div>
+<!-- SPLASH-END -->
 <div id="app">
   <div id="upper">
     <div class="logo"><svg viewBox="0 0 24 24"><rect x="3" y="12" width="4" height="9" rx="1.5" fill="#2962FF" opacity=".5"/><rect x="10" y="7" width="4" height="14" rx="1.5" fill="#2962FF" opacity=".75"/><rect x="17" y="3" width="4" height="18" rx="1.5" fill="#2962FF"/></svg><span class="logo-t">Mungge</span></div>
