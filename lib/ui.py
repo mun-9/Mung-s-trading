@@ -50,6 +50,14 @@ html, body, .stApp { background-color: #F2F4F6 !important; }
 div[data-testid="stElementContainer"]:has(div[data-testid="stMarkdownContainer"] > style:only-child) { display: none !important; }
 [data-testid="stToolbarActions"], [data-testid="stMainMenu"], [data-testid="stAppDeployButton"] { display: none !important; }
 
+/* 칸(column) 안의 카드가 아래 카드와 겹치지 않게 */
+div[data-testid="stColumn"] [data-testid="stMarkdownContainer"] { margin-bottom: 0 !important; }
+/* 분봉·종류 선택 버튼: 한 줄 유지 */
+div[data-testid="stButtonGroup"] div[role="radiogroup"] { flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+div[data-testid="stButtonGroup"] div[role="radiogroup"]::-webkit-scrollbar { display: none; }
+div[data-testid="stButtonGroup"] button { white-space: nowrap !important; flex-shrink: 0; }
+div[data-testid="stElementContainer"]:has(> div[data-testid="stButtonGroup"]) { max-width: 100%; }
+
 /* 새로고침 중 회색으로 흐려지는 효과 끄기 */
 div[data-stale="true"], [data-stale="true"] { opacity: 1 !important; transition: none !important; filter: none !important; }
 
@@ -193,6 +201,8 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
     .hide-on-mobile { display: none !important; }
     .kpi-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
     .pt-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
+    div[data-testid="stButtonGroup"] button { padding: 0 10px !important; min-height: 34px !important; }
+    div[data-testid="stButtonGroup"] button p { font-size: 13px !important; }
     .pt { padding: 14px; min-height: 150px; }
     .pt-value { font-size: 22px; }
     .bar-row { grid-template-columns: 1fr auto; }

@@ -32,6 +32,7 @@ svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-widt
 .upper-right { margin-left: auto; display: flex; align-items: center; gap: 6px; }
 .linkbtn { display: flex; align-items: center; gap: 7px; height: 27px; padding: 0 14px; border-radius: 7px; border: 0; background: var(--accent); color: #fff; font-size: 13.5px; font-weight: 700; white-space: nowrap; cursor: pointer; }
 .linkbtn:hover { background: #3D74FF; }
+.linkbtn .short { display: none; }
 .linkbtn.ghost { background: rgba(255,255,255,0.06); color: var(--strong); }
 .linkbtn.ghost:hover { background: rgba(255,255,255,0.12); }
 .linkbtn svg.i { width: 15px; height: 15px; stroke-width: 2; }
@@ -190,17 +191,26 @@ svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-widt
   .hide-sm { display: none !important; }
   #bar { gap: 12px; }
   .wtab .lbl { display: none; }
+  #upper { padding: 0 6px 0 10px; gap: 0; }
+  .logo { margin-right: 8px; }
+  .logo-t { display: none; }
+  .wtab { padding: 0 9px; }
+  .upper-right { gap: 4px; flex-shrink: 0; }
+  .linkbtn { padding: 0 9px; font-size: 12.5px; gap: 5px; height: 26px; }
+  .linkbtn .full { display: none; } .linkbtn .short { display: inline; }
+  #symBtn .kind { display: none; }
+  #status { gap: 10px; }
 }
 </style>
 </head>
 <body>
 <div id="app">
   <div id="upper">
-    <div class="logo"><svg viewBox="0 0 24 24"><rect x="3" y="12" width="4" height="9" rx="1.5" fill="#2962FF" opacity=".5"/><rect x="10" y="7" width="4" height="14" rx="1.5" fill="#2962FF" opacity=".75"/><rect x="17" y="3" width="4" height="18" rx="1.5" fill="#2962FF"/></svg>Mungge</div>
+    <div class="logo"><svg viewBox="0 0 24 24"><rect x="3" y="12" width="4" height="9" rx="1.5" fill="#2962FF" opacity=".5"/><rect x="10" y="7" width="4" height="14" rx="1.5" fill="#2962FF" opacity=".75"/><rect x="17" y="3" width="4" height="18" rx="1.5" fill="#2962FF"/></svg><span class="logo-t">Mungge</span></div>
     <div id="tabs" style="display:flex;align-self:stretch;"></div>
     <div class="upper-right">
-      <button class="linkbtn ghost" id="goMarket"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>시장</button>
-      <button class="linkbtn" id="goHistory"><svg class="i" viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 15l3-4 3 2 5-6"/></svg>매매 히스토리</button>
+      <button class="linkbtn ghost" id="goMarket"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>시장</span></button>
+      <button class="linkbtn" id="goHistory"><svg class="i" viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 15l3-4 3 2 5-6"/></svg><span class="full">매매 히스토리</span><span class="short">히스토리</span></button>
     </div>
   </div>
 

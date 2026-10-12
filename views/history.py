@@ -169,23 +169,28 @@ if "date_range" not in st.session_state:
     st.session_state.date_range = (max(dash_start, today_d - timedelta(days=30)), today_d)
 
 
-def set_range(mode):
+RANGES = {"오늘": "today", "7일": "week", "이번 달": "month", "최근 30일": "30d"}
+
+
+def set_range():
+    mode = RANGES.get(st.session_state.get("quick_range"))
+    if not mode:
+        return
     starts = {"today": today_d, "week": today_d - timedelta(days=6), "month": today_d.replace(day=1),
               "30d": today_d - timedelta(days=30)}
     st.session_state.date_range = (max(dash_start, starts[mode]), today_d)
 
 
-cd, b1, b2, b3, b4 = st.columns([2.6, 0.8, 0.8, 0.9, 1])
-with b1:
-    st.button("오늘", on_click=set_range, args=("today",), width="stretch")
-with b2:
-    st.button("7일", on_click=set_range, args=("week",), width="stretch")
-with b3:
-    st.button("이번 달", on_click=set_range, args=("month",), width="stretch")
-with b4:
-    st.button("최근 30일", on_click=set_range, args=("30d",), width="stretch")
+def clear_quick():
+    st.session_state.quick_range = None
+
+
+cd, cq = st.columns([1.3, 1])
+with cq:
+    st.segmented_control("빠른 기간", list(RANGES), key="quick_range", on_change=set_range, label_visibility="collapsed")
 with cd:
-    dates = st.date_input("기간", key="date_range", min_value=dash_start, max_value=today_d, label_visibility="collapsed")
+    dates = st.date_input("기간", key="date_range", min_value=dash_start, max_value=today_d, label_visibility="collapsed",
+                          on_change=clear_quick)
 
 if isinstance(dates, (tuple, list)):
     start_d, end_d = (dates[0], dates[-1]) if len(dates) else (today_d, today_d)
