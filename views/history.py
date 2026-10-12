@@ -72,7 +72,7 @@ def live_positions():
                 sign = "+" if p["unrealized_pnl"] >= 0 else ""
                 coin = sym.split("/")[0]
                 ratio = (p["margin"] / wallet * 100) if wallet > 0 else 0
-                pend = hist["pending_fees"].get(f"{sym}|{p['side']}", 0.0)
+                pend = D.pending_fee_for(hist["pending_fees"], sym, p["side"], p["size"])
                 pend_html = (f"<div style='font-size:11.5px;color:{SUB};margin-top:6px;'>진입 수수료 -${pend:,.2f} · 청산 시 반영</div>"
                              if pend > 0 else "")
                 html(f"""<div style="display:flex;flex-wrap:wrap;margin-bottom:5px;">
@@ -165,8 +165,7 @@ with c3:
     def unrealized_card():
         pos, _, _ = D.fetch_positions(keys)
         u = sum(p["unrealized_pnl"] for p in pos) if pos else 0.0
-        open_keys = {f"{p['symbol']}|{p['side']}" for p in pos} if pos else set()
-        pend = sum(v for k, v in hist["pending_fees"].items() if k in open_keys)
+        pend = sum(D.pending_fee_for(hist["pending_fees"], p["symbol"], p["side"], p["size"]) for p in (pos or []))
         sub = f"진입 수수료 -${pend:,.2f} 별도 · 10초 갱신" if pend > 0 else "전체 포지션 합계 · 10초 갱신"
         html(top_card("현재 미실현손익", u, sub, D.fetch_usdt_krw()))
     unrealized_card()

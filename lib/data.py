@@ -176,13 +176,17 @@ def parse_fill(t):
     else:
         is_close = has_pnl and gross != 0
 
+    buy = str(info.get("side") or t.get("side", "")).lower() == "buy"
+    hedge = str(info.get("posMode", "")).lower() == "hedge_mode" or ts in ("open", "close")
     if "long" in ts:
         side = "LONG"
     elif "short" in ts:
         side = "SHORT"
+    elif hedge:
+        # Bitget 양방향(헤지) 모드: 롱 포지션은 진입·청산 모두 side=buy, 숏은 모두 sell
+        side = "LONG" if buy else "SHORT"
     else:
-        buy = str(t.get("side", "")).lower() == "buy"
-        # 청산 체결은 반대 방향 주문이므로 포지션 방향을 뒤집어서 판단
+        # 단방향 모드: 청산 체결은 반대 방향 주문이므로 뒤집어서 판단
         side = ("LONG" if buy else "SHORT") if not is_close else ("SHORT" if buy else "LONG")
 
     fee = 0.0
@@ -249,7 +253,8 @@ def build_trades(fills):
     g["result"] = [result_of(b, h, n) for b, h, n in zip(g["bucket"], g["has_pnl"], g["net"])]
     g = g.drop(columns=["notional"]).sort_values("datetime", ascending=False)
 
-    pending = {f"{k[0]}|{k[1]}": v[1] for k, v in book.items() if v[0] > 1e-12 and v[1] > 0}
+    # 아직 청산되지 않은 진입 수수료: {"종목|방향": [남은 수량, 보관 중인 수수료]}
+    pending = {f"{k[0]}|{k[1]}": [v[0], v[1]] for k, v in book.items() if v[0] > 1e-12 and v[1] > 0}
     return g[TRADE_COLS].reset_index(drop=True), pending
 
 
@@ -667,3 +672,16 @@ def fetch_ls_external(symbols):
             except Exception:
                 out[s][ex] = None
     return out
+
+
+def pending_fee_for(pending, symbol, side, size):
+    """현재 보유 수량만큼의 진입 수수료 (기록상 수량이 더 크면 비율로 줄임)."""
+    v = (pending or {}).get(f"{symbol}|{side}")
+    if not v:
+        return 0.0
+    if isinstance(v, (int, float)):
+        return float(v)
+    qty, fee = v
+    if qty <= 0:
+        return 0.0
+    return fee * min(1.0, float(size) / qty)
