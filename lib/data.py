@@ -598,3 +598,31 @@ def fetch_usdkrw():
             return float(_json.loads(r.read().decode())["rates"]["KRW"])
     except Exception:
         return None
+
+
+@st.cache_data(ttl=15, show_spinner=False)
+def fetch_bybit_tickers():
+    """Bybit USDT 무기한 시세 (차트 페이지 기준 거래소). 실패하면 {}."""
+    try:
+        raw = ccxt.bybit({"enableRateLimit": True}).fetch_tickers(params={"category": "linear"})
+    except Exception:
+        return {}
+    out = {}
+    for k, v in raw.items():
+        if not k.endswith("/USDT:USDT"):
+            continue
+        info = v.get("info") or {}
+
+        def f(x):
+            try:
+                return float(x)
+            except (TypeError, ValueError):
+                return None
+        out[_plain_symbol(k)] = {
+            "last": f(info.get("lastPrice")) or f(v.get("last")),
+            "pct": (f(info.get("price24hPcnt")) * 100) if f(info.get("price24hPcnt")) is not None else f(v.get("percentage")),
+            "high": f(info.get("highPrice24h")), "low": f(info.get("lowPrice24h")),
+            "qv": f(info.get("turnover24h")), "funding": f(info.get("fundingRate")),
+            "nft": f(info.get("nextFundingTime")),
+        }
+    return out

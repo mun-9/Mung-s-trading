@@ -186,9 +186,8 @@ svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-widt
     <div class="ms hide-lg" id="kpBox"><span class="lb">김프</span><span class="v num" id="kp">-</span></div>
     <div id="posChips" class="hide-sm"></div>
     <div class="bar-right">
-      <label class="tbtn hide-md" title="차트를 그릴 거래소 데이터 (Bybit·OKX가 촘촘해서 부드러워요)"><svg class="i" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg><span id="srcLbl"></span>
-        <select id="srcSel"></select></label>
-      <span class="tbtn" title="Bitget 실시간 시세 연결 상태"><span class="livedot" id="live"></span></span>
+      <span class="tbtn hide-md" style="cursor:default" title="차트와 시세 모두 Bybit 기준">Bybit 기준</span>
+      <span class="tbtn" title="Bybit 실시간 시세 연결 상태"><span class="livedot" id="live"></span></span>
     </div>
   </div>
 
@@ -216,7 +215,6 @@ svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-widt
 const DATA = __DATA__;
 const COIN_COLORS = { BTC: '#F7931A', ETH: '#627EEA', SOL: '#9945FF', XRP: '#23292F', DOGE: '#C2A633', BNB: '#F3BA2F', ADA: '#0033AD',
   SUI: '#4DA2FF', LINK: '#2A5ADA', AVAX: '#E84142', TRX: '#EB0029', LTC: '#345D9D', DOT: '#E6007A', TON: '#0098EA', HYPE: '#50D2C1' };
-const SOURCES = { BYBIT: 'Bybit', OKX: 'OKX', BINANCE: 'Binance', BITGET: 'Bitget' };
 const DEFAULT_PANES = [{ sym: 'BTC/USDT', iv: '3' }, { sym: 'ETH/USDT', iv: '15' }, { sym: 'SOL/USDT', iv: '15' }, { sym: 'XRP/USDT', iv: '15' }];
 const TABS = [{ n: 1, label: '단일 차트' }, { n: 2, label: '2분할' }, { n: 3, label: '3분할' }, { n: 4, label: '4분할' }];
 const LAYOUT_ICONS = {
@@ -242,14 +240,13 @@ if (!saved.panes && DATA.initial) panes[0].sym = DATA.initial;
 const state = {
   layout: [1, 2, 3, 4].includes(saved.layout) ? saved.layout : 1,
   active: Number.isInteger(saved.active) ? saved.active : 0,
-  src: SOURCES[saved.src] ? saved.src : 'BYBIT',
   panel: saved.panel === false ? false : true, view: saved.view === 'pos' ? 'pos' : 'watch',
   stars: (saved.stars || ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'XRP/USDT']).filter(valid),
   closed: saved.closed || {}, sortKey: saved.sortKey || 'pct', sortDir: saved.sortDir || -1,
   tk: Object.assign({}, DATA.tickers), up: Object.assign({}, DATA.upbit || {}), q: '',
 };
 if (state.active >= state.layout) state.active = 0;
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ panes, layout: state.layout, active: state.active, src: state.src, panel: state.panel, view: state.view, stars: state.stars, closed: state.closed, sortKey: state.sortKey, sortDir: state.sortDir })); } catch (e) {} };
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ panes, layout: state.layout, active: state.active, panel: state.panel, view: state.view, stars: state.stars, closed: state.closed, sortKey: state.sortKey, sortDir: state.sortDir })); } catch (e) {} };
 const curSym = () => panes[state.active].sym;
 const $ = id => document.getElementById(id);
 
@@ -280,7 +277,7 @@ function renderTabs() {
 }
 
 // ---------- 차트 ----------
-const tvSymbol = sym => `${state.src}:${sym.replace('/', '')}.P`;
+const tvSymbol = sym => `BYBIT:${sym.replace('/', '')}.P`;
 function paneHead(i) {
   const s = panes[i].sym, t = state.tk[s] || {};
   return `${coin(s)}<b>${base(s)}</b><span>무기한</span><span class="num ${cls(t.pct)}">${fmtPrice(t.last)}</span><span class="num ${cls(t.pct)}">${fmtPct(t.pct)}</span>
@@ -368,12 +365,6 @@ function tickClock() {
   const h = Math.floor(left / 3600e3), m = Math.floor(left % 3600e3 / 60e3), s = Math.floor(left % 60e3 / 1e3);
   $('fcd').textContent = `· ${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')} 뒤`;
 }
-function renderSrc() {
-  $('srcSel').innerHTML = Object.entries(SOURCES).map(([k, v]) => `<option value="${k}"${k === state.src ? ' selected' : ''}>${v}</option>`).join('');
-  $('srcLbl').textContent = '차트 ' + SOURCES[state.src];
-}
-$('srcSel').onchange = e => { state.src = e.target.value; save(); renderSrc(); for (let i = 0; i < state.layout; i++) buildPane(i); };
-
 // ---------- 오른쪽 패널 ----------
 const held = new Set(DATA.positions.map(p => p.symbol));
 let rowEls = {};
@@ -516,31 +507,29 @@ function renderStatus() {
 
 // ---------- 실시간 시세 ----------
 let dirty = false;
-// Bitget 선물 시세 (포지션이 있는 거래소)
+// Bybit 무기한 시세 (차트와 같은 거래소)
 let ws, wsPing, retry = 0;
-function connectBitget() {
-  try { ws = new WebSocket('wss://ws.bitget.com/v2/ws/public'); } catch (e) { return; }
+function connectBybit() {
+  try { ws = new WebSocket('wss://stream.bybit.com/v5/public/linear'); } catch (e) { return; }
   ws.onopen = async () => {
     retry = 0; $('live').classList.add('on');
-    const args = DATA.symbols.map(s => ({ instType: 'USDT-FUTURES', channel: 'ticker', instId: s.replace('/', '') }));
-    for (let i = 0; i < args.length; i += 50) { try { ws.send(JSON.stringify({ op: 'subscribe', args: args.slice(i, i + 50) })); } catch (e) {} await new Promise(r => setTimeout(r, 120)); }
-    clearInterval(wsPing); wsPing = setInterval(() => { try { ws.send('ping'); } catch (e) {} }, 25000);
+    const args = DATA.symbols.map(s => 'tickers.' + s.replace('/', ''));
+    for (let i = 0; i < args.length; i += 10) { try { ws.send(JSON.stringify({ op: 'subscribe', args: args.slice(i, i + 10) })); } catch (e) {} await new Promise(r => setTimeout(r, 40)); }
+    clearInterval(wsPing); wsPing = setInterval(() => { try { ws.send(JSON.stringify({ op: 'ping' })); } catch (e) {} }, 20000);
   };
   ws.onmessage = ev => {
-    if (ev.data === 'pong') return;
     let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
-    if (!m.data || !m.arg || m.arg.channel !== 'ticker') return;
-    const num = x => (x === undefined || x === null || x === '') ? null : +x;
-    for (const d of m.data) {
-      const s = DATA.byId[d.instId || m.arg.instId]; if (!s) continue;
-      const p = state.tk[s] || {};
-      state.tk[s] = { last: num(d.lastPr) ?? p.last, pct: d.change24h != null ? num(d.change24h) * 100 : p.pct,
-        high: num(d.high24h) ?? p.high, low: num(d.low24h) ?? p.low, qv: num(d.quoteVolume) ?? num(d.usdtVolume) ?? p.qv,
-        funding: num(d.fundingRate) ?? p.funding, nft: num(d.nextFundingTime) ?? p.nft };
-    }
+    if (!m.topic || !m.topic.startsWith('tickers.') || !m.data) return;
+    const d = m.data, s = DATA.byId[d.symbol || m.topic.slice(8)]; if (!s) return;
+    const num = x => (x === undefined || x === null || x === '') ? undefined : +x;
+    const p = state.tk[s] || {}, pc = num(d.price24hPcnt);
+    // delta 메시지는 바뀐 값만 오므로 없는 값은 이전 값 유지
+    state.tk[s] = { last: num(d.lastPrice) ?? p.last, pct: pc !== undefined ? pc * 100 : p.pct,
+      high: num(d.highPrice24h) ?? p.high, low: num(d.lowPrice24h) ?? p.low, qv: num(d.turnover24h) ?? p.qv,
+      funding: num(d.fundingRate) ?? p.funding, nft: num(d.nextFundingTime) ?? p.nft };
     dirty = true;
   };
-  ws.onclose = () => { clearInterval(wsPing); $('live').classList.remove('on'); retry = Math.min(retry + 1, 6); setTimeout(connectBitget, 1000 * 2 ** retry); };
+  ws.onclose = () => { clearInterval(wsPing); $('live').classList.remove('on'); retry = Math.min(retry + 1, 6); setTimeout(connectBybit, 1000 * 2 ** retry); };
   ws.onerror = () => { try { ws.close(); } catch (e) {} };
 }
 // 업비트 원화 시세 (김프 · 하단 원화)
@@ -600,10 +589,10 @@ document.getElementById('grid').addEventListener('mousedown', e => {
 
 // ---------- 시작 ----------
 fitHeight(); setTimeout(fitHeight, 400);
-renderTabs(); renderSrc(); renderBar(); renderPanel(); renderStatus(); tickClock();
+renderTabs(); renderBar(); renderPanel(); renderStatus(); tickClock();
 setInterval(tickClock, 1000);
 buildGrid();
-connectBitget(); connectUpbit();
+connectBybit(); connectUpbit();
 </script>
 </body>
 </html>

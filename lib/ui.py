@@ -60,7 +60,7 @@ div[class*="st-key-topnav_"] {
     width: 100vw !important; max-width: none !important; min-width: 100vw !important; flex: none !important;
     padding: 0 max(80px, calc(50vw - 540px)) !important;
     background: rgba(255,255,255,0.93); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid #E7EBF1; margin-bottom: 12px;
+    border-bottom: 1px solid #E7EBF1; margin-bottom: 0;
 }
 div[class*="st-key-topnav_dark"] { background: #0F121A; border-bottom-color: #1E222D; margin-bottom: 8px; padding: 0 14px !important; height: 50px; }
 div[class*="st-key-topnav_dark"] .nav-logo .word { font-size: 17px; }
@@ -80,7 +80,7 @@ div[class*="st-key-topnav_dark"] div[class*="st-key-navlink_"][class*="_on"] a p
 div[class*="st-key-topnav_dark"] div[class*="st-key-navlink_"] a:hover p { color: #FFFFFF !important; }
 
 /* 섹션 제목 줄 (보유 포지션 + 배지 + 새로고침) */
-div[class*="st-key-page_head"] { margin: 0 0 4px; }
+div[class*="st-key-page_head"] { margin: -4px 0 2px; }
 div[class*="st-key-page_head"] > div:last-child { margin-left: auto !important; }
 .ph-title { font-size: 24px; font-weight: 800; color: #191F28; letter-spacing: -0.03em; }
 div[class*="st-key-refresh_btn"] button { width: 36px !important; height: 36px !important; min-height: 36px !important; padding: 0 !important; border-radius: 12px !important; box-shadow: 0 2px 8px rgba(15,23,42,0.03);

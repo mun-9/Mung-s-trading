@@ -22,7 +22,8 @@ with st.container(key="hidden_nav_history"):
 
 keys = D.get_keys()
 positions, _, _ = D.fetch_positions(keys)
-tickers = D.fetch_tickers()
+# 차트·시세 모두 Bybit 기준 (Bybit 조회가 막히면 Bitget 시세를 초기값으로만 사용, 브라우저가 Bybit 실시간으로 덮어씀)
+tickers = D.fetch_bybit_tickers() or D.fetch_tickers()
 upbit = D.fetch_upbit_krw()
 
 pos_syms = list(dict.fromkeys(p["symbol"] for p in positions))
