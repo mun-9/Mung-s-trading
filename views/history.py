@@ -21,6 +21,8 @@ def no_zoom(fig):
     fig.update_yaxes(fixedrange=True)
     return fig
 KST = D.KST
+# 차트 말풍선: 라이트·다크 둘 다 잘 보이게 어두운 색으로 고정
+HOVER = dict(bgcolor="rgba(23,27,34,0.94)", bordercolor="rgba(255,255,255,0.08)", font=dict(color="#ECEEF2", size=12))
 keys = D.get_keys()
 # 처음 들어왔을 때·새로고침 버튼을 눌렀을 때만 로딩 화면을 보여주고, 그동안 예전 화면은 숨김
 _full_load = st.session_state.pop("_full_reload", False) or "hist_seen" not in st.session_state
@@ -94,7 +96,7 @@ def live_positions():
 <div style='font-size:14px;font-weight:700;color:{pc};'>({sign}{p['roe']:.2f}%)</div>{pend_html}</div>
 <div class="pos-box pos-divider" style="padding-right:0;"><div style='font-size:12.5px;color:{SUB};font-weight:600;margin-bottom:12px;'>증거금 <span style="color:{BLUE};">(비중%)</span> · 청산가</div>
 <div style='display:flex;align-items:baseline;gap:8px;margin-bottom:6px;'><span style='width:42px;font-size:11.5px;color:{SUB};'>증거금</span><span style='font-size:17px;font-weight:700;color:{TEXT};'>${p['margin']:,.2f} <span style='font-size:13px;color:{BLUE};'>({ratio:.1f}%)</span></span></div>
-<div style='display:flex;align-items:baseline;gap:8px;'><span style='width:42px;font-size:11.5px;color:{SUB};'>청산가</span><span style='font-size:17px;font-weight:700;color:#4b5563;'>${p['liq_price']:,.2f}</span></div></div></div>""")
+<div style='display:flex;align-items:baseline;gap:8px;'><span style='width:42px;font-size:11.5px;color:{SUB};'>청산가</span><span style='font-size:17px;font-weight:700;color:var(--mg-mid);'>${p['liq_price']:,.2f}</span></div></div></div>""")
                 if i < len(plist) - 1:
                     html(f"<div style='border-top:1px solid {DIVIDER};margin:10px 0 15px;'></div>")
 
@@ -130,9 +132,9 @@ def live_positions():
             fig.update_layout(
                 height=350, margin=dict(t=15, b=10, l=10, r=45), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                 xaxis_rangeslider_visible=False, showlegend=False, hovermode="x unified",
-                xaxis=dict(showgrid=True, gridcolor="#F8F9FA", tickformat="%H:%M", tickfont=dict(color=GRAY, size=11)),
-                yaxis=dict(showgrid=True, gridcolor="#F0F3F6", side="right", tickfont=dict(color=GRAY, size=11)),
-                hoverlabel=dict(bgcolor="#fff", bordercolor="#F2F4F6", font=dict(color=TEXT, size=12)))
+                xaxis=dict(showgrid=True, gridcolor="rgba(139,149,161,0.14)", tickformat="%H:%M", tickfont=dict(color=GRAY, size=11)),
+                yaxis=dict(showgrid=True, gridcolor="rgba(139,149,161,0.14)", side="right", tickfont=dict(color=GRAY, size=11)),
+                hoverlabel=HOVER)
             st.plotly_chart(no_zoom(fig), width="stretch", config=PLOT_CFG, key=f"poschart_{safe}")
 
 
@@ -258,7 +260,7 @@ sh = int((closes["side"] == "SHORT").sum()) if decr else 0
 lp = (lg / (lg + sh) * 100) if (lg + sh) else 0
 long_net = float(closes.loc[closes["side"] == "LONG", "net"].sum()) if decr else 0.0
 short_net = float(closes.loc[closes["side"] == "SHORT", "net"].sum()) if decr else 0.0
-card_style = "background:#fff;border-radius:20px;padding:22px;box-shadow:0 2px 14px rgba(15,23,42,0.05);height:320px;display:flex;flex-direction:column;justify-content:space-between;"
+card_style = "background:var(--mg-card);border-radius:20px;padding:22px;box-shadow:0 2px 14px rgba(15,23,42,0.05);height:320px;display:flex;flex-direction:column;justify-content:space-between;"
 
 
 def pair(l1, v1, c1, l2, v2, c2):
@@ -272,14 +274,14 @@ with col_t1:
     html(f"""<div style="{card_style}"><div><div class="card-title"><span>총 주문 횟수</span><span>선택 기간</span></div>
 <div style='display:flex;align-items:baseline;margin:14px 0 22px;'><span style='font-size:34px;font-weight:800;color:{TEXT};'>{total}</span><span style='font-size:13px;font-weight:600;color:{SUB};margin-left:4px;'>회</span></div>
 <div style='display:flex;flex-direction:column;gap:14px;'>{pair('진입', f'{incr} 회', TEXT, '청산', f'{decr} 회', TEXT)}{pair('익절', f'{wins} 회', GREEN, '손절', f'{losses} 회', RED)}</div></div>
-<div style='border-top:1px solid #E5E8EB;padding-top:14px;display:flex;justify-content:space-between;align-items:center;'>
+<div style='border-top:1px solid var(--mg-line);padding-top:14px;display:flex;justify-content:space-between;align-items:center;'>
 <span style='font-size:13px;color:{SUB};font-weight:600;'>기간 승률 <span style='font-weight:500;'>(수수료 차감 후)</span></span><b style='color:{BLUE};font-size:17px;'>{win_rate:.1f}%</b></div></div>""")
 
 with col_t2:
-    grad = f"conic-gradient({GREEN} 0% {lp}%, {RED} {lp}% 100%)" if (lg + sh) else "conic-gradient(#EEF0F4 0% 100%)"
+    grad = f"conic-gradient({GREEN} 0% {lp}%, {RED} {lp}% 100%)" if (lg + sh) else "conic-gradient(var(--mg-soft) 0% 100%)"
     html(f"""<div style="{card_style}"><div class="card-title"><span>LONG / SHORT</span><span>청산 횟수 · 순손익</span></div>
 <div style="display:flex;justify-content:center;align-items:center;flex-grow:1;"><div style="width:118px;height:118px;border-radius:50%;background:{grad};display:flex;justify-content:center;align-items:center;">
-<div style="width:86px;height:86px;background:#fff;border-radius:50%;display:flex;flex-direction:column;justify-content:center;align-items:center;">
+<div style="width:86px;height:86px;background:var(--mg-card);border-radius:50%;display:flex;flex-direction:column;justify-content:center;align-items:center;">
 <span style="font-size:11.5px;color:{SUB};font-weight:600;">총 청산</span><b style="font-size:22px;color:{TEXT};">{decr}건</b></div></div></div>
 <div><div style='display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px;'><span style='color:{GREEN};font-weight:700;'>LONG {lg}건 · {lp:.0f}%</span><b style='color:{pnl_color(long_net)};'>{money(long_net)}</b></div>
 <div style='display:flex;justify-content:space-between;font-size:13px;'><span style='color:{RED};font-weight:700;'>SHORT {sh}건 · {100 - lp if (lg + sh) else 0:.0f}%</span><b style='color:{pnl_color(short_net)};'>{money(short_net)}</b></div></div></div>""")
@@ -305,8 +307,8 @@ with col_t3:
     if cur: runs.append(cur)
     lines = "".join(f"<polyline points='{' '.join(f'{x:.1f},{y:.1f}' for x, y, _ in r)}' fill='none' stroke='{BLUE}' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/>" for r in runs if len(r) > 1)
     dots = "".join(f"<circle cx='{x:.1f}' cy='{y:.1f}' r='4' fill='{BLUE}'/><text x='{x:.1f}' y='{y - 12:.1f}' font-size='12' font-weight='bold' fill='{BLUE}' text-anchor='middle'>{v:.0f}%</text>" for r in runs for x, y, v in r)
-    dashes = "".join(f"<text x='{i * step:.1f}' y='60' font-size='13' fill='#D1D6DB' text-anchor='middle'>―</text>" for i, v in enumerate(vals) if v is None)
-    days = "".join(f"<text x='{i * step:.1f}' y='130' font-size='10' fill='{SUB}' text-anchor='middle'>{labels[i]}</text>" for i in range(7))
+    dashes = "".join(f"<text x='{i * step:.1f}' y='60' font-size='13' style='fill:var(--mg-line2)' text-anchor='middle'>―</text>" for i, v in enumerate(vals) if v is None)
+    days = "".join(f"<text x='{i * step:.1f}' y='130' font-size='10' style='fill:{SUB}' text-anchor='middle'>{labels[i]}</text>" for i in range(7))
     html(f"""<div style="{card_style}"><div class="card-title"><span>승률 추이</span><span>최근 7일 · 오늘 포함</span></div>
 <div style="display:flex;align-items:baseline;gap:10px;margin-top:10px;"><span style="font-size:30px;font-weight:800;color:{BLUE};">{r7}%</span><span style="font-size:12px;color:{SUB};">익절 {tw} · 손절 {tl}</span></div>
 <div style="flex-grow:1;display:flex;flex-direction:column;justify-content:flex-end;"><svg viewBox='-15 -15 310 150' style='width:100%;height:130px;display:block;'>{lines}{dots}{dashes}{days}</svg></div></div>""")
@@ -321,16 +323,16 @@ daily = D.daily_net(f_trades, f_events, start_str, end_str)
 
 def style_fig(fig, height=330, category=True, ticks=None):
     fig.update_layout(
-        template="plotly_white", margin=dict(t=20, b=10, l=10, r=10), height=height,
-        font=dict(family="Pretendard, sans-serif", size=13, color="#6B7684"),
+        margin=dict(t=20, b=10, l=10, r=10), height=height,
+        font=dict(family="Pretendard, sans-serif", size=13, color=GRAY),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", hovermode="x unified", showlegend=False,
         xaxis=dict(showgrid=False, zeroline=False, type="category" if category else None,
                    tickmode="array" if ticks is not None else None, tickvals=ticks,
                    ticktext=[f"{t[5:7]}/{t[8:10]}" if isinstance(t, str) and len(t) == 10 else t for t in ticks] if ticks is not None else None,
-                   tickangle=0, tickfont=dict(size=13, color="#6B7684")),
-        yaxis=dict(showgrid=True, gridcolor="#F2F4F6", zeroline=True, zerolinecolor="#E5E8EB", zerolinewidth=1.5, nticks=5,
-                   tickfont=dict(size=13, color="#6B7684")),
-        hoverlabel=dict(bgcolor="#fff", bordercolor="#F2F4F6", font=dict(color=TEXT, size=12)))
+                   tickangle=0, tickfont=dict(size=13, color=GRAY)),
+        yaxis=dict(showgrid=True, gridcolor="rgba(139,149,161,0.14)", zeroline=True, zerolinecolor="rgba(139,149,161,0.35)", zerolinewidth=1.5, nticks=5,
+                   tickfont=dict(size=13, color=GRAY)),
+        hoverlabel=HOVER)
     return fig
 
 
@@ -342,11 +344,11 @@ with st.container(key="pnl_card"):
         html(f"<div style='font-size:17px;color:{TEXT};font-weight:800;letter-spacing:-0.02em;line-height:40px;'>기간 PNL</div>")
         with st.container(key="pnl_view_box", width="content"):
             view = st.segmented_control("보기", ["일별", "누적"], default="일별", key="pnl_view", label_visibility="collapsed") or "일별"
-    html(f"""<div style='border-top:1px solid #D1D6DB;margin:-6px 0 14px;'></div>
+    html(f"""<div style='border-top:1px solid var(--mg-line2);margin:-6px 0 14px;'></div>
 <div style='display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;'><span style='font-size:30px;font-weight:800;color:{pnl_color(bd["net"])};letter-spacing:-0.02em;'>{money(bd["net"])}</span>
 <span style='font-size:14px;color:{SUB};font-weight:600;'>USDT</span></div>
 <div style='font-size:13px;color:{SUB};margin-top:4px;'>Win <b style='color:{GREEN};'>{win_days} days</b> · Loss <b style='color:{RED};'>{loss_days} days</b></div>
-<div style='border-top:1px solid #E5E8EB;margin:16px 0 0;'></div>""")
+<div style='border-top:1px solid var(--mg-line);margin:16px 0 0;'></div>""")
     n = len(daily)
     # 날짜 눈금: 최대 5개를 고르게 (마지막 날 포함), 'MM/DD'로 짧게 → 휴대폰에서도 눕지 않음
     k = min(5, n)
@@ -379,7 +381,7 @@ def perf_html(p):
     mx = max(p["avg_win"], p["avg_loss"]) or 1
     streak = p["max_loss_streak"]
     n_dots = min(max(streak, 6), 12)
-    dots = "".join(f"<span class='sd' style='background:{RED if i < streak else '#E5E8EB'};'></span>" for i in range(n_dots))
+    dots = "".join(f"<span class='sd' style='background:{RED if i < streak else 'var(--mg-line)'};'></span>" for i in range(n_dots))
     dd = p["dd"]
     spark = ""
     if len(dd) > 1:

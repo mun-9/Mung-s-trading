@@ -4,7 +4,11 @@
 <meta charset="utf-8">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <style>
-:root { --text: #191F28; --sub: #8B95A1; --mid: #4E5968; --line: #F2F4F6; --soft: #F7F8FA; --up: #089981; --down: #F04452; --blue: #3182F6; }
+:root { --text: #191F28; --sub: #8B95A1; --mid: #4E5968; --line: #F2F4F6; --soft: #F7F8FA; --up: #089981; --down: #F04452; --blue: #3182F6;
+  --card: #fff; --raise: #fff; --faint: #B0B8C1; --bigliq: #FFF8F8; --grid: #F2F4F6; --shadow: 0 2px 14px rgba(15,23,42,0.05); }
+/* 다크 모드: 사이트(부모 화면) 설정을 따라감 */
+:root[data-theme="dark"] { --text: #ECEEF2; --sub: #8A93A2; --mid: #B4BBC6; --line: #272C35; --soft: #20252D; --blue: #5B8DFF;
+  --card: #171B22; --raise: #2A303A; --faint: #5F6774; --bigliq: rgba(240,68,82,0.10); --grid: #272C35; --shadow: 0 2px 14px rgba(0,0,0,0.35); }
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; background: transparent; color: var(--text); font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; letter-spacing: -0.01em; }
 .num { font-variant-numeric: tabular-nums; }
@@ -24,7 +28,7 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 .dom-lg i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
 .lfeed { flex: 1; max-height: none; min-height: 120px; height: 0; overflow-y: auto; }
 .r21 { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
-.card { background: #fff; border-radius: 20px; box-shadow: 0 2px 14px rgba(15,23,42,0.05); padding: 22px 24px; min-width: 0; }
+.card { background: var(--card); border-radius: 20px; box-shadow: var(--shadow); padding: 22px 24px; min-width: 0; }
 .ct { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 14px; }
 .ct b { font-size: 17px; font-weight: 800; letter-spacing: -0.02em; }
 .ct span { font-size: 12.5px; color: var(--sub); }
@@ -36,8 +40,8 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 .kv b { font-weight: 700; }
 .seg { display: inline-flex; gap: 2px; padding: 3px; background: var(--soft); border-radius: 10px; }
 .seg button { border: 0; background: transparent; padding: 6px 12px; border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 600; color: var(--sub); cursor: pointer; }
-.seg button.on { background: #fff; color: var(--text); box-shadow: 0 1px 4px rgba(15,23,42,0.08); }
-.note { font-size: 11.5px; color: #B0B8C1; line-height: 1.6; margin-top: 10px; }
+.seg button.on { background: var(--raise); color: var(--text); box-shadow: 0 1px 4px rgba(15,23,42,0.08); }
+.note { font-size: 11.5px; color: var(--faint); line-height: 1.6; margin-top: 10px; }
 .loading { color: var(--sub); font-size: 13px; padding: 20px 0; text-align: center; }
 
 /* 공포 탐욕 */
@@ -93,7 +97,7 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 .dom-lg i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
 .lfeed { max-height: 330px; overflow-y: auto; }
 .lr { display: grid; grid-template-columns: auto 1fr auto auto; gap: 10px; align-items: center; padding: 7px 2px; font-size: 13.5px; border-bottom: 1px solid var(--line); }
-.lr.bigliq { background: #FFF8F8; }
+.lr.bigliq { background: var(--bigliq); }
 .tag { font-size: 11px; font-weight: 800; padding: 3px 7px; border-radius: 6px; }
 .tag.l { background: rgba(240,68,82,0.1); color: var(--down); } .tag.s { background: rgba(8,153,129,0.1); color: var(--up); }
 .lr .t { font-size: 12px; color: var(--sub); }
@@ -153,20 +157,45 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
   </div>
 
   <div class="card"><div class="ct"><b>코인 히트맵</b><span>시가총액 크기 · 24시간 변동 · TradingView</span></div>
-    <div class="tv"><div class="tradingview-widget-container" style="height:100%;width:100%"><div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>
-    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-crypto-coins-heatmap.js" async>
-    {"dataSource":"Crypto","blockSize":"market_cap_calc","blockColor":"24h_close_change|5","locale":"kr","symbolUrl":"","colorTheme":"light","hasTopBar":false,"isDataSetEnabled":false,"isZoomEnabled":true,"hasSymbolTooltip":true,"isMonoSize":false,"width":"100%","height":"100%"}
-    </script></div></div></div>
+    <div class="tv" id="tvHeat"></div></div>
 
   <div class="card"><div class="ct"><b>경제 캘린더</b><span>중요도 높음(★★★) · 미국·유럽·중국·일본·영국·한국 · TradingView</span></div>
-    <div class="tv"><div class="tradingview-widget-container" style="height:100%;width:100%"><div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>
-    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
-    {"colorTheme":"light","isTransparent":true,"width":"100%","height":"100%","locale":"kr","importanceFilter":"1","countryFilter":"us,eu,cn,jp,gb,kr"}
-    </script></div></div></div>
+    <div class="tv" id="tvCal"></div></div>
 </div>
 
 <script>
 const DATA = __DATA__;
+// ---------- 라이트/다크 (사이트 설정을 따라감) ----------
+const MQ = matchMedia('(prefers-color-scheme: dark)');
+function siteDark() {
+  let t = null; try { t = parent.document.documentElement.getAttribute('data-mg-theme'); } catch (e) {}
+  return t ? t === 'dark' : MQ.matches;
+}
+const TV = {
+  tvHeat: ['embed-widget-crypto-coins-heatmap.js', { dataSource: 'Crypto', blockSize: 'market_cap_calc', blockColor: '24h_close_change|5', locale: 'kr', symbolUrl: '',
+    hasTopBar: false, isDataSetEnabled: false, isZoomEnabled: true, hasSymbolTooltip: true, isMonoSize: false, width: '100%', height: '100%' }],
+  tvCal: ['embed-widget-events.js', { isTransparent: true, width: '100%', height: '100%', locale: 'kr', importanceFilter: '1', countryFilter: 'us,eu,cn,jp,gb,kr' }],
+};
+function mountTV(dark) {
+  for (const [id, [file, cfg]] of Object.entries(TV)) {
+    const box = document.getElementById(id); if (!box) continue;
+    box.innerHTML = '<div class="tradingview-widget-container" style="height:100%;width:100%"><div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div></div>';
+    const sc = document.createElement('script'); sc.type = 'text/javascript'; sc.async = true;
+    sc.src = 'https://s3.tradingview.com/external-embedding/' + file;
+    sc.textContent = JSON.stringify(Object.assign({}, cfg, { colorTheme: dark ? 'dark' : 'light' }));
+    box.firstChild.appendChild(sc);
+  }
+}
+let curDark = null;
+function syncTheme() {
+  const dk = siteDark(); if (dk === curDark) return; curDark = dk;
+  document.documentElement.setAttribute('data-theme', dk ? 'dark' : 'light');
+  mountTV(dk);
+}
+syncTheme();
+try { new MutationObserver(syncTheme).observe(parent.document.documentElement, { attributes: true, attributeFilter: ['data-mg-theme'] }); } catch (e) {}
+MQ.addEventListener && MQ.addEventListener('change', syncTheme);
+
 const $ = id => document.getElementById(id);
 const sgn = v => v > 0 ? '+' : v < 0 ? '−' : '';
 const cls = v => v > 0 ? 'up' : v < 0 ? 'down' : '';
@@ -191,7 +220,7 @@ async function loadFng() {
       const [x0, y0] = p(a0), [x1, y1] = p(a1); return `<path d="M${x0} ${y0} A100 100 0 0 1 ${x1} ${y1}" stroke="${c}" stroke-width="16" fill="none"/>`; };
     const h = (i, l) => d[i] ? `<div><span>${l}</span><b style="color:${fngColor(+d[i].value)}">${d[i].value}</b></div>` : '';
     $('fng').innerHTML = `<svg viewBox="0 0 240 132">${seg(0, .245, '#F04452')}${seg(.255, .445, '#FF8A3D')}${seg(.455, .555, '#C9CED6')}${seg(.565, .745, '#3DBE7E')}${seg(.755, 1, '#089981')}
-      <line x1="120" y1="120" x2="${nx}" y2="${ny}" stroke="#191F28" stroke-width="3" stroke-linecap="round"/><circle cx="120" cy="120" r="6" fill="#191F28"/></svg>
+      <line x1="120" y1="120" x2="${nx}" y2="${ny}" style="stroke:var(--text)" stroke-width="3" stroke-linecap="round"/><circle cx="120" cy="120" r="6" style="fill:var(--text)"/></svg>
       <div class="val" style="margin-top:4px"><b style="color:${fngColor(v)}">${v}</b><span style="color:${fngColor(v)}">${FNG_KO[d[0].value_classification] || d[0].value_classification}</span></div>
       <div class="fng-hist">${h(1, '어제')}${h(7, '지난주')}${h(30, '지난달')}</div>`;
   } catch (e) { fail('fng'); }
@@ -304,7 +333,7 @@ async function loadLS() {
 }
 async function loadMap() {
   const svg = $('lmap');
-  svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" fill="#8B95A1" font-size="13">계산 중…</text>';
+  svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" style="fill:var(--sub)" font-size="13">계산 중…</text>';
   try {
     const [kl, oiR] = await Promise.all([
       get(`https://api.bybit.com/v5/market/kline?category=linear&symbol=${mapSym}&interval=60&limit=168`),
@@ -332,7 +361,7 @@ async function loadMap() {
     }
     drawMap(longB, shortB, lo, step, now, BINS);
     $('lmapNow').innerHTML = `현재가 <b class="num">${price(now)}</b>`;
-  } catch (e) { svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" fill="#8B95A1" font-size="13">Bybit 데이터를 불러오지 못했어요</text>'; }
+  } catch (e) { svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" style="fill:var(--sub)" font-size="13">Bybit 데이터를 불러오지 못했어요</text>'; }
   fit();
 }
 function drawMap(longB, shortB, lo, step, now, BINS) {
@@ -356,7 +385,7 @@ function drawMap(longB, shortB, lo, step, now, BINS) {
   s += line(cl.map((v, i) => i < nowI ? v : null), '#F04452') + line(cs.map((v, i) => i > nowI ? v : null), '#089981');
   // 가격 눈금
   for (let j = 0; j <= 8; j++) { const i = Math.round(j * BINS / 8), p = lo + i * step, yy = H - bot - i * bh;
-    s += `<line x1="${padL}" x2="${W - padR}" y1="${yy}" y2="${yy}" stroke="#F2F4F6"/><text x="${padL - 8}" y="${yy + 4}" text-anchor="end" font-size="11.5" fill="#8B95A1">${price(p)}</text>`; }
+    s += `<line x1="${padL}" x2="${W - padR}" y1="${yy}" y2="${yy}" style="stroke:var(--grid)"/><text x="${padL - 8}" y="${yy + 4}" text-anchor="end" font-size="11.5" style="fill:var(--sub)">${price(p)}</text>`; }
   const ny = H - bot - nowI * bh;
   s += `<line x1="${padL}" x2="${W - padR}" y1="${ny}" y2="${ny}" stroke="#3182F6" stroke-width="1.5" stroke-dasharray="5 4"/>
     <rect x="${W - padR + 4}" y="${ny - 10}" width="${padR - 6}" height="20" rx="5" fill="#3182F6"/><text x="${W - padR / 2 + 1}" y="${ny + 4}" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">${price(now)}</text>`;
