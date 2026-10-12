@@ -13,6 +13,7 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 .row { display: grid; gap: 18px; }
 .r4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .r2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.r3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .r21 { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
 .card { background: #fff; border-radius: 20px; box-shadow: 0 2px 14px rgba(15,23,42,0.05); padding: 22px 24px; min-width: 0; }
 .ct { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 14px; }
@@ -78,7 +79,7 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 
 .tv { height: 520px; border-radius: 14px; overflow: hidden; }
 
-@media (max-width: 1000px) { .r4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .r21, .r2 { grid-template-columns: 1fr; } }
+@media (max-width: 1000px) { .r4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .r21, .r2, .r3 { grid-template-columns: 1fr; } }
 @media (max-width: 560px) { .r4 { grid-template-columns: 1fr; } .two { grid-template-columns: 1fr; } .card { padding: 18px; } #lmap { height: 380px; } }
 </style>
 </head>
@@ -93,26 +94,21 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 
   <div class="row r21">
     <div class="card">
-      <div class="ct"><b>청산맵 <span style="font-size:13px;font-weight:600;color:var(--sub)">(추정)</span></b><div class="seg" id="mapSym"></div></div>
+      <div class="ct"><b title="최근 7일 Bybit 미결제약정 증가분과 레버리지 분포를 가정해 계산한 추정치예요">청산맵 <span style="font-size:13px;font-weight:600;color:var(--sub)">(추정)</span></b><div class="seg" id="mapSym"></div></div>
       <div class="lmap-legend"><span><i style="background:var(--down)"></i>롱 청산 예상 (가격 하락 시)</span><span><i style="background:var(--up)"></i>숏 청산 예상 (가격 상승 시)</span><span id="lmapNow"></span></div>
       <svg id="lmap"></svg>
-      <div class="note">최근 7일 Bybit 1시간 봉의 미결제약정 증가분을 새로 열린 포지션으로 보고, 레버리지 5~100배 분포를 가정해 청산 가격을 추정한 값이에요. 이미 가격이 지나간 청산 구간은 뺐어요. 실제 청산 위치와는 다를 수 있어요.</div>
     </div>
     <div class="card"><div class="ct"><b>롱숏 비율</b><span id="lsSym">BTC · 1시간</span></div><div id="ls"><div class="loading">불러오는 중</div></div></div>
   </div>
 
-  <div class="row r2">
+  <div class="row r3">
     <div class="card">
       <div class="ct"><b>실시간 청산</b><span>Bybit · Binance</span></div>
       <div class="lsum"><div><span>롱 청산</span><b class="down num" id="lqL">$0</b></div><div><span>숏 청산</span><b class="up num" id="lqS">$0</b></div></div>
       <div class="lfeed" id="lqFeed"><div class="loading">청산이 생기면 바로 표시돼요</div></div>
       <div class="note" id="lqNote"></div>
     </div>
-    <div class="card"><div class="ct"><b>24시간 상승 · 하락</b><span>Bybit · 거래대금 $5M 이상</span></div><div class="two" id="movers"><div class="loading">불러오는 중</div></div></div>
-  </div>
-
-  <div class="row r2">
-    <div class="card"><div class="ct"><b>펀딩비 순위</b><span>Bitget · 거래대금 $5M 이상</span></div><div class="two" id="fundRank"><div class="loading">불러오는 중</div></div></div>
+    <div class="card"><div class="ct"><b>24시간 상승 TOP</b><span>Bybit · 거래대금 $5M 이상</span></div><div class="tl" id="movers"><div class="loading">불러오는 중</div></div></div>
     <div class="card"><div class="ct"><b>미결제약정 상위</b><span>Bitget</span></div><div class="tl" id="oiTop"><div class="loading">불러오는 중</div></div></div>
   </div>
 
@@ -122,10 +118,10 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
     {"dataSource":"Crypto","blockSize":"market_cap_calc","blockColor":"24h_close_change|5","locale":"kr","symbolUrl":"","colorTheme":"light","hasTopBar":false,"isDataSetEnabled":false,"isZoomEnabled":true,"hasSymbolTooltip":true,"isMonoSize":false,"width":"100%","height":"100%"}
     </script></div></div></div>
 
-  <div class="card"><div class="ct"><b>경제 캘린더</b><span>미국 · 한국 · 중요도 중 이상 · TradingView</span></div>
+  <div class="card"><div class="ct"><b>경제 캘린더</b><span>중요도 높음(★★★) · 미국·유럽·중국·일본·영국·한국 · TradingView</span></div>
     <div class="tv"><div class="tradingview-widget-container" style="height:100%;width:100%"><div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>
     <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
-    {"colorTheme":"light","isTransparent":true,"width":"100%","height":"100%","locale":"kr","importanceFilter":"0,1","countryFilter":"us,kr"}
+    {"colorTheme":"light","isTransparent":true,"width":"100%","height":"100%","locale":"kr","importanceFilter":"1","countryFilter":"us,eu,cn,jp,gb,kr"}
     </script></div></div></div>
 </div>
 
@@ -180,7 +176,7 @@ let bybit = {}, bitget = [];
 async function loadTickers() {
   try { (await get('https://api.bybit.com/v5/market/tickers?category=linear')).result.list.forEach(t => { bybit[t.symbol] = t; }); } catch (e) {}
   try { bitget = (await get('https://api.bitget.com/api/v2/mix/market/tickers?productType=USDT-FUTURES')).data || []; } catch (e) {}
-  renderKimp(); renderFund(); renderMovers(); renderFundRank(); renderOI(); fit();
+  renderKimp(); renderFund(); renderMovers(); renderOI(); fit();
 }
 async function renderKimp() {
   const coins = ['BTC', 'ETH', 'XRP', 'SOL', 'DOGE'];
@@ -214,15 +210,7 @@ function renderMovers() {
   const l = Object.values(bybit).filter(t => t.symbol.endsWith('USDT') && +t.turnover24h > 5e6);
   if (!l.length) { fail('movers'); return; }
   l.sort((a, b) => +b.price24hPcnt - +a.price24hPcnt);
-  const blk = (arr, t) => `<div><h4>${t}</h4><div class="tl">${arr.map((x, i) => trow(i + 1, name(x.symbol), price(+x.lastPrice), pct(+x.price24hPcnt * 100), cls(+x.price24hPcnt))).join('')}</div></div>`;
-  $('movers').innerHTML = blk(l.slice(0, 8), '상승') + blk(l.slice(-8).reverse(), '하락');
-}
-function renderFundRank() {
-  const l = bitget.filter(t => +t.usdtVolume > 5e6 && t.fundingRate !== '');
-  if (!l.length) { fail('fundRank'); return; }
-  l.sort((a, b) => +b.fundingRate - +a.fundingRate);
-  const blk = (arr, t) => `<div><h4>${t}</h4><div class="tl">${arr.map((x, i) => trow(i + 1, name(x.symbol), pct(+x.change24h * 100), pct(+x.fundingRate * 100, 4), cls(+x.fundingRate))).join('')}</div></div>`;
-  $('fundRank').innerHTML = blk(l.slice(0, 8), '높은 순 (롱 과열)') + blk(l.slice(-8).reverse(), '낮은 순 (숏 과열)');
+  $('movers').innerHTML = l.slice(0, 10).map((x, i) => trow(i + 1, name(x.symbol), price(+x.lastPrice), pct(+x.price24hPcnt * 100), cls(+x.price24hPcnt))).join('');
 }
 function renderOI() {
   const l = bitget.map(t => ({ s: t.symbol, oi: +t.holdingAmount * +t.lastPr, chg: +t.change24h * 100 })).filter(x => x.oi > 0).sort((a, b) => b.oi - a.oi).slice(0, 10);
@@ -239,15 +227,33 @@ function renderSeg() {
   $('mapSym').querySelectorAll('button').forEach(b => b.onclick = () => { mapSym = b.dataset.s; try { localStorage.setItem('mung_market_sym', mapSym); } catch (e) {} renderSeg(); loadLS(); loadMap(); });
 }
 async function loadLS() {
-  $('lsSym').textContent = name(mapSym) + ' · 최근 1시간';
-  const bar = (title, l, s, src) => `<div class="ls"><div class="top"><span>${title}</span><span>${src}</span></div>
-    <div class="bar"><div class="l" style="width:${l * 100}%">롱 ${(l * 100).toFixed(1)}%</div><div class="s" style="width:${s * 100}%">${(s * 100).toFixed(1)}% 숏</div></div></div>`;
-  let h = '';
-  try { const d = (await get(`https://api.bitget.com/api/v2/mix/market/account-long-short?symbol=${mapSym}&period=1h`)).data; const x = d[d.length - 1]; h += bar('계좌 수 비율', +x.longAccountRatio, +x.shortAccountRatio, 'Bitget'); } catch (e) {}
-  try { const d = (await get(`https://api.bitget.com/api/v2/mix/market/position-long-short?symbol=${mapSym}&period=1h`)).data; const x = d[d.length - 1]; h += bar('포지션 규모 비율', +x.longPositionRatio, +x.shortPositionRatio, 'Bitget'); } catch (e) {}
-  try { const d = (await get(`https://api.bybit.com/v5/market/account-ratio?category=linear&symbol=${mapSym}&period=1h&limit=1`)).result.list[0]; h += bar('계좌 수 비율', +d.buyRatio, +d.sellRatio, 'Bybit'); } catch (e) {}
-  $('ls').innerHTML = (h || '<div class="loading">데이터를 불러오지 못했어요</div>') +
-    '<div class="note">계좌 수 비율은 롱/숏 포지션을 가진 계좌 수, 포지션 규모 비율은 실제 물량 기준이에요. 계좌 수에서 롱이 많은데 물량은 숏이 많으면 큰손이 숏 쪽이라는 뜻이에요.</div>';
+  $('lsSym').textContent = name(mapSym) + ' · 최근 1시간 · 계좌 수 기준';
+  const ex = [];
+  // Bitget · Bybit · OKX(미결제약정)는 브라우저에서, Binance · OKX(비율)는 서버에서 받은 값
+  try {
+    const d = (await get(`https://api.bitget.com/api/v2/mix/market/account-long-short?symbol=${mapSym}&period=1h`)).data, x = d[d.length - 1];
+    const t = bitget.find(v => v.symbol === mapSym);
+    ex.push({ n: 'Bitget', long: +x.longAccountRatio, short: +x.shortAccountRatio, oi: t ? +t.holdingAmount * +t.lastPr : 0 });
+  } catch (e) {}
+  try {
+    const d = (await get(`https://api.bybit.com/v5/market/account-ratio?category=linear&symbol=${mapSym}&period=1h&limit=1`)).result.list[0];
+    const t = bybit[mapSym];
+    ex.push({ n: 'Bybit', long: +d.buyRatio, short: +d.sellRatio, oi: t ? +t.openInterestValue : 0 });
+  } catch (e) {}
+  const ext = (DATA.lsExt || {})[mapSym] || {};
+  if (ext.binance) ex.push({ n: 'Binance', ...ext.binance });
+  if (ext.okx) ex.push({ n: 'OKX', ...ext.okx });
+  const missing = ['Binance', 'OKX'].filter(n => !ex.some(e => e.n === n));
+  const totOI = ex.reduce((a, e) => a + (e.oi || 0), 0);
+  const bar = (l, s, h) => `<div class="bar" style="height:${h}px"><div class="l" style="width:${l * 100}%">롱 ${(l * 100).toFixed(1)}%</div><div class="s" style="width:${s * 100}%">${(s * 100).toFixed(1)}% 숏</div></div>`;
+  if (!ex.length) { fail('ls'); fit(); return; }
+  let L = 0, S = 0;
+  if (totOI > 0) { ex.forEach(e => { L += e.long * e.oi / totOI; S += e.short * e.oi / totOI; }); }
+  else { ex.forEach(e => { L += e.long / ex.length; S += e.short / ex.length; }); }
+  ex.sort((a, b) => (b.oi || 0) - (a.oi || 0));
+  $('ls').innerHTML = `<div class="ls"><div class="top"><b style="color:var(--text);font-size:14px">${ex.length}개 거래소 통합</b><span>미결제약정 비중으로 가중</span></div>${bar(L, S, 34)}</div>
+    ${ex.map(e => `<div class="ls"><div class="top"><span>${e.n}</span><span>미결제약정 $${big(e.oi)} · ${totOI > 0 ? (e.oi / totOI * 100).toFixed(0) : '-'}%</span></div>${bar(e.long, e.short, 22)}</div>`).join('')}
+    ${missing.length ? `<div class="note">${missing.join('·')} 데이터는 서버에서 접속이 막혀 빠졌어요</div>` : ''}`;
   fit();
 }
 async function loadMap() {

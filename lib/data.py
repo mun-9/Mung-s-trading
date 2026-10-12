@@ -626,3 +626,44 @@ def fetch_bybit_tickers():
             "nft": f(info.get("nextFundingTime")),
         }
     return out
+
+
+# -----------------------------------------------------------------------------
+# 롱숏 비율 (브라우저에서 못 가져오는 Binance·OKX는 서버에서 조회)
+# -----------------------------------------------------------------------------
+def _get_json(url, timeout=4):
+    import json as _json
+    import urllib.request
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return _json.loads(r.read().decode())
+
+
+def _ls_binance(sym):
+    d = _get_json(f"https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol={sym}&period=1h&limit=1")[-1]
+    oi = float(_get_json(f"https://fapi.binance.com/futures/data/openInterestHist?symbol={sym}&period=5m&limit=1")[-1]["sumOpenInterestValue"])
+    return {"long": float(d["longAccount"]), "short": float(d["shortAccount"]), "oi": oi}
+
+
+def _ls_okx(sym):
+    inst = sym.replace("USDT", "-USDT-SWAP")
+    d = _get_json(f"https://www.okx.com/api/v5/rubik/stat/contracts/long-short-account-ratio-contract?instId={inst}&period=1H&limit=1")["data"][0]
+    r = float(d[1])
+    oi = float(_get_json(f"https://www.okx.com/api/v5/public/open-interest?instId={inst}")["data"][0]["oiUsd"])
+    return {"long": r / (1 + r), "short": 1 / (1 + r), "oi": oi}
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def fetch_ls_external(symbols):
+    """{심볼: {"binance": {...} or None, "okx": {...} or None}} — 실패한 거래소는 None."""
+    from concurrent.futures import ThreadPoolExecutor
+    jobs = {(s, ex): fn for s in symbols for ex, fn in (("binance", _ls_binance), ("okx", _ls_okx))}
+    out = {s: {"binance": None, "okx": None} for s in symbols}
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        futs = {pool.submit(fn, s): (s, ex) for (s, ex), fn in jobs.items()}
+        for f, (s, ex) in futs.items():
+            try:
+                out[s][ex] = f.result(timeout=8)
+            except Exception:
+                out[s][ex] = None
+    return out
