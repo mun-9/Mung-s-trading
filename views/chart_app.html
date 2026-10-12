@@ -573,7 +573,8 @@ function renderBook() {
   $('obBids').innerHTML = bids.map(([p, q], i) => `<div class="obr"><i style="width:${bidC[i] / mx * 100}%;background:rgba(60,195,180,0.12)"></i><span class="up">${fmtPrice(p)}</span><span>${fq(q)}</span><span>${fq(bidC[i])}</span></div>`).join('');
   const t = state.tk[book.sym] || {};
   const spread = asks.length && bids.length ? asks[0][0] - bids[0][0] : null;
-  $('obMid').innerHTML = `<b class="${cls(t.pct)}">${fmtPrice(t.last)}</b><span>스프레드 ${spread == null ? '-' : fmtPrice(spread)}</span>`;
+  const dec = asks.length ? ((String(book.asks.keys().next().value || '').split('.')[1] || '').length) : 2;
+  $('obMid').innerHTML = `<b class="${cls(t.pct)}">${fmtPrice(t.last)}</b><span>스프레드 ${spread == null ? '-' : spread.toFixed(dec)}</span>`;
   $('trList').innerHTML = book.trades.map(x => `<div class="obr"><span class="${x.buy ? 'up' : 'down'}">${fmtPrice(x.p)}</span><span>${fq(x.v)}</span><span>${hms(x.t)}</span></div>`).join('') || '<div class="empty">체결 기다리는 중</div>';
 }
 setInterval(() => { if (book.dirty) { book.dirty = false; renderBook(); } }, 300);
