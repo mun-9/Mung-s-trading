@@ -177,6 +177,12 @@ html(f"<div class='note-text'>순손익 = 청산 손익 − 수수료 + 펀딩�
 # -----------------------------------------------------------------------------
 transfers = hist.get("transfers", [])
 principal = sum(t["amount"] for t in transfers if t["kind"] == "principal")
+try:  # Streamlit Secrets에 PRINCIPAL_USDT를 넣으면 그 값을 원금으로 사용
+    principal_override = float(st.secrets["PRINCIPAL_USDT"])
+except Exception:
+    principal_override = None
+if principal_override:
+    principal = principal_override
 withdrawn = sum(t["amount"] for t in transfers if t["kind"] == "withdraw")
 paid_back = sum(t["amount"] for t in transfers if t["kind"] == "payback")
 fut_eq, spot_eq, eq_err = D.fetch_equity(keys) if hasattr(D, "fetch_equity") else (None, None, None)
@@ -194,7 +200,7 @@ if fut_eq is not None and principal > 0:
 <div class="acct-r">
 <div class="bd-row"><span>현재 자산</span><b>${equity:,.2f}</b></div>
 <div class="bd-row" style="font-size:12.5px;"><span style="font-weight:500;">└ 선물 ${fut_eq:,.2f} · 현물 USDT ${(spot_eq or 0):,.2f}</span><b></b></div>
-<div class="bd-row"><span>원금 입금 <span style="color:{SUB};font-weight:500;">({n_pr}건)</span></span><b>${principal:,.2f}</b></div>
+<div class="bd-row"><span>원금 <span style="color:{SUB};font-weight:500;">({'직접 입력' if principal_override else f'입금 {n_pr}건'})</span></span><b>${principal:,.2f}</b></div>
 <div class="bd-row"><span>출금</span><b>${withdrawn:,.2f}</b></div>
 <div class="bd-row" style="border-bottom:none;"><span>받은 페이백 (자산에 포함)</span><b style="color:{GREEN};">+${paid_back:,.2f}</b></div>
 </div></div>""")
