@@ -129,7 +129,7 @@ def top_card(title, value, sub, krw_rate):
     krw = value * krw_rate
     krw_str = f"+ ₩{krw:,.0f}" if krw >= 0 else f"- ₩{abs(krw):,.0f}"
     return f"""<div class="card" style="min-height:150px;display:flex;flex-direction:column;">
-<div class="card-title"><span>{title}</span></div>
+<div class="card-title"><span>{title}</span><span></span></div>
 <div style="display:flex;align-items:baseline;gap:8px;margin:14px 0 2px;flex-wrap:wrap;">
 <span style="font-size:30px;font-weight:800;color:{color};letter-spacing:-0.02em;">{money(value)}</span>
 <span style="font-size:13px;font-weight:600;color:{SUB};">{krw_str}</span></div>
@@ -278,10 +278,12 @@ daily = D.daily_net(f_trades, f_events, start_str, end_str)
 def style_fig(fig, height=330, category=True, ticks=None):
     fig.update_layout(
         template="plotly_white", margin=dict(t=20, b=10, l=10, r=10), height=height,
+        font=dict(family="Pretendard, sans-serif", size=13, color="#6B7684"),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", hovermode="x unified", showlegend=False,
         xaxis=dict(showgrid=False, zeroline=False, type="category" if category else None,
-                   tickmode="array" if ticks is not None else None, tickvals=ticks),
-        yaxis=dict(showgrid=True, gridcolor="#F2F4F6", zeroline=True, zerolinecolor="#E5E8EB", zerolinewidth=1.5, nticks=5),
+                   tickmode="array" if ticks is not None else None, tickvals=ticks, tickfont=dict(size=13, color="#6B7684")),
+        yaxis=dict(showgrid=True, gridcolor="#F2F4F6", zeroline=True, zerolinecolor="#E5E8EB", zerolinewidth=1.5, nticks=5,
+                   tickfont=dict(size=13, color="#6B7684")),
         hoverlabel=dict(bgcolor="#fff", bordercolor="#F2F4F6", font=dict(color=TEXT, size=12)))
     return fig
 
@@ -297,10 +299,10 @@ bd_chips = "".join(
 
 with st.container(key="pnl_card"):
     last_v = daily["pnl"].iloc[-1] if not daily.empty else 0.0
-    html(f"""<div style='display:flex;justify-content:space-between;align-items:baseline;'><span style='font-size:13px;color:{TEXT};font-weight:700;'>기간 순손익</span>
+    html(f"""<div style='display:flex;justify-content:space-between;align-items:baseline;'><span style='font-size:17px;color:{TEXT};font-weight:800;letter-spacing:-0.02em;'>기간 순손익</span>
 <span style='font-size:12px;color:{SUB};'>{end_str} <b style='color:{pnl_color(last_v)};'>{money(last_v)}</b></span></div>
 <div style='font-size:30px;font-weight:800;color:{pnl_color(bd["net"])};margin-top:8px;'>{money(bd["net"])} <span style='font-size:14px;color:{SUB};font-weight:600;'>USDT</span></div>
-<div class='bd-chips'>{bd_chips}</div>
+<div class='bd-chips' style='font-size:13.5px;'>{bd_chips}</div>
 <div style="border-bottom:1px solid {DIVIDER};margin:14px 0 6px;"></div>""")
     tab1, tab2 = st.tabs(["일별 손익", "기간 누적"])
     n = len(daily)
