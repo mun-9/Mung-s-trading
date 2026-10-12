@@ -12,10 +12,13 @@ TRACKS = [
 ]
 
 _CSS = r"""
-#mg-music { position: fixed; left: 16px; bottom: 16px; z-index: 999990; display: flex; align-items: center; gap: 10px;
+#mg-music { position: fixed; left: 0; bottom: 22px; z-index: 999990; display: flex; align-items: center; gap: 10px;
   font-family: 'Pretendard', -apple-system, sans-serif; transform: translateX(-140%); opacity: 0;
   transition: transform .7s cubic-bezier(.2,1.3,.4,1), opacity .5s ease; pointer-events: none; }
-#mg-music.in { transform: none; opacity: 1; pointer-events: auto; }
+/* 평소: 왼쪽 벽에 반쯤 숨어 있음 → 누르면 쏙 나옴 */
+#mg-music.in { transform: translateX(-31px); opacity: 1; pointer-events: auto; }
+#mg-music.in:not(.open):hover { transform: translateX(-24px); }
+#mg-music.in.open { transform: translateX(14px); }
 #mg-music .disc { position: relative; width: 58px; height: 58px; border-radius: 50%; cursor: pointer; flex-shrink: 0;
   background: repeating-radial-gradient(circle, #1b1b1f 0 2px, #26262c 2px 3px);
   box-shadow: 0 6px 20px rgba(0,0,0,.35), inset 0 0 0 2px rgba(255,255,255,.06); animation: mg-spin 3.2s linear infinite; animation-play-state: paused; }
@@ -44,7 +47,7 @@ _CSS = r"""
 #mg-music .yt { position: fixed; left: -9999px; top: 0; width: 200px; height: 200px; }
 @keyframes mg-spin { to { transform: rotate(360deg); } }
 @keyframes mg-marq { to { transform: translateX(-100%); } }
-@media (max-width: 768px) { #mg-music { left: 10px; bottom: 10px; } #mg-music .disc { width: 50px; height: 50px; } #mg-music .label { inset: 15px; } }
+@media (max-width: 768px) { #mg-music { bottom: 14px; } #mg-music.in { transform: translateX(-27px); } #mg-music.in.open { transform: translateX(10px); } #mg-music .disc { width: 50px; height: 50px; } #mg-music .label { inset: 15px; } }
 """
 
 _JS = r"""
@@ -57,7 +60,7 @@ _JS = r"""
   const root = document.createElement('div');
   root.id = 'mg-music';
   root.innerHTML = `<div class="disc" title="눌러서 재생"><div class="label"></div><div class="hint">${P}</div></div>
-    <div class="pill"><div class="t"><span></span></div><button class="pp">${P}</button>${TRACKS.length > 1 ? `<button class="nx" title="다음 곡">${NX}</button>` : ''}<button class="cl" title="접기">${CL}</button></div>
+    <div class="pill"><div class="t"><span></span></div><button class="pp">${P}</button>${TRACKS.length > 1 ? `<button class="nx" title="다음 곡">${NX}</button>` : ''}<button class="cl" title="넣기">${CL}</button></div>
     <div class="yt"><div id="mg-yt"></div></div>`;
   document.body.appendChild(root);
   let idx = 0, player = null, ready = false, playing = false, want = false;
@@ -74,10 +77,11 @@ _JS = r"""
   function play() { want = true; root.classList.add('open'); if (ready) player.playVideo(); }
   function pause() { want = false; if (ready) player.pauseVideo(); }
   function next() { idx = (idx + 1) % TRACKS.length; show(); if (ready) { player.loadVideoById(TRACKS[idx].id); want = true; } }
-  $('.disc').onclick = () => playing ? pause() : play();
+  // 숨어 있을 때 누르면: 나오면서 재생 / 나와 있을 때 누르면: 재생·일시정지
+  $('.disc').onclick = () => { if (!root.classList.contains('open')) { root.classList.add('open'); if (!playing) play(); } else if (playing) pause(); else play(); };
   $('.pp').onclick = () => playing ? pause() : play();
   if ($('.nx')) $('.nx').onclick = next;
-  $('.cl').onclick = () => root.classList.remove('open');
+  $('.cl').onclick = () => root.classList.remove('open'); // 다시 벽 속으로 (노래는 계속)
   show();
   function init() {
     player = new YT.Player('mg-yt', {
