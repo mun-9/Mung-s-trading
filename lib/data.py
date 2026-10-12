@@ -570,3 +570,31 @@ def fetch_tickers():
             "low": f(v.get("low")), "qv": f(v.get("quoteVolume")), "funding": f(info.get("fundingRate")),
         }
     return out
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def fetch_upbit_krw():
+    """업비트 원화 시세 {코인: {"last": 원, "pct": 변동%}} — 김프·하단 원화 시세용."""
+    try:
+        ex = ccxt.upbit({"enableRateLimit": True})
+        ex.load_markets()
+        syms = [s for s in ex.symbols if s.endswith("/KRW")]
+        out = {}
+        for i in range(0, len(syms), 100):
+            for k, v in ex.fetch_tickers(syms[i:i + 100]).items():
+                out[k.split("/")[0]] = {"last": v.get("last"), "pct": v.get("percentage")}
+        return out
+    except Exception:
+        return {}
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def fetch_usdkrw():
+    """달러-원 환율 (김프 계산용). 실패하면 None."""
+    import json as _json
+    import urllib.request
+    try:
+        with urllib.request.urlopen("https://open.er-api.com/v6/latest/USD", timeout=6) as r:
+            return float(_json.loads(r.read().decode())["rates"]["KRW"])
+    except Exception:
+        return None
