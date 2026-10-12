@@ -13,17 +13,20 @@ html, body, .stApp { background-color: #0F1219 !important; }
 .block-container { max-width: 100% !important; padding: 0 !important; }
 .block-container div[data-testid="stVerticalBlock"] { gap: 0 !important; }
 iframe { display: block; border: 0; }
-div[class*="st-key-hidden_nav_history"] { display: none !important; }
+div[class*="st-key-hidden_nav_"] { display: none !important; }
 </style>""")
 
 # 차트 화면의 '매매 히스토리' 버튼이 대신 눌러주는 숨은 링크 (페이지 이동은 Streamlit 링크로만 가능)
 with st.container(key="hidden_nav_history"):
     st.page_link("views/history.py", label="매매 히스토리")
+with st.container(key="hidden_nav_market"):
+    st.page_link("views/market.py", label="시장")
 
 keys = D.get_keys()
 positions, _, _ = D.fetch_positions(keys)
 # 차트·시세 모두 Bybit 기준 (Bybit 조회가 막히면 Bitget 시세를 초기값으로만 사용, 브라우저가 Bybit 실시간으로 덮어씀)
-tickers = D.fetch_bybit_tickers() or D.fetch_tickers()
+bitget = D.fetch_tickers()
+tickers = D.fetch_bybit_tickers() or bitget
 upbit = D.fetch_upbit_krw()
 
 pos_syms = list(dict.fromkeys(p["symbol"] for p in positions))
@@ -42,6 +45,7 @@ payload = {
     "positions": [{k: p[k] for k in ("symbol", "side", "leverage", "entry_price", "mark_price", "size", "margin", "liq_price")}
                   for p in positions],
     "upbit": {b: v for b, v in upbit.items() if b in bases},
+    "bgfund": {s: {"funding": bitget[s].get("funding")} for s in symbols if s in bitget},
     "usdkrw": D.fetch_usdkrw(),
     "krw": D.fetch_usdt_krw(),
 }

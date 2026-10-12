@@ -9,5 +9,6 @@ inject_css()
 pages = [
     st.Page("views/history.py", title="매매 히스토리", default=True),
     st.Page("views/chart.py", title="차트"),
+    st.Page("views/market.py", title="시장", url_path="market"),
 ]
 st.navigation(pages, position="hidden").run()

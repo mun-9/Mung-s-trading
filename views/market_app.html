@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+:root { --text: #191F28; --sub: #8B95A1; --mid: #4E5968; --line: #F2F4F6; --soft: #F7F8FA; --up: #089981; --down: #F04452; --blue: #3182F6; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: transparent; color: var(--text); font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; letter-spacing: -0.01em; }
+.num { font-variant-numeric: tabular-nums; }
+.up { color: var(--up) !important; } .down { color: var(--down) !important; }
+.wrap { display: flex; flex-direction: column; gap: 18px; padding: 2px 2px 24px; }
+.row { display: grid; gap: 18px; }
+.r4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.r2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.r21 { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+.card { background: #fff; border-radius: 20px; box-shadow: 0 2px 14px rgba(15,23,42,0.05); padding: 22px 24px; min-width: 0; }
+.ct { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 14px; }
+.ct b { font-size: 17px; font-weight: 800; letter-spacing: -0.02em; }
+.ct span { font-size: 12.5px; color: var(--sub); }
+.big { font-size: 30px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; }
+.lbl { font-size: 13px; color: var(--sub); }
+.kv { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; font-size: 14px; border-bottom: 1px solid var(--line); }
+.kv:last-child { border-bottom: 0; }
+.kv span { color: var(--mid); }
+.kv b { font-weight: 700; }
+.seg { display: inline-flex; gap: 2px; padding: 3px; background: var(--soft); border-radius: 10px; }
+.seg button { border: 0; background: transparent; padding: 6px 12px; border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 600; color: var(--sub); cursor: pointer; }
+.seg button.on { background: #fff; color: var(--text); box-shadow: 0 1px 4px rgba(15,23,42,0.08); }
+.note { font-size: 11.5px; color: #B0B8C1; line-height: 1.6; margin-top: 10px; }
+.loading { color: var(--sub); font-size: 13px; padding: 20px 0; text-align: center; }
+
+/* 공포 탐욕 */
+.fng { display: flex; flex-direction: column; align-items: center; }
+.fng svg { width: 100%; max-width: 230px; height: auto; }
+.fng .val { margin-top: -42px; text-align: center; }
+.fng .val b { display: block; font-size: 34px; font-weight: 800; }
+.fng .val span { font-size: 14px; font-weight: 700; }
+.fng-hist { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; margin-top: 14px; text-align: center; }
+.fng-hist div { display: flex; flex-direction: column; gap: 3px; }
+.fng-hist span { font-size: 12px; color: var(--sub); }
+.fng-hist b { font-size: 15px; }
+
+/* 목록 */
+.tl { display: flex; flex-direction: column; }
+.tr { display: grid; grid-template-columns: 22px 1fr auto auto; gap: 10px; align-items: center; padding: 8px 0; font-size: 14px; border-bottom: 1px solid var(--line); }
+.tr:last-child { border-bottom: 0; }
+.tr .rk { font-size: 12px; color: var(--sub); text-align: center; }
+.tr .nm { font-weight: 700; }
+.tr .sub { font-size: 12px; color: var(--sub); text-align: right; }
+.tr .vv { font-weight: 700; text-align: right; min-width: 72px; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.two h4 { margin: 0 0 4px; font-size: 13px; color: var(--sub); font-weight: 700; }
+
+/* 롱숏 */
+.ls { margin-bottom: 14px; }
+.ls .top { display: flex; justify-content: space-between; font-size: 13px; color: var(--mid); margin-bottom: 6px; }
+.ls .bar { display: flex; height: 26px; border-radius: 8px; overflow: hidden; font-size: 12.5px; font-weight: 700; color: #fff; }
+.ls .bar div { display: flex; align-items: center; padding: 0 10px; white-space: nowrap; }
+.ls .bar .l { background: var(--up); } .ls .bar .s { background: var(--down); justify-content: flex-end; }
+
+/* 청산맵 */
+#lmap { width: 100%; height: 440px; display: block; }
+.lmap-legend { display: flex; gap: 14px; font-size: 12.5px; color: var(--mid); align-items: center; flex-wrap: wrap; }
+.lmap-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+
+/* 실시간 청산 */
+.lsum { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.lsum div { background: var(--soft); border-radius: 14px; padding: 12px 14px; }
+.lsum span { font-size: 12.5px; color: var(--sub); display: block; margin-bottom: 4px; }
+.lsum b { font-size: 22px; font-weight: 800; }
+.lfeed { max-height: 330px; overflow-y: auto; }
+.lr { display: grid; grid-template-columns: auto 1fr auto auto; gap: 10px; align-items: center; padding: 7px 2px; font-size: 13.5px; border-bottom: 1px solid var(--line); }
+.lr.bigliq { background: #FFF8F8; }
+.tag { font-size: 11px; font-weight: 800; padding: 3px 7px; border-radius: 6px; }
+.tag.l { background: rgba(240,68,82,0.1); color: var(--down); } .tag.s { background: rgba(8,153,129,0.1); color: var(--up); }
+.lr .t { font-size: 12px; color: var(--sub); }
+
+.tv { height: 520px; border-radius: 14px; overflow: hidden; }
+
+@media (max-width: 1000px) { .r4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .r21, .r2 { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { .r4 { grid-template-columns: 1fr; } .two { grid-template-columns: 1fr; } .card { padding: 18px; } #lmap { height: 380px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="row r4">
+    <div class="card"><div class="ct"><b>공포·탐욕 지수</b><span>alternative.me</span></div><div class="fng" id="fng"><div class="loading">불러오는 중</div></div></div>
+    <div class="card"><div class="ct"><b>시장 규모</b><span>CoinGecko</span></div><div id="global"><div class="loading">불러오는 중</div></div></div>
+    <div class="card"><div class="ct"><b>김치 프리미엄</b><span>업비트 vs Bybit</span></div><div id="kimp"><div class="loading">불러오는 중</div></div></div>
+    <div class="card"><div class="ct"><b>펀딩비</b><span>Bitget · 8시간</span></div><div id="fund"><div class="loading">불러오는 중</div></div></div>
+  </div>
+
+  <div class="row r21">
+    <div class="card">
+      <div class="ct"><b>청산맵 <span style="font-size:13px;font-weight:600;color:var(--sub)">(추정)</span></b><div class="seg" id="mapSym"></div></div>
+      <div class="lmap-legend"><span><i style="background:var(--down)"></i>롱 청산 예상 (가격 하락 시)</span><span><i style="background:var(--up)"></i>숏 청산 예상 (가격 상승 시)</span><span id="lmapNow"></span></div>
+      <svg id="lmap"></svg>
+      <div class="note">최근 7일 Bybit 1시간 봉의 미결제약정 증가분을 새로 열린 포지션으로 보고, 레버리지 5~100배 분포를 가정해 청산 가격을 추정한 값이에요. 이미 가격이 지나간 청산 구간은 뺐어요. 실제 청산 위치와는 다를 수 있어요.</div>
+    </div>
+    <div class="card"><div class="ct"><b>롱숏 비율</b><span id="lsSym">BTC · 1시간</span></div><div id="ls"><div class="loading">불러오는 중</div></div></div>
+  </div>
+
+  <div class="row r2">
+    <div class="card">
+      <div class="ct"><b>실시간 청산</b><span>Bybit · Binance</span></div>
+      <div class="lsum"><div><span>롱 청산</span><b class="down num" id="lqL">$0</b></div><div><span>숏 청산</span><b class="up num" id="lqS">$0</b></div></div>
+      <div class="lfeed" id="lqFeed"><div class="loading">청산이 생기면 바로 표시돼요</div></div>
+      <div class="note" id="lqNote"></div>
+    </div>
+    <div class="card"><div class="ct"><b>24시간 상승 · 하락</b><span>Bybit · 거래대금 $5M 이상</span></div><div class="two" id="movers"><div class="loading">불러오는 중</div></div></div>
+  </div>
+
+  <div class="row r2">
+    <div class="card"><div class="ct"><b>펀딩비 순위</b><span>Bitget · 거래대금 $5M 이상</span></div><div class="two" id="fundRank"><div class="loading">불러오는 중</div></div></div>
+    <div class="card"><div class="ct"><b>미결제약정 상위</b><span>Bitget</span></div><div class="tl" id="oiTop"><div class="loading">불러오는 중</div></div></div>
+  </div>
+
+  <div class="card"><div class="ct"><b>코인 히트맵</b><span>시가총액 크기 · 24시간 변동 · TradingView</span></div>
+    <div class="tv"><div class="tradingview-widget-container" style="height:100%;width:100%"><div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>
+    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-crypto-coins-heatmap.js" async>
+    {"dataSource":"Crypto","blockSize":"market_cap_calc","blockColor":"24h_close_change|5","locale":"kr","symbolUrl":"","colorTheme":"light","hasTopBar":false,"isDataSetEnabled":false,"isZoomEnabled":true,"hasSymbolTooltip":true,"isMonoSize":false,"width":"100%","height":"100%"}
+    </script></div></div></div>
+
+  <div class="card"><div class="ct"><b>경제 캘린더</b><span>미국 · 한국 · 중요도 중 이상 · TradingView</span></div>
+    <div class="tv"><div class="tradingview-widget-container" style="height:100%;width:100%"><div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>
+    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
+    {"colorTheme":"light","isTransparent":true,"width":"100%","height":"100%","locale":"kr","importanceFilter":"0,1","countryFilter":"us,kr"}
+    </script></div></div></div>
+</div>
+
+<script>
+const DATA = __DATA__;
+const $ = id => document.getElementById(id);
+const sgn = v => v > 0 ? '+' : v < 0 ? '−' : '';
+const cls = v => v > 0 ? 'up' : v < 0 ? 'down' : '';
+const pct = (v, d = 2) => v == null || isNaN(v) ? '-' : sgn(v) + Math.abs(v).toFixed(d) + '%';
+const big = v => v == null || isNaN(v) ? '-' : v >= 1e12 ? (v / 1e12).toFixed(2) + 'T' : v >= 1e9 ? (v / 1e9).toFixed(2) + 'B' : v >= 1e6 ? (v / 1e6).toFixed(1) + 'M' : v >= 1e3 ? (v / 1e3).toFixed(1) + 'K' : v.toFixed(0);
+function price(v) { if (v == null || isNaN(v)) return '-'; const a = Math.abs(v), d = a >= 1000 ? 1 : a >= 100 ? 2 : a >= 1 ? 4 : 6; return v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }); }
+const hms = t => new Date(t + 9 * 3600e3).toISOString().slice(11, 19);
+const name = s => s.replace(/USDT$/, '');
+async function get(u) { const r = await fetch(u); if (!r.ok) throw new Error(r.status); return r.json(); }
+function fit() { try { const fe = window.frameElement; if (fe) { const h = document.documentElement.scrollHeight; fe.style.height = h + 'px'; fe.height = h; } } catch (e) {} }
+function fail(id, msg) { $(id).innerHTML = `<div class="loading">${msg || '데이터를 불러오지 못했어요'}</div>`; }
+
+// ---------- 공포·탐욕 ----------
+const FNG_KO = { 'Extreme Fear': '극단적 공포', 'Fear': '공포', 'Neutral': '중립', 'Greed': '탐욕', 'Extreme Greed': '극단적 탐욕' };
+const fngColor = v => v < 25 ? '#F04452' : v < 45 ? '#FF8A3D' : v < 56 ? '#8B95A1' : v < 75 ? '#3DBE7E' : '#089981';
+async function loadFng() {
+  try {
+    const d = (await get('https://api.alternative.me/fng/?limit=31')).data;
+    const v = +d[0].value, ang = Math.PI * (1 - v / 100);
+    const nx = 120 + 88 * Math.cos(ang), ny = 120 - 88 * Math.sin(ang);
+    const seg = (a0, a1, c) => { const p = a => [120 + 100 * Math.cos(Math.PI * (1 - a)), 120 - 100 * Math.sin(Math.PI * (1 - a))];
+      const [x0, y0] = p(a0), [x1, y1] = p(a1); return `<path d="M${x0} ${y0} A100 100 0 0 1 ${x1} ${y1}" stroke="${c}" stroke-width="16" fill="none"/>`; };
+    const h = (i, l) => d[i] ? `<div><span>${l}</span><b style="color:${fngColor(+d[i].value)}">${d[i].value}</b></div>` : '';
+    $('fng').innerHTML = `<svg viewBox="0 0 240 132">${seg(0, .245, '#F04452')}${seg(.255, .445, '#FF8A3D')}${seg(.455, .555, '#C9CED6')}${seg(.565, .745, '#3DBE7E')}${seg(.755, 1, '#089981')}
+      <line x1="120" y1="120" x2="${nx}" y2="${ny}" stroke="#191F28" stroke-width="3" stroke-linecap="round"/><circle cx="120" cy="120" r="6" fill="#191F28"/></svg>
+      <div class="val" style="margin-top:4px"><b style="color:${fngColor(v)}">${v}</b><span style="color:${fngColor(v)}">${FNG_KO[d[0].value_classification] || d[0].value_classification}</span></div>
+      <div class="fng-hist">${h(1, '어제')}${h(7, '지난주')}${h(30, '지난달')}</div>`;
+  } catch (e) { fail('fng'); }
+  fit();
+}
+
+// ---------- 시장 규모 ----------
+async function loadGlobal() {
+  try {
+    const d = (await get('https://api.coingecko.com/api/v3/global')).data;
+    $('global').innerHTML = `<div class="lbl">전체 암호화폐 시가총액</div><div class="big num">$${big(d.total_market_cap.usd)}</div>
+      <div class="num ${cls(d.market_cap_change_percentage_24h_usd)}" style="font-size:14px;font-weight:700;margin:2px 0 10px">${pct(d.market_cap_change_percentage_24h_usd)} <span style="color:var(--sub);font-weight:500">24시간</span></div>
+      <div class="kv"><span>BTC 도미넌스</span><b class="num">${d.market_cap_percentage.btc.toFixed(1)}%</b></div>
+      <div class="kv"><span>ETH 도미넌스</span><b class="num">${d.market_cap_percentage.eth.toFixed(1)}%</b></div>
+      <div class="kv"><span>24시간 거래량</span><b class="num">$${big(d.total_volume.usd)}</b></div>`;
+  } catch (e) { fail('global', 'CoinGecko 요청이 잠시 막혔어요 (1분 뒤 다시 시도)'); }
+  fit();
+}
+
+// ---------- 김프 · 펀딩 · 순위 (Bybit · Bitget · 업비트 시세) ----------
+let bybit = {}, bitget = [];
+async function loadTickers() {
+  try { (await get('https://api.bybit.com/v5/market/tickers?category=linear')).result.list.forEach(t => { bybit[t.symbol] = t; }); } catch (e) {}
+  try { bitget = (await get('https://api.bitget.com/api/v2/mix/market/tickers?productType=USDT-FUTURES')).data || []; } catch (e) {}
+  renderKimp(); renderFund(); renderMovers(); renderFundRank(); renderOI(); fit();
+}
+async function renderKimp() {
+  const coins = ['BTC', 'ETH', 'XRP', 'SOL', 'DOGE'];
+  let up = {};
+  try { (await get('https://api.upbit.com/v1/ticker?markets=' + coins.concat(['USDT']).map(c => 'KRW-' + c).join(','))).forEach(t => { up[t.market.slice(4)] = t.trade_price; }); } catch (e) {}
+  const fx = DATA.usdkrw;
+  if (!fx || !Object.keys(up).length) { fail('kimp', '업비트 또는 환율 정보를 불러오지 못했어요'); return; }
+  const rows = coins.map(c => { const b = bybit[c + 'USDT']; if (!b || !up[c]) return null; const k = (up[c] / (+b.lastPrice * fx) - 1) * 100; return [c, k]; }).filter(Boolean);
+  const avg = rows.reduce((a, r) => a + r[1], 0) / (rows.length || 1);
+  const tether = up.USDT ? (up.USDT / fx - 1) * 100 : null;
+  $('kimp').innerHTML = `<div class="lbl">BTC 김프</div><div class="big num ${cls(rows[0] && rows[0][1])}">${pct(rows[0] && rows[0][1])}</div>
+    <div style="font-size:13px;color:var(--sub);margin:2px 0 10px">평균 <b class="${cls(avg)}">${pct(avg)}</b> · 테더 <b class="${cls(tether)}">${pct(tether)}</b></div>
+    ${rows.slice(1).map(([c, k]) => `<div class="kv"><span>${c}</span><b class="num ${cls(k)}">${pct(k)}</b></div>`).join('')}
+    <div class="note" style="margin-top:6px">환율 ₩${Math.round(fx).toLocaleString('ko-KR')}/$ 기준</div>`;
+  fit();
+}
+function renderFund() {
+  const f = s => { const t = bitget.find(x => x.symbol === s); return t ? +t.fundingRate * 100 : null; };
+  const liquid = bitget.filter(t => +t.usdtVolume > 5e6);
+  const avg = liquid.length ? liquid.reduce((a, t) => a + +t.fundingRate, 0) / liquid.length * 100 : null;
+  if (!bitget.length) { fail('fund'); return; }
+  const b = f('BTCUSDT');
+  $('fund').innerHTML = `<div class="lbl">BTC 펀딩비</div><div class="big num ${cls(b)}">${pct(b, 4)}</div>
+    <div style="font-size:13px;color:var(--sub);margin:2px 0 10px">${b == null ? '' : b >= 0 ? '롱이 숏에게 냄 · 롱 과열 쪽' : '숏이 롱에게 냄 · 숏 과열 쪽'}</div>
+    <div class="kv"><span>ETH</span><b class="num ${cls(f('ETHUSDT'))}">${pct(f('ETHUSDT'), 4)}</b></div>
+    <div class="kv"><span>SOL</span><b class="num ${cls(f('SOLUSDT'))}">${pct(f('SOLUSDT'), 4)}</b></div>
+    <div class="kv"><span>전체 평균 (${liquid.length}종목)</span><b class="num ${cls(avg)}">${pct(avg, 4)}</b></div>`;
+}
+const trow = (i, n, sub, v, c) => `<div class="tr"><span class="rk">${i}</span><span class="nm">${n}</span><span class="sub num">${sub}</span><span class="vv num ${c}">${v}</span></div>`;
+function renderMovers() {
+  const l = Object.values(bybit).filter(t => t.symbol.endsWith('USDT') && +t.turnover24h > 5e6);
+  if (!l.length) { fail('movers'); return; }
+  l.sort((a, b) => +b.price24hPcnt - +a.price24hPcnt);
+  const blk = (arr, t) => `<div><h4>${t}</h4><div class="tl">${arr.map((x, i) => trow(i + 1, name(x.symbol), price(+x.lastPrice), pct(+x.price24hPcnt * 100), cls(+x.price24hPcnt))).join('')}</div></div>`;
+  $('movers').innerHTML = blk(l.slice(0, 8), '상승') + blk(l.slice(-8).reverse(), '하락');
+}
+function renderFundRank() {
+  const l = bitget.filter(t => +t.usdtVolume > 5e6 && t.fundingRate !== '');
+  if (!l.length) { fail('fundRank'); return; }
+  l.sort((a, b) => +b.fundingRate - +a.fundingRate);
+  const blk = (arr, t) => `<div><h4>${t}</h4><div class="tl">${arr.map((x, i) => trow(i + 1, name(x.symbol), pct(+x.change24h * 100), pct(+x.fundingRate * 100, 4), cls(+x.fundingRate))).join('')}</div></div>`;
+  $('fundRank').innerHTML = blk(l.slice(0, 8), '높은 순 (롱 과열)') + blk(l.slice(-8).reverse(), '낮은 순 (숏 과열)');
+}
+function renderOI() {
+  const l = bitget.map(t => ({ s: t.symbol, oi: +t.holdingAmount * +t.lastPr, chg: +t.change24h * 100 })).filter(x => x.oi > 0).sort((a, b) => b.oi - a.oi).slice(0, 10);
+  if (!l.length) { fail('oiTop'); return; }
+  $('oiTop').innerHTML = l.map((x, i) => trow(i + 1, name(x.s), pct(x.chg), '$' + big(x.oi), '')).join('');
+}
+
+// ---------- 롱숏 비율 · 청산맵 (선택 종목) ----------
+const MAP_SYMS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT'];
+let mapSym = 'BTCUSDT';
+try { const s = localStorage.getItem('mung_market_sym'); if (MAP_SYMS.includes(s)) mapSym = s; } catch (e) {}
+function renderSeg() {
+  $('mapSym').innerHTML = MAP_SYMS.map(s => `<button data-s="${s}" class="${s === mapSym ? 'on' : ''}">${name(s)}</button>`).join('');
+  $('mapSym').querySelectorAll('button').forEach(b => b.onclick = () => { mapSym = b.dataset.s; try { localStorage.setItem('mung_market_sym', mapSym); } catch (e) {} renderSeg(); loadLS(); loadMap(); });
+}
+async function loadLS() {
+  $('lsSym').textContent = name(mapSym) + ' · 최근 1시간';
+  const bar = (title, l, s, src) => `<div class="ls"><div class="top"><span>${title}</span><span>${src}</span></div>
+    <div class="bar"><div class="l" style="width:${l * 100}%">롱 ${(l * 100).toFixed(1)}%</div><div class="s" style="width:${s * 100}%">${(s * 100).toFixed(1)}% 숏</div></div></div>`;
+  let h = '';
+  try { const d = (await get(`https://api.bitget.com/api/v2/mix/market/account-long-short?symbol=${mapSym}&period=1h`)).data; const x = d[d.length - 1]; h += bar('계좌 수 비율', +x.longAccountRatio, +x.shortAccountRatio, 'Bitget'); } catch (e) {}
+  try { const d = (await get(`https://api.bitget.com/api/v2/mix/market/position-long-short?symbol=${mapSym}&period=1h`)).data; const x = d[d.length - 1]; h += bar('포지션 규모 비율', +x.longPositionRatio, +x.shortPositionRatio, 'Bitget'); } catch (e) {}
+  try { const d = (await get(`https://api.bybit.com/v5/market/account-ratio?category=linear&symbol=${mapSym}&period=1h&limit=1`)).result.list[0]; h += bar('계좌 수 비율', +d.buyRatio, +d.sellRatio, 'Bybit'); } catch (e) {}
+  $('ls').innerHTML = (h || '<div class="loading">데이터를 불러오지 못했어요</div>') +
+    '<div class="note">계좌 수 비율은 롱/숏 포지션을 가진 계좌 수, 포지션 규모 비율은 실제 물량 기준이에요. 계좌 수에서 롱이 많은데 물량은 숏이 많으면 큰손이 숏 쪽이라는 뜻이에요.</div>';
+  fit();
+}
+async function loadMap() {
+  const svg = $('lmap');
+  svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" fill="#8B95A1" font-size="13">계산 중…</text>';
+  try {
+    const [kl, oiR] = await Promise.all([
+      get(`https://api.bybit.com/v5/market/kline?category=linear&symbol=${mapSym}&interval=60&limit=168`),
+      get(`https://api.bybit.com/v5/market/open-interest?category=linear&symbol=${mapSym}&intervalTime=1h&limit=169`),
+    ]);
+    const k = kl.result.list.map(r => ({ t: +r[0], o: +r[1], h: +r[2], l: +r[3], c: +r[4] })).reverse();
+    const oiMap = new Map(oiR.result.list.map(r => [+r.timestamp, +r.openInterest]));
+    const now = bybit[mapSym] ? +bybit[mapSym].lastPrice : k[k.length - 1].c;
+    // 뒤에서부터 최저가·최고가 (이후에 가격이 지나간 청산 구간 제거용)
+    const n = k.length, minAfter = Array(n), maxAfter = Array(n);
+    for (let i = n - 1, mn = Infinity, mx = -Infinity; i >= 0; i--) { minAfter[i] = mn; maxAfter[i] = mx; mn = Math.min(mn, k[i].l); mx = Math.max(mx, k[i].h); }
+    const LEV = [[5, .10], [10, .25], [25, .30], [50, .20], [100, .15]];
+    const RANGE = 0.12, BINS = 70, lo = now * (1 - RANGE), hi = now * (1 + RANGE), step = (hi - lo) / BINS;
+    const longB = Array(BINS).fill(0), shortB = Array(BINS).fill(0);
+    for (let i = 1; i < n; i++) {
+      const prev = oiMap.get(k[i - 1].t), cur = oiMap.get(k[i].t);
+      if (prev == null || cur == null || cur <= prev) continue;
+      const qty = cur - prev, px = (k[i].h + k[i].l + k[i].c) / 3, usd = qty * px;
+      const lw = k[i].c >= k[i].o ? 0.55 : 0.45; // 양봉이면 롱이 조금 더 열렸다고 가정
+      for (const [L, w] of LEV) {
+        const lp = px * (1 - 1 / L), sp = px * (1 + 1 / L);
+        if (minAfter[i] > lp && lp >= lo && lp < now) longB[Math.floor((lp - lo) / step)] += usd * lw * w;
+        if (maxAfter[i] < sp && sp <= hi && sp > now) shortB[Math.min(BINS - 1, Math.floor((sp - lo) / step))] += usd * (1 - lw) * w;
+      }
+    }
+    drawMap(longB, shortB, lo, step, now, BINS);
+    $('lmapNow').innerHTML = `현재가 <b class="num">${price(now)}</b>`;
+  } catch (e) { svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" fill="#8B95A1" font-size="13">Bybit 데이터를 불러오지 못했어요</text>'; }
+  fit();
+}
+function drawMap(longB, shortB, lo, step, now, BINS) {
+  const svg = $('lmap'), W = svg.clientWidth || 700, H = svg.clientHeight || 440;
+  const padL = 78, padR = 70, top = 10, bot = 10, plotW = W - padL - padR, bh = (H - top - bot) / BINS;
+  const mx = Math.max(...longB, ...shortB) || 1;
+  const y = i => H - bot - (i + 1) * bh; // 아래가 낮은 가격
+  let s = '';
+  // 누적 곡선용
+  let cumL = 0, cumS = 0; const cl = Array(BINS), cs = Array(BINS);
+  for (let i = BINS - 1; i >= 0; i--) { cumL += longB[i]; cl[i] = cumL; }
+  for (let i = 0; i < BINS; i++) { cumS += shortB[i]; cs[i] = cumS; }
+  const cmx = Math.max(cumL, cumS) || 1;
+  for (let i = 0; i < BINS; i++) {
+    const p0 = lo + i * step;
+    if (longB[i] > 0) s += `<rect x="${padL}" y="${y(i) + 0.5}" width="${Math.max(1, longB[i] / mx * plotW)}" height="${Math.max(1, bh - 1)}" fill="#F04452" opacity="${0.35 + 0.65 * longB[i] / mx}"><title>${price(p0)} ~ ${price(p0 + step)}\n롱 청산 예상 $${big(longB[i])}</title></rect>`;
+    if (shortB[i] > 0) s += `<rect x="${padL}" y="${y(i) + 0.5}" width="${Math.max(1, shortB[i] / mx * plotW)}" height="${Math.max(1, bh - 1)}" fill="#089981" opacity="${0.35 + 0.65 * shortB[i] / mx}"><title>${price(p0)} ~ ${price(p0 + step)}\n숏 청산 예상 $${big(shortB[i])}</title></rect>`;
+  }
+  const line = (arr, color) => { const pts = []; arr.forEach((v, i) => { if (v != null && v > 0) pts.push(`${padL + v / cmx * plotW},${y(i) + bh / 2}`); }); return pts.length > 1 ? `<polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="1.6" stroke-dasharray="4 3" opacity=".7"/>` : ''; };
+  const nowI = (now - lo) / step;
+  s += line(cl.map((v, i) => i < nowI ? v : null), '#F04452') + line(cs.map((v, i) => i > nowI ? v : null), '#089981');
+  // 가격 눈금
+  for (let j = 0; j <= 8; j++) { const i = Math.round(j * BINS / 8), p = lo + i * step, yy = H - bot - i * bh;
+    s += `<line x1="${padL}" x2="${W - padR}" y1="${yy}" y2="${yy}" stroke="#F2F4F6"/><text x="${padL - 8}" y="${yy + 4}" text-anchor="end" font-size="11.5" fill="#8B95A1">${price(p)}</text>`; }
+  const ny = H - bot - nowI * bh;
+  s += `<line x1="${padL}" x2="${W - padR}" y1="${ny}" y2="${ny}" stroke="#3182F6" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <rect x="${W - padR + 4}" y="${ny - 10}" width="${padR - 6}" height="20" rx="5" fill="#3182F6"/><text x="${W - padR / 2 + 1}" y="${ny + 4}" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">${price(now)}</text>`;
+  // 가장 큰 구간 표시
+  const topL = longB.indexOf(Math.max(...longB)), topS = shortB.indexOf(Math.max(...shortB));
+  if (longB[topL] > 0) s += `<text x="${padL + longB[topL] / mx * plotW + 6}" y="${y(topL) + bh / 2 + 4}" font-size="11.5" font-weight="700" fill="#F04452">${price(lo + topL * step)} · $${big(longB[topL])}</text>`;
+  if (shortB[topS] > 0) s += `<text x="${padL + shortB[topS] / mx * plotW + 6}" y="${y(topS) + bh / 2 + 4}" font-size="11.5" font-weight="700" fill="#089981">${price(lo + topS * step)} · $${big(shortB[topS])}</text>`;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.innerHTML = s;
+}
+
+// ---------- 실시간 청산 ----------
+const liq = { list: [], L: 0, S: 0, since: Date.now() };
+function addLiq(ex, sym, longLiq, usd, t) {
+  liq.list.unshift({ ex, sym, longLiq, usd, t }); if (liq.list.length > 200) liq.list.length = 200;
+  if (longLiq) liq.L += usd; else liq.S += usd; liq.dirty = true;
+}
+function renderLiq() {
+  $('lqL').textContent = '$' + big(liq.L); $('lqS').textContent = '$' + big(liq.S);
+  const rows = liq.list.slice(0, 60);
+  if (rows.length) $('lqFeed').innerHTML = rows.map(x => `<div class="lr ${x.usd >= 100000 ? 'bigliq' : ''}"><span class="tag ${x.longLiq ? 'l' : 's'}">${x.longLiq ? '롱 청산' : '숏 청산'}</span>
+    <b>${name(x.sym)} <span style="font-weight:500;color:var(--sub);font-size:12px">${x.ex}</span></b><b class="num ${x.longLiq ? 'down' : 'up'}">$${big(x.usd)}</b><span class="t num">${hms(x.t)}</span></div>`).join('');
+  $('lqNote').textContent = `화면을 연 뒤 ${Math.max(1, Math.round((Date.now() - liq.since) / 60000))}분 동안 집계 · $100K 이상은 강조 표시`;
+}
+function connectLiq() {
+  try {
+    const w = new WebSocket('wss://stream.bybit.com/v5/public/linear');
+    w.onopen = async () => {
+      const top = Object.values(bybit).filter(t => t.symbol.endsWith('USDT')).sort((a, b) => +b.turnover24h - +a.turnover24h).slice(0, 80).map(t => 'allLiquidation.' + t.symbol);
+      const args = top.length ? top : MAP_SYMS.map(s => 'allLiquidation.' + s);
+      for (let i = 0; i < args.length; i += 10) { try { w.send(JSON.stringify({ op: 'subscribe', args: args.slice(i, i + 10) })); } catch (e) {} await new Promise(r => setTimeout(r, 40)); }
+      w._p = setInterval(() => { try { w.send(JSON.stringify({ op: 'ping' })); } catch (e) {} }, 20000);
+    };
+    w.onmessage = ev => { let m; try { m = JSON.parse(ev.data); } catch (e) { return; } if (!m.topic || !m.topic.startsWith('allLiquidation.')) return;
+      for (const d of m.data || []) addLiq('Bybit', d.s, d.S === 'Buy', +d.v * +d.p, +d.T); };
+    w.onclose = () => { clearInterval(w._p); setTimeout(connectLiq, 5000); };
+  } catch (e) {}
+  try {
+    const b = new WebSocket('wss://fstream.binance.com/ws/!forceOrder@arr');
+    b.onmessage = ev => { let m; try { m = JSON.parse(ev.data); } catch (e) { return; } const o = m.o; if (!o || !o.s.endsWith('USDT')) return;
+      addLiq('Binance', o.s, o.S === 'SELL', (+o.z || +o.q) * (+o.ap || +o.p), +o.T); };
+  } catch (e) {}
+}
+setInterval(() => { renderLiq(); }, 1000);
+
+// ---------- 시작 ----------
+renderSeg();
+(async () => {
+  await loadTickers();
+  loadFng(); loadGlobal(); loadLS(); loadMap(); connectLiq();
+})();
+setInterval(loadTickers, 60000);
+setInterval(() => { loadLS(); loadFng(); }, 300000);
+setInterval(loadGlobal, 180000);
+setInterval(loadMap, 600000);
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { loadMap(); fit(); }, 300); });
+setTimeout(fit, 1500); setTimeout(fit, 4000);
+</script>
+</body>
+</html>

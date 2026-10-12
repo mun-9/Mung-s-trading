@@ -203,7 +203,7 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
 """)
 
 
-NAV_PAGES = [("history", "views/history.py", "매매 히스토리"), ("chart", "views/chart.py", "차트")]
+NAV_PAGES = [("history", "views/history.py", "매매 히스토리"), ("chart", "views/chart.py", "차트"), ("market", "views/market.py", "시장")]
 
 
 def nav(current, dark=False):
