@@ -82,13 +82,16 @@ div[class*="st-key-topnav_"] [data-testid="stMarkdownContainer"] { margin: 0 !im
 .nav-logo .tag { font-size: 11px; font-weight: 700; color: #2459ED; background: rgba(36,89,237,0.08); padding: 3px 7px; border-radius: 6px; letter-spacing: 0.2px; }
 div[class*="st-key-topnav_dark"] .nav-logo .tag { background: rgba(41,98,255,0.18); color: #7FA3FF; }
 div[class*="st-key-topnav_dark"] .nav-logo .word { color: #D1D4DC; }
-div[class*="st-key-navlink_"] a { padding: 8px 4px !important; min-height: 0 !important; background: transparent !important; border-radius: 0 !important; }
-div[class*="st-key-navlink_"] a p, div[class*="st-key-navlink_"] a span { font-size: 15px !important; font-weight: 600 !important; color: #172033 !important; }
-div[class*="st-key-navlink_"] a:hover p { color: #2459ED !important; }
-div[class*="st-key-navlink_"][class*="_on"] a p { color: #2459ED !important; font-weight: 750 !important; }
-div[class*="st-key-topnav_dark"] div[class*="st-key-navlink_"] a p { color: #9598A1 !important; }
-div[class*="st-key-topnav_dark"] div[class*="st-key-navlink_"][class*="_on"] a p { color: #FFFFFF !important; }
-div[class*="st-key-topnav_dark"] div[class*="st-key-navlink_"] a:hover p { color: #FFFFFF !important; }
+/* 메뉴: 회색 바 안에 탭 버튼 3개 (지금 있는 페이지는 흰 버튼으로 떠 있음) → 눌러서 이동하는 메뉴인 게 한눈에 보이게 */
+div[class*="st-key-navtabs"] { background: #F2F4F6; padding: 4px !important; border-radius: 12px; gap: 2px !important; flex-wrap: nowrap !important; }
+div[class*="st-key-navlink_"] a { padding: 7px 14px !important; min-height: 0 !important; background: transparent !important; border-radius: 9px !important;
+    display: flex !important; align-items: center; gap: 6px; transition: background .15s ease, box-shadow .15s ease; }
+div[class*="st-key-navlink_"] a p, div[class*="st-key-navlink_"] a span { font-size: 14.5px !important; font-weight: 650 !important; color: #6B7684 !important; white-space: nowrap; }
+div[class*="st-key-navlink_"] a [data-testid="stIconMaterial"] { font-size: 18px !important; }
+div[class*="st-key-navlink_"] a:hover { background: rgba(255,255,255,0.7) !important; }
+div[class*="st-key-navlink_"] a:hover p, div[class*="st-key-navlink_"] a:hover span { color: #191F28 !important; }
+div[class*="st-key-navlink_"][class*="_on"] a { background: #FFFFFF !important; box-shadow: 0 1px 4px rgba(15,23,42,0.10); }
+div[class*="st-key-navlink_"][class*="_on"] a p, div[class*="st-key-navlink_"][class*="_on"] a span { color: #2459ED !important; font-weight: 750 !important; }
 
 /* 섹션 제목 줄 (보유 포지션 + 배지 + 새로고침) */
 div[class*="st-key-page_head"] { margin: 10px 0 4px; min-height: 40px; }
@@ -241,7 +244,11 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
     div[class*="st-key-topnav_"] { height: 60px; gap: 16px !important; margin-bottom: 20px; padding: 0 16px !important; }
     .nav-logo .word { font-size: 18px; }
     .nav-logo .tag { display: none; }
-    div[class*="st-key-navlink_"] a p { font-size: 14px !important; }
+    div[class*="st-key-navlink_"] a { padding: 6px 8px !important; gap: 4px; }
+    div[class*="st-key-navlink_"] a p { font-size: 13px !important; }
+    div[class*="st-key-navlink_"] a > span:has([data-testid="stIconMaterial"]) { display: none !important; }
+    div[class*="st-key-topnav_"] { gap: 10px !important; flex-wrap: nowrap !important; justify-content: space-between; padding: 0 14px !important; }
+    div[class*="st-key-navtabs"] { flex-shrink: 0; }
     .ph-title { font-size: 21px; }
     .pos-divider { border-left: none !important; border-top: 1px solid rgba(15,23,42,0.06) !important; padding-top: 14px !important; margin-top: 6px !important; }
     .hide-on-mobile { display: none !important; }
@@ -259,7 +266,9 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
 """)
 
 
-NAV_PAGES = [("history", "views/history.py", "매매 히스토리"), ("chart", "views/chart.py", "차트"), ("market", "views/market.py", "시장")]
+NAV_PAGES = [("history", "views/history.py", "매매 히스토리", ":material/receipt_long:"),
+             ("chart", "views/chart.py", "차트", ":material/candlestick_chart:"),
+             ("market", "views/market.py", "시장", ":material/public:")]
 
 
 def nav(current, dark=False):
@@ -269,9 +278,10 @@ def nav(current, dark=False):
         html("<div class='nav-logo'><svg viewBox='0 0 24 24' width='22' height='22'><rect x='3' y='12' width='4' height='9' rx='1.5' fill='#2459ED' opacity='.45'/>"
              "<rect x='10' y='7' width='4' height='14' rx='1.5' fill='#2459ED' opacity='.7'/><rect x='17' y='3' width='4' height='18' rx='1.5' fill='#2459ED'/></svg>"
              "<span class='word'>Mung9_</span><span class='tag'>Trading</span></div>")
-        for key, path, label in NAV_PAGES:
-            with st.container(key=f"navlink_{key}_{'on' if key == current else 'off'}", width="content"):
-                st.page_link(path, label=label)
+        with st.container(key="navtabs", horizontal=True, vertical_alignment="center", width="content"):
+            for key, path, label, icon in NAV_PAGES:
+                with st.container(key=f"navlink_{key}_{'on' if key == current else 'off'}", width="content"):
+                    st.page_link(path, label=label, icon=icon)
 
 
 def title_row(title, right_html, on_refresh):
