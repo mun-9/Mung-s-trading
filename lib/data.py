@@ -21,7 +21,10 @@ UTC = timezone.utc
 # 대시보드 기준 날짜 (이전 데이터는 표시하지 않음)
 DASHBOARD_START_DATE = "2026-09-28"
 
-# 페이백 판정 규칙: 이 날짜 이후, 이 금액 미만의 USDT 입금 = 페이백
+# 원금으로 직접 넣은 입금액 (이 금액과 맞는 입금만 원금, 나머지 입금은 전부 페이백)
+PRINCIPAL_DEPOSITS = [10520, 302, 250, 229.25]
+
+# (예전 규칙, 원금 목록이 비어 있을 때만 사용) 이 날짜 이후, 이 금액 미만의 USDT 입금 = 페이백
 PAYBACK_START = datetime(2026, 10, 1, tzinfo=KST)
 PAYBACK_MAX = 10000
 
@@ -57,6 +60,35 @@ def get_keys():
         return (st.secrets["API_KEY"], st.secrets["SECRET_KEY"], st.secrets["PASSPHRASE"])
     except Exception:
         return ("", "", "")
+
+
+def principal_list():
+    """원금 입금액 목록. Streamlit Secrets의 PRINCIPAL_DEPOSITS(쉼표 구분)가 있으면 그걸 우선."""
+    try:
+        raw = st.secrets["PRINCIPAL_DEPOSITS"]
+        vals = raw if isinstance(raw, (list, tuple)) else str(raw).split(",")
+        out = [float(v) for v in vals if str(v).strip()]
+        if out:
+            return out
+    except Exception:
+        pass
+    return list(PRINCIPAL_DEPOSITS)
+
+
+def match_principal(deps, amounts):
+    """원금 금액마다 가장 가까운 입금 하나를 짝지음 (네트워크 수수료로 조금 덜 들어와도 2% 안이면 인정)."""
+    used = set()
+    for a in sorted(amounts, reverse=True):
+        best, best_diff = None, None
+        for d in deps:
+            if id(d) in used:
+                continue
+            diff = abs(float(d.get("amount") or 0) - a)
+            if diff <= max(1.0, a * 0.02) and (best_diff is None or diff < best_diff):
+                best, best_diff = d, diff
+        if best is not None:
+            used.add(id(best))
+    return used
 
 
 def is_demo(keys):
@@ -329,7 +361,7 @@ def _finish(fills, events, ledger, errors, demo):
 
 
 @st.cache_data(ttl=1800, show_spinner=False)
-def fetch_history(keys, _format=2):
+def fetch_history(keys, _format=3):
     if is_demo(keys):
         return _demo_history()
 
@@ -421,13 +453,15 @@ def fetch_history(keys, _format=2):
             if str(d.get("status", "")).lower() in ("ok", "success", "completed", "1") and d.get("timestamp"):
                 ok[str(d.get("id") or d["timestamp"])] = d
         deps = sorted(ok.values(), key=lambda d: d["timestamp"])
-        principal_ts = [d["timestamp"] for d in deps if float(d.get("amount") or 0) >= PAYBACK_MAX]
-        # 원금 입금을 못 찾으면 대시보드 시작일 이후 입금을 페이백으로 봄
-        cutoff = max(principal_ts) if principal_ts else since_ms
+        principal_ids = match_principal(deps, principal_list())
         for d in deps:
             amount = float(d.get("amount") or 0)
             dt = _to_kst(d["timestamp"])
-            is_payback = d["timestamp"] > cutoff and 0 < amount < PAYBACK_MAX
+            is_principal = id(d) in principal_ids
+            # 원금이 아닌 입금 중 대시보드 시작일 이후 것 = 페이백
+            is_payback = not is_principal and d["timestamp"] >= since_ms and amount > 0
+            if not is_principal and not is_payback:
+                continue  # 시작일 이전 페이백은 표시·계산 안 함
             transfers.append({"datetime": dt.replace(tzinfo=None), "date": dt.strftime("%Y-%m-%d"),
                               "kind": "payback" if is_payback else "principal", "amount": amount})
             if is_payback:

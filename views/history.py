@@ -172,40 +172,7 @@ with c3:
 
 html(f"<div class='note-text'>순손익 = 청산 손익 − 수수료 + 펀딩비 + 페이백 · 진입 수수료는 청산할 때 그 거래에서 함께 차감 · 미실현손익은 합계에 미포함</div>")
 
-# -----------------------------------------------------------------------------
-# 계좌 기준 손익 (현재 자산 − 원금 + 출금) — 계산 없이 실제 잔고로 확인
-# -----------------------------------------------------------------------------
 transfers = hist.get("transfers", [])
-principal = sum(t["amount"] for t in transfers if t["kind"] == "principal")
-try:  # Streamlit Secrets에 PRINCIPAL_USDT를 넣으면 그 값을 원금으로 사용
-    principal_override = float(st.secrets["PRINCIPAL_USDT"])
-except Exception:
-    principal_override = None
-if principal_override:
-    principal = principal_override
-withdrawn = sum(t["amount"] for t in transfers if t["kind"] == "withdraw")
-paid_back = sum(t["amount"] for t in transfers if t["kind"] == "payback")
-fut_eq, spot_eq, eq_err = D.fetch_equity(keys) if hasattr(D, "fetch_equity") else (None, None, None)
-if hist["demo"]:
-    fut_eq, spot_eq = hist.get("demo_equity"), 0.0
-if fut_eq is not None and principal > 0:
-    equity = fut_eq + (spot_eq or 0)
-    acct = equity - principal + withdrawn
-    n_pr = sum(1 for t in transfers if t["kind"] == "principal")
-    html(f"""<div class="card acct" style="margin-top:16px;">
-<div class="acct-l"><div class="card-title"><span>계좌 전체 손익</span><span>현재 자산 − 원금 + 출금</span></div>
-<div style="display:flex;align-items:baseline;gap:8px;margin-top:10px;"><span style="font-size:30px;font-weight:800;color:{pnl_color(acct)};letter-spacing:-0.02em;">{money(acct)}</span>
-<span style="font-size:13px;color:{SUB};font-weight:600;">{(acct / principal * 100):+.2f}%</span></div>
-<div style="font-size:12px;color:{SUB};margin-top:6px;">Bitget 잔고로 바로 계산한 값이라 앱과 같아요 · 미실현손익 포함</div></div>
-<div class="acct-r">
-<div class="bd-row"><span>현재 자산</span><b>${equity:,.2f}</b></div>
-<div class="bd-row" style="font-size:12.5px;"><span style="font-weight:500;">└ 선물 ${fut_eq:,.2f} · 현물 USDT ${(spot_eq or 0):,.2f}</span><b></b></div>
-<div class="bd-row"><span>원금 <span style="color:{SUB};font-weight:500;">({'직접 입력' if principal_override else f'입금 {n_pr}건'})</span></span><b>${principal:,.2f}</b></div>
-<div class="bd-row"><span>출금</span><b>${withdrawn:,.2f}</b></div>
-<div class="bd-row" style="border-bottom:none;"><span>받은 페이백 (자산에 포함)</span><b style="color:{GREEN};">+${paid_back:,.2f}</b></div>
-</div></div>""")
-elif eq_err:
-    html(f"<div class='note-text'>계좌 잔고를 불러오지 못해 계좌 전체 손익을 표시하지 못했어요 ({eq_err})</div>")
 
 # -----------------------------------------------------------------------------
 # 기간 선택
