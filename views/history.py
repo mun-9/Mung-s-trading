@@ -56,23 +56,9 @@ else:
 title_row("보유 포지션", f"<span class='badge'>{badge}</span>", clear_all)
 
 
-_pending_skel = []  # 아직 떠 있는 로딩 카드 (포지션을 받는 즉시 지움)
-
-
-def _drop_skeletons():
-    for ph in _pending_skel:
-        try:
-            ph.empty()
-        except Exception:
-            pass
-    _pending_skel.clear()
-
-
 @st.fragment(run_every=10)
 def live_positions():
     positions, wallet, err = D.fetch_positions(keys)
-    # 포지션을 받자마자 위의 로딩 카드를 지움 (차트까지 다 그려질 때까지 기다리지 않음)
-    _drop_skeletons()
     if err:
         html(f"<div class='err-box'><b>포지션을 불러오지 못했어요</b> — API 키·권한 또는 거래소 응답을 확인해줘.<br>{err}</div>")
         return
@@ -153,14 +139,13 @@ def live_positions():
 # 포지션은 거래소에서 바로 받아와야 해서 조금 늦음 → 자리만 먼저 잡고(로딩 카드), 아래 화면을 먼저 그린 뒤 맨 마지막에 채움
 # 로딩 카드는 이 화면을 처음 열 때(또는 새로고침)만 → 이미 포지션을 받아온 뒤 다시 그릴 때는 바로 그 자리에 그림
 _pos_ready = st.session_state.get("_pos_ready", False)
-pos_slot = st.container()
-with pos_slot:
-    pos_skel = st.empty()
-    if _pos_ready:
+# 로딩 카드와 포지션이 '같은 한 칸'을 번갈아 씀 → 포지션이 그려지는 순간 로딩 카드가 그 자리에서 바뀜 (둘이 겹쳐 보일 수 없음)
+pos_ph = st.empty()
+if _pos_ready:
+    with pos_ph.container():
         live_positions()
-    else:
-        pos_skel.markdown(_ui.POS_SKELETON, unsafe_allow_html=True)
-        _pending_skel.append(pos_skel)
+else:
+    pos_ph.markdown(_ui.POS_SKELETON, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
 # 상단 손익 카드
@@ -203,13 +188,12 @@ with c3:
         u = sum(p["unrealized_pnl"] for p in pos) if pos else 0.0
         chip = f"포지션 {len(pos)}개 · 실시간" if pos else "포지션 없음"
         html(top_card("미실현 PNL", u, chip, D.fetch_usdt_krw()))
-    u_slot = st.container()
-    with u_slot:
-        u_skel = st.empty()
-        if _pos_ready:
+    u_ph = st.empty()
+    if _pos_ready:
+        with u_ph.container():
             unrealized_card()
-        else:
-            u_skel.markdown(_ui.TOPCARD_SKELETON.replace("{title}", "미실현 PNL"), unsafe_allow_html=True)
+    else:
+        u_ph.markdown(_ui.TOPCARD_SKELETON.replace("{title}", "미실현 PNL"), unsafe_allow_html=True)
 
 html(f"<div class='note-text' style='margin-top:-8px;'>PNL = 청산 손익 − 수수료 + 펀딩비 + 페이백 · 진입 수수료는 청산할 때 그 거래에서 함께 차감 · 미실현은 합계에 미포함</div>")
 
@@ -523,10 +507,8 @@ else:
 # 늦게 오는 포지션 정보를 맨 마지막에 채우기
 # -----------------------------------------------------------------------------
 if not _pos_ready:
-    with pos_slot:
+    with pos_ph.container():
         live_positions()
-    pos_skel.empty()
-    with u_slot:
+    with u_ph.container():
         unrealized_card()
-    u_skel.empty()
     st.session_state["_pos_ready"] = True
