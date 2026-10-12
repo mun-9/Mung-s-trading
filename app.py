@@ -9,14 +9,20 @@ import os  # noqa: E402
 
 import lib.data  # noqa: E402
 import lib.ui  # noqa: E402
+import lib.music  # noqa: E402
 
-for _m in (lib.data, lib.ui):
+for _m in (lib.data, lib.ui, lib.music):
     _mt = os.path.getmtime(_m.__file__)
     if getattr(_m, "_loaded_mtime", _mt) != _mt:
         importlib.reload(_m)
     _m._loaded_mtime = _mt
 
 lib.ui.inject_css()
+
+# 왼쪽 아래 LP 음악 플레이어 (사이트에 한 번만 붙어서 페이지를 옮겨도 계속 재생)
+st.html("<style>div[class*='st-key-mg_music_host']{position:absolute !important;height:0 !important;overflow:hidden;}</style>")
+with st.container(key="mg_music_host"):
+    lib.music.inject()
 
 pages = [
     st.Page("views/history.py", title="매매 히스토리", default=True),
