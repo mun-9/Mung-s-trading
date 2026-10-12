@@ -9,7 +9,7 @@ from lib.ui import html, nav
 
 nav("market")
 html("<div class='ph-title' style='margin:2px 0 4px;'>시장</div>"
-     "<div style='font-size:14px;color:#8B95A1;margin-bottom:14px;'>공포·탐욕, 김프, 펀딩비, 청산, 롱숏 비율을 한 화면에서. 시세는 자동으로 갱신돼요.</div>")
+     "<div style='font-size:14px;color:#8B95A1;margin-bottom:14px;'>공포·탐욕, 김프, 펀딩비, 청산, 롱숏 비율을 한 화면에서.</div>")
 
 # 코드가 막 바뀐 직후 서버가 예전 모듈을 들고 있으면 새 함수가 없을 수 있어서, 그 경우 다시 불러옴
 if not hasattr(D, "fetch_ls_external"):

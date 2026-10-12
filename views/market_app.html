@@ -15,7 +15,14 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 .r2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .col { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
 .col .grow { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-.col .grow .lfeed { flex: 1; max-height: none; min-height: 120px; height: 0; overflow-y: auto; }
+.col .grow .lqex { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--sub); margin: -2px 0 10px; }
+.lqex b { color: var(--mid); font-weight: 700; }
+.dom { margin-top: 12px; }
+.dom-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; gap: 2px; }
+.dom-bar i { display: block; height: 100%; }
+.dom-lg { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 8px; font-size: 12px; color: var(--mid); }
+.dom-lg i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
+.lfeed { flex: 1; max-height: none; min-height: 120px; height: 0; overflow-y: auto; }
 .r21 { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
 .card { background: #fff; border-radius: 20px; box-shadow: 0 2px 14px rgba(15,23,42,0.05); padding: 22px 24px; min-width: 0; }
 .ct { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 14px; }
@@ -77,6 +84,13 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 .lsum div { background: var(--soft); border-radius: 14px; padding: 12px 14px; }
 .lsum span { font-size: 12.5px; color: var(--sub); display: block; margin-bottom: 4px; }
 .lsum b { font-size: 22px; font-weight: 800; }
+.lqex { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--sub); margin: -2px 0 10px; }
+.lqex b { color: var(--mid); font-weight: 700; }
+.dom { margin-top: 12px; }
+.dom-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; gap: 2px; }
+.dom-bar i { display: block; height: 100%; }
+.dom-lg { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 8px; font-size: 12px; color: var(--mid); }
+.dom-lg i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
 .lfeed { max-height: 330px; overflow-y: auto; }
 .lr { display: grid; grid-template-columns: auto 1fr auto auto; gap: 10px; align-items: center; padding: 7px 2px; font-size: 13.5px; border-bottom: 1px solid var(--line); }
 .lr.bigliq { background: #FFF8F8; }
@@ -86,7 +100,14 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 
 .tv { height: 520px; border-radius: 14px; overflow: hidden; }
 
-@media (max-width: 1000px) { .col .grow .lfeed { height: auto; max-height: 330px; flex: none; } .r4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .r21, .r2, .r3 { grid-template-columns: 1fr; } }
+@media (max-width: 1000px) { .col .grow .lqex { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--sub); margin: -2px 0 10px; }
+.lqex b { color: var(--mid); font-weight: 700; }
+.dom { margin-top: 12px; }
+.dom-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; gap: 2px; }
+.dom-bar i { display: block; height: 100%; }
+.dom-lg { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 8px; font-size: 12px; color: var(--mid); }
+.dom-lg i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
+.lfeed { height: auto; max-height: 330px; flex: none; } .r4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .r21, .r2, .r3 { grid-template-columns: 1fr; } }
 /* 좁은 화면: 글자 넘침 방지 */
 .ct { flex-wrap: wrap; row-gap: 6px; }
 .ct > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -122,8 +143,9 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
     <div class="col">
       <div class="card"><div class="ct"><b>롱숏 비율</b><span id="lsSym">BTC · 1시간</span></div><div id="ls"><div class="loading">불러오는 중</div></div></div>
       <div class="card grow">
-        <div class="ct"><b>실시간 청산</b><span>BTC · ETH · Bybit+Binance</span></div>
+        <div class="ct"><b>실시간 청산</b><span>BTC · ETH</span></div>
         <div class="lsum"><div><span>롱 청산</span><b class="down num" id="lqL">$0</b></div><div><span>숏 청산</span><b class="up num" id="lqS">$0</b></div></div>
+        <div class="lqex" id="lqEx"></div>
         <div class="lfeed" id="lqFeed"><div class="loading">청산이 생기면 바로 표시돼요</div></div>
         <div class="note" id="lqNote"></div>
       </div>
@@ -177,6 +199,12 @@ async function loadFng() {
 }
 
 // ---------- 시장 규모 ----------
+function domBar(mp) {
+  const btc = mp.btc || 0, eth = mp.eth || 0, st = (mp.usdt || 0) + (mp.usdc || 0), alt = Math.max(0, 100 - btc - eth - st);
+  const parts = [['BTC', btc, '#F7931A'], ['ETH', eth, '#627EEA'], ['스테이블', st, '#26A17B'], ['알트', alt, '#C9CED6']];
+  return `<div class="dom"><div class="dom-bar">${parts.map(([n, v, c]) => `<i style="width:${v}%;background:${c}"></i>`).join('')}</div>
+    <div class="dom-lg">${parts.map(([n, v, c]) => `<span><i style="background:${c}"></i>${n} ${v.toFixed(0)}%</span>`).join('')}</div></div>`;
+}
 async function loadGlobal() {
   try {
     const d = (await get('https://api.coingecko.com/api/v3/global')).data;
@@ -184,7 +212,8 @@ async function loadGlobal() {
       <div class="num ${cls(d.market_cap_change_percentage_24h_usd)}" style="font-size:14px;font-weight:700;margin:2px 0 10px">${pct(d.market_cap_change_percentage_24h_usd)} <span style="color:var(--sub);font-weight:500">24시간</span></div>
       <div class="kv"><span>BTC 도미넌스</span><b class="num">${d.market_cap_percentage.btc.toFixed(1)}%</b></div>
       <div class="kv"><span>ETH 도미넌스</span><b class="num">${d.market_cap_percentage.eth.toFixed(1)}%</b></div>
-      <div class="kv"><span>24시간 거래량</span><b class="num">$${big(d.total_volume.usd)}</b></div>`;
+      <div class="kv"><span>24시간 거래량</span><b class="num">$${big(d.total_volume.usd)}</b></div>
+      ${domBar(d.market_cap_percentage)}`;
   } catch (e) { fail('global', 'CoinGecko 요청이 잠시 막혔어요 (1분 뒤 다시 시도)'); }
   fit();
 }
@@ -221,8 +250,17 @@ function renderFund() {
     <div style="font-size:13px;color:var(--sub);margin:2px 0 10px">${b == null ? '' : b >= 0 ? '롱이 숏에게 냄 · 롱 과열 쪽' : '숏이 롱에게 냄 · 숏 과열 쪽'}</div>
     <div class="kv"><span>ETH</span><b class="num ${cls(f('ETHUSDT'))}">${pct(f('ETHUSDT'), 4)}</b></div>
     <div class="kv"><span>SOL</span><b class="num ${cls(f('SOLUSDT'))}">${pct(f('SOLUSDT'), 4)}</b></div>
-    <div class="kv"><span>전체 평균 (${liquid.length}종목)</span><b class="num ${cls(avg)}">${pct(avg, 4)}</b></div>`;
+    <div class="kv"><span>XRP</span><b class="num ${cls(f('XRPUSDT'))}">${pct(f('XRPUSDT'), 4)}</b></div>
+    <div class="kv"><span>전체 평균 (${liquid.length}종목)</span><b class="num ${cls(avg)}">${pct(avg, 4)}</b></div>
+    <div class="note" style="margin-top:6px">다음 펀딩까지 <b id="fundCd" class="num" style="color:var(--mid)">-</b></div>`;
+  tickFund();
 }
+function tickFund() {
+  const el = $('fundCd'); if (!el) return;
+  const h8 = 8 * 3600e3, left = Math.ceil(Date.now() / h8) * h8 - Date.now();
+  el.textContent = `${Math.floor(left / 3600e3)}:${String(Math.floor(left % 3600e3 / 60e3)).padStart(2, '0')}:${String(Math.floor(left % 60e3 / 1e3)).padStart(2, '0')}`;
+}
+setInterval(tickFund, 1000);
 const trow = (i, n, sub, v, c) => `<div class="tr"><span class="rk">${i}</span><span class="nm">${n}</span><span class="sub num">${sub}</span><span class="vv num ${c}">${v}</span></div>`;
 // ---------- 롱숏 비율 · 청산맵 (선택 종목) ----------
 const MAP_SYMS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT'];
@@ -261,7 +299,7 @@ async function loadLS() {
   $('ls').innerHTML = `<div class="lsmain"><b><span style="color:var(--up)">${(L * 100).toFixed(1)}</span><span style="font-size:15px;color:var(--sub)"> : </span><span style="color:var(--down)">${(S * 100).toFixed(1)}</span></b><span>${ex.length}개 거래소 통합</span></div>
     ${bar(L, S)}
     <div class="lsrows">${ex.map(e => `<div class="lsrow"><span class="n">${e.n}</span>${bar(e.long, e.short)}<span class="v"><span class="up">${(e.long * 100).toFixed(1)}</span> : <span class="down">${(e.short * 100).toFixed(1)}</span></span></div>`).join('')}</div>
-    ${missing.length ? `<div class="note" style="margin-top:4px">${missing.join('·')}는 서버 접속이 막혀 제외됐어요</div>` : ''}`;
+`;
   fit();
 }
 async function loadMap() {
@@ -336,30 +374,62 @@ const liq = { list: [], L: 0, S: 0, since: Date.now() };
 function addLiq(ex, sym, longLiq, usd, t) {
   liq.list.unshift({ ex, sym, longLiq, usd, t }); if (liq.list.length > 200) liq.list.length = 200;
   if (longLiq) liq.L += usd; else liq.S += usd; liq.dirty = true;
+  EX_TOT[ex] = (EX_TOT[ex] || 0) + usd;
 }
 function renderLiq() {
   $('lqL').textContent = '$' + big(liq.L); $('lqS').textContent = '$' + big(liq.S);
   const rows = liq.list.slice(0, 60);
   if (rows.length) $('lqFeed').innerHTML = rows.map(x => `<div class="lr ${x.usd >= 100000 ? 'bigliq' : ''}"><span class="tag ${x.longLiq ? 'l' : 's'}">${x.longLiq ? '롱 청산' : '숏 청산'}</span>
     <b>${name(x.sym)} <span style="font-weight:500;color:var(--sub);font-size:12px">${x.ex}</span></b><b class="num ${x.longLiq ? 'down' : 'up'}">$${big(x.usd)}</b><span class="t num">${hms(x.t)}</span></div>`).join('');
+  $('lqEx').innerHTML = ['Binance', 'Bybit', 'OKX', 'Bitget'].map(e => `<span>${e} <b class="num">$${big(EX_TOT[e] || 0)}</b></span>`).join('');
   $('lqNote').textContent = `화면을 연 뒤 ${Math.max(1, Math.round((Date.now() - liq.since) / 60000))}분 동안 집계 · $100K 이상은 강조 표시`;
 }
-function connectLiq() {
+const EX_TOT = {};
+function connectLiq() { liqBybit(); liqBinance(); liqOkx(); liqBitget(); }
+function liqBybit() {
   try {
     const w = new WebSocket('wss://stream.bybit.com/v5/public/linear');
-    w.onopen = async () => {
-      const args = LIQ_SYMS.map(s => 'allLiquidation.' + s);
-      for (let i = 0; i < args.length; i += 10) { try { w.send(JSON.stringify({ op: 'subscribe', args: args.slice(i, i + 10) })); } catch (e) {} await new Promise(r => setTimeout(r, 40)); }
-      w._p = setInterval(() => { try { w.send(JSON.stringify({ op: 'ping' })); } catch (e) {} }, 20000);
-    };
+    w.onopen = () => { w.send(JSON.stringify({ op: 'subscribe', args: LIQ_SYMS.map(s => 'allLiquidation.' + s) }));
+      w._p = setInterval(() => { try { w.send(JSON.stringify({ op: 'ping' })); } catch (e) {} }, 20000); };
     w.onmessage = ev => { let m; try { m = JSON.parse(ev.data); } catch (e) { return; } if (!m.topic || !m.topic.startsWith('allLiquidation.')) return;
       for (const d of m.data || []) addLiq('Bybit', d.s, d.S === 'Buy', +d.v * +d.p, +d.T); };
-    w.onclose = () => { clearInterval(w._p); setTimeout(connectLiq, 5000); };
+    w.onclose = () => { clearInterval(w._p); setTimeout(liqBybit, 5000); };
   } catch (e) {}
+}
+function liqBinance() {
   try {
-    const b = new WebSocket('wss://fstream.binance.com/ws/!forceOrder@arr');
-    b.onmessage = ev => { let m; try { m = JSON.parse(ev.data); } catch (e) { return; } const o = m.o; if (!o || !LIQ_SYMS.includes(o.s)) return;
+    const w = new WebSocket('wss://fstream.binance.com/ws/!forceOrder@arr');
+    w.onmessage = ev => { let m; try { m = JSON.parse(ev.data); } catch (e) { return; } const o = m.o; if (!o || !LIQ_SYMS.includes(o.s)) return;
       addLiq('Binance', o.s, o.S === 'SELL', (+o.z || +o.q) * (+o.ap || +o.p), +o.T); };
+    w.onclose = () => setTimeout(liqBinance, 5000);
+  } catch (e) {}
+}
+// OKX: 계약 1개 = BTC 0.01개, ETH 0.1개
+const OKX_CT = { 'BTC-USDT-SWAP': ['BTCUSDT', 0.01], 'ETH-USDT-SWAP': ['ETHUSDT', 0.1] };
+function liqOkx() {
+  try {
+    const w = new WebSocket('wss://ws.okx.com:8443/ws/v5/public');
+    w.onopen = () => { w.send(JSON.stringify({ op: 'subscribe', args: [{ channel: 'liquidation-orders', instType: 'SWAP' }] }));
+      w._p = setInterval(() => { try { w.send('ping'); } catch (e) {} }, 25000); };
+    w.onmessage = ev => { if (ev.data === 'pong') return; let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+      for (const d of m.data || []) { const c = OKX_CT[d.instId]; if (!c) continue;
+        for (const x of d.details || []) addLiq('OKX', c[0], x.posSide === 'long', +x.sz * c[1] * +x.bkPx, +x.ts); } };
+    w.onclose = () => { clearInterval(w._p); setTimeout(liqOkx, 5000); };
+  } catch (e) {}
+}
+function liqBitget() {
+  try {
+    const w = new WebSocket('wss://ws.bitget.com/v2/ws/public');
+    w.onopen = () => { w.send(JSON.stringify({ op: 'subscribe', args: LIQ_SYMS.map(s => ({ instType: 'USDT-FUTURES', channel: 'liquidation', instId: s })) }));
+      w._p = setInterval(() => { try { w.send('ping'); } catch (e) {} }, 25000); };
+    w.onmessage = ev => { if (ev.data === 'pong') return; let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+      if (!m.arg || m.arg.channel !== 'liquidation' || !Array.isArray(m.data)) return;
+      for (const d of m.data) {
+        const px = +(d.price || d.px || d.fillPrice), sz = +(d.size || d.sz || d.amount || d.baseVolume), side = String(d.side || d.posSide || '').toLowerCase();
+        if (!px || !sz || !side) continue;
+        addLiq('Bitget', m.arg.instId, side.includes('long') || side === 'sell', px * sz, +(d.ts || d.cTime || Date.now()));
+      } };
+    w.onclose = () => { clearInterval(w._p); setTimeout(liqBitget, 5000); };
   } catch (e) {}
 }
 setInterval(() => { renderLiq(); }, 1000);
