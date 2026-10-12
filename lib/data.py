@@ -535,6 +535,7 @@ def performance(trades):
         "avg_win": avg_w, "avg_loss": avg_l, "rr": (avg_w / avg_l) if avg_l > 0 else None,
         "expectancy": float(c["net"].mean()), "max_loss_streak": worst, "mdd": mdd,
         "best": float(c["net"].max()), "worst": float(c["net"].min()),
+        "dd": (eq - eq.cummax()).round(2).tolist(),
     }
 
 

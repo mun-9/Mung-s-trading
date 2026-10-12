@@ -43,30 +43,53 @@ def inject_css():
 
 html, body, .stApp { background-color: #F2F4F6 !important; }
 .stApp, .stApp p, .stApp div, .stApp label, .stApp button, .stApp span:not([class*='material']):not([data-testid='stIconMaterial']) { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif; letter-spacing:-0.01em; }
-.block-container { padding-top: 1.2rem; max-width: 1240px; }
+.block-container { padding-top: 0 !important; max-width: 1240px; }
 [data-testid="stHeader"] { display: none !important; }
-
-/* 상단 메뉴 바 */
-div[class*="st-key-topnav_"] { gap: 6px !important; padding: 6px 0 14px; margin-bottom: 10px; border-bottom: 1px solid #E5E8EB; }
-div[class*="st-key-topnav_dark"] { border-bottom-color: #2A2E39; margin-bottom: 6px; padding: 2px 0 10px; }
-.nav-logo { font-size: 17px; font-weight: 800; color: #191F28; letter-spacing: -0.02em; white-space: nowrap; line-height: 42px; margin: 0; }
-div[class*="st-key-topnav_"] [data-testid="stMarkdownContainer"] { margin: 0 !important; }
-div[class*="st-key-topnav_"] > div:has(div[class*="st-key-navlink_history"]) { margin-left: auto !important; }
-div[class*="st-key-topnav_dark"] .nav-logo { color: #D1D4DC; }
-div[class*="st-key-navlink_"] a { padding: 9px 20px !important; border-radius: 999px !important; min-height: 0 !important; }
-div[class*="st-key-navlink_"] a p, div[class*="st-key-navlink_"] a span { font-size: 15px !important; font-weight: 700 !important; color: #6B7684 !important; }
-div[class*="st-key-navlink_"] a:hover { background: rgba(49,130,246,0.08) !important; }
-div[class*="st-key-navlink_"][class*="_on"] a { background: #191F28 !important; }
-div[class*="st-key-navlink_"][class*="_on"] a p, div[class*="st-key-navlink_"][class*="_on"] a span { color: #FFFFFF !important; }
-div[class*="st-key-topnav_dark"] div[class*="st-key-navlink_"] a p, div[class*="st-key-topnav_dark"] div[class*="st-key-navlink_"] a span { color: #787B86 !important; }
-div[class*="st-key-topnav_dark"] div[class*="st-key-navlink_"][class*="_on"] a { background: #2962FF !important; }
-div[class*="st-key-topnav_dark"] div[class*="st-key-navlink_"][class*="_on"] a p { color: #FFFFFF !important; }
-div[class*="st-key-topnav_dark"] div[class*="st-key-navlink_"] a:hover { background: #2A2E39 !important; }
+[data-testid="stMain"] { overflow-x: hidden; }
+/* <style>만 들어있는 빈 요소가 차지하는 여백 제거 */
+div[data-testid="stElementContainer"]:has(div[data-testid="stMarkdownContainer"] > style:only-child) { display: none !important; }
 [data-testid="stToolbarActions"], [data-testid="stMainMenu"], [data-testid="stAppDeployButton"] { display: none !important; }
 
-/* 상단 메뉴 */
-[data-testid="stTopNavLinkContainer"] a, [data-testid="stNavSectionHeader"] { border-radius: 999px !important; }
-[data-testid="stTopNavLinkContainer"] a span { font-weight: 700 !important; font-size: 14.5px !important; }
+/* 새로고침 중 회색으로 흐려지는 효과 끄기 */
+div[data-stale="true"], [data-stale="true"] { opacity: 1 !important; transition: none !important; filter: none !important; }
+
+/* 상단 헤더 (전체 폭, 스크롤해도 위에 고정) */
+div[class*="st-key-topnav_"] {
+    position: sticky; top: 0; z-index: 999; height: 72px; gap: 30px !important;
+    margin-left: calc(50% - 50vw) !important; margin-right: calc(50% - 50vw) !important;
+    width: 100vw !important; max-width: none !important; min-width: 100vw !important; flex: none !important;
+    padding: 0 max(80px, calc(50vw - 540px)) !important;
+    background: rgba(255,255,255,0.93); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid #E7EBF1; margin-bottom: 30px;
+}
+div[class*="st-key-topnav_dark"] { background: rgba(19,23,34,0.96); border-bottom-color: #2A2E39; margin-bottom: 12px; padding: 0 20px !important; height: 64px; }
+div[class*="st-key-topnav_"] [data-testid="stMarkdownContainer"] { margin: 0 !important; }
+.nav-logo { display: flex; align-items: center; gap: 9px; margin: 0; white-space: nowrap; }
+.nav-logo .mark { width: 34px; height: 34px; border-radius: 9px; background: #2459ED; color: #fff; display: flex; align-items: center; justify-content: center;
+    font-size: 17px; font-weight: 900; letter-spacing: -0.5px; }
+.nav-logo .word { font-size: 21px; font-weight: 850; color: #172033; letter-spacing: -0.8px; }
+.nav-logo .word i { font-style: normal; color: #2459ED; }
+div[class*="st-key-topnav_dark"] .nav-logo .word { color: #D1D4DC; }
+div[class*="st-key-navlink_"] a { padding: 8px 4px !important; min-height: 0 !important; background: transparent !important; border-radius: 0 !important; }
+div[class*="st-key-navlink_"] a p, div[class*="st-key-navlink_"] a span { font-size: 15px !important; font-weight: 600 !important; color: #172033 !important; }
+div[class*="st-key-navlink_"] a:hover p { color: #2459ED !important; }
+div[class*="st-key-navlink_"][class*="_on"] a p { color: #2459ED !important; font-weight: 750 !important; }
+div[class*="st-key-topnav_dark"] div[class*="st-key-navlink_"] a p { color: #9598A1 !important; }
+div[class*="st-key-topnav_dark"] div[class*="st-key-navlink_"][class*="_on"] a p { color: #FFFFFF !important; }
+div[class*="st-key-topnav_dark"] div[class*="st-key-navlink_"] a:hover p { color: #FFFFFF !important; }
+
+/* 페이지 제목 블록 */
+div[class*="st-key-page_head"] > div:last-child { margin-left: auto !important; }
+div[class*="st-key-page_head"] { align-items: flex-end !important; padding-bottom: 22px; border-bottom: 1px solid #D1D6DB; margin-bottom: 8px; }
+.ph-eyebrow { font-size: 12px; font-weight: 800; color: #2459ED; letter-spacing: 1.8px; text-transform: uppercase; }
+.ph-title { font-size: 33px; font-weight: 780; color: #172033; letter-spacing: -1px; line-height: 1.5; margin: 4px 0 2px; }
+.ph-sub { font-size: 15px; color: #7A8497; }
+.ph-status { display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 600; white-space: nowrap; line-height: 40px; }
+.ph-status .dot { width: 7px; height: 7px; border-radius: 50%; }
+div[class*="st-key-refresh_btn"] button { width: 40px !important; height: 40px !important; min-height: 40px !important; padding: 0 !important; border-radius: 10px !important;
+    background: #fff !important; border: 1px solid #E7EBF1 !important; }
+div[class*="st-key-refresh_btn"] button:hover { border-color: #2459ED !important; }
+div[class*="st-key-refresh_btn"] button span { color: #172033 !important; }
 
 .sec-title { font-size: 19px; font-weight: 800; color: #191F28; margin: 30px 0 14px; display:flex; align-items:baseline; gap:10px; }
 .sec-sub { font-size: 12.5px; font-weight: 500; color: #8B95A1; }
@@ -81,6 +104,24 @@ div[class*="st-key-topnav_dark"] div[class*="st-key-navlink_"] a:hover { backgro
 .kpi-label { font-size: 12.5px; color:#8B95A1; font-weight:600; margin-bottom: 8px; }
 .kpi-value { font-size: 21px; font-weight: 800; letter-spacing:-0.02em; }
 .kpi-sub { font-size: 11.5px; color:#8B95A1; margin-top: 4px; }
+
+.pt-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; margin-top: 16px; }
+.pt { background: #F7F8FA; border-radius: 16px; padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 10px; min-height: 176px; }
+.pt-label { font-size: 13px; font-weight: 700; color: #4E5968; }
+.pt-value { font-size: 28px; font-weight: 800; color: #191F28; letter-spacing: -0.03em; line-height: 1.1; }
+.pt-unit { font-size: 15px; font-weight: 700; color: #8B95A1; margin-left: 3px; }
+.pt-foot { display: flex; justify-content: space-between; gap: 8px; font-size: 11.5px; color: #8B95A1; margin-top: auto; }
+.gauge { position: relative; height: 8px; background: #E5E8EB; border-radius: 4px; overflow: visible; margin-top: auto; }
+.gauge-fill { height: 100%; border-radius: 4px; }
+.gauge-mark { position: absolute; top: -3px; width: 2px; height: 14px; background: #191F28; opacity: .35; border-radius: 1px; }
+.bar-row { display: grid; grid-template-columns: 56px 1fr auto; align-items: center; gap: 8px; font-size: 12px; color: #6B7684; }
+.bar-row b { font-size: 12.5px; font-weight: 700; }
+.bar { height: 8px; background: #E5E8EB; border-radius: 4px; overflow: hidden; }
+.bar > div { height: 100%; border-radius: 4px; }
+.streak { display: flex; gap: 5px; flex-wrap: wrap; margin-top: auto; }
+.streak .sd { width: 14px; height: 14px; border-radius: 4px; }
+.bd-chips { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 12.5px; color: #8B95A1; }
+.bd-chips b { font-weight: 700; margin-left: 2px; }
 
 .bd-row { display:flex; justify-content:space-between; align-items:center; padding: 11px 0; font-size: 14px; border-bottom: 1px solid #F2F4F6; }
 .bd-row span:first-child { color:#4E5968; font-weight:600; }
@@ -146,11 +187,21 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
 
 @media (max-width: 768px) {
     .block-container { padding-top: 0.8rem; }
-    .nav-logo { font-size: 15px; }
-    div[class*="st-key-navlink_"] a { padding: 8px 14px !important; }
+    div[class*="st-key-topnav_"] { height: 60px; gap: 16px !important; margin-bottom: 20px; padding: 0 16px !important; }
+    .nav-logo .mark { width: 30px; height: 30px; font-size: 15px; }
+    .nav-logo .word { font-size: 18px; }
+    div[class*="st-key-navlink_"] a p { font-size: 14px !important; }
+    .ph-title { font-size: 27px; }
+    .ph-sub { font-size: 13.5px; }
+    div[class*="st-key-page_head"] { flex-wrap: wrap !important; }
     .pos-divider { border-left: none !important; border-top: 1px solid rgba(15,23,42,0.06) !important; padding-top: 14px !important; margin-top: 6px !important; }
     .hide-on-mobile { display: none !important; }
     .kpi-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .pt-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
+    .pt { padding: 14px; min-height: 150px; }
+    .pt-value { font-size: 22px; }
+    .bar-row { grid-template-columns: 1fr auto; }
+    .bar-row .bar { display: none; }
     .kpi { border-left: none !important; padding-left: 0 !important; border-top: 1px solid #F2F4F6; }
 }
 </style>
@@ -161,10 +212,21 @@ NAV_PAGES = [("history", "views/history.py", "매매 히스토리"), ("chart", "
 
 
 def nav(current, dark=False):
-    """페이지 상단 메뉴 바 (로고 + 큰 탭 버튼)."""
+    """전체 폭 상단 헤더: 로고 + 메뉴."""
     mode = "dark" if dark else "light"
     with st.container(key=f"topnav_{mode}", horizontal=True, vertical_alignment="center"):
-        html(f"<div class='nav-logo'>📈 Mung's Trading</div>")
+        html("<div class='nav-logo'><span class='mark'>m.</span><span class='word'>MUNGGE<i>.</i></span></div>")
         for key, path, label in NAV_PAGES:
             with st.container(key=f"navlink_{key}_{'on' if key == current else 'off'}", width="content"):
                 st.page_link(path, label=label)
+
+
+def page_head(eyebrow, title, sub, status_html, on_refresh):
+    """페이지 제목 블록 (왼쪽 제목, 오른쪽 상태 + 새로고침)."""
+    with st.container(key="page_head", horizontal=True, vertical_alignment="bottom"):
+        html(f"<div><div class='ph-eyebrow'>{eyebrow}</div><div class='ph-title'>{title}</div><div class='ph-sub'>{sub}</div></div>")
+        with st.container(horizontal=True, vertical_alignment="center", width="content", gap="small"):
+            html(f"<div class='ph-status'>{status_html}</div>")
+            with st.container(key="refresh_btn", width="content"):
+                if st.button("", icon=":material/refresh:", help="모든 데이터 새로고침"):
+                    on_refresh()

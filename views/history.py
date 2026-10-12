@@ -6,7 +6,7 @@ import streamlit as st
 
 from lib import data as D
 from lib.ui import (BLUE, DIVIDER, GRAY, GRAY_SOFT, GREEN, GREEN_SOFT, LINE_COLOR, RED, RED_SOFT, SUB, TEXT,
-                    html, kpi, money, nav, pnl_color, section)
+                    html, kpi, money, nav, page_head, pnl_color, section)
 
 nav("history")
 KST = D.KST
@@ -15,31 +15,29 @@ hist = D.fetch_history(keys)
 trades_all, events_all = hist["trades"], hist["events"]
 
 # -----------------------------------------------------------------------------
-# 헤더
+# 제목 블록
 # -----------------------------------------------------------------------------
+def clear_all():
+    D.fetch_positions.clear(); D.fetch_history.clear(); D.fetch_usdt_krw.clear(); D.fetch_live_ohlcv.clear()
+    st.rerun()
+
+
 if hist["demo"]:
-    badge = f"<span class='dot' style='background:#F5A623;'></span><span style='font-size:12.5px;font-weight:700;color:{TEXT};'>데모 데이터</span>"
+    status = "<span class='dot' style='background:#F5A623;'></span><span style='color:#D98B00;'>데모 데이터</span>"
 else:
-    badge = (f"<span class='dot' style='background:{GREEN};'></span><span style='font-size:12.5px;font-weight:700;color:{TEXT};'>Bitget</span>"
-             f"<span class='hide-on-mobile' style='font-size:11.5px;color:{SUB};'>{hist['loaded_at'].strftime('%H:%M')} 기준</span>")
+    status = (f"<span class='dot' style='background:{GREEN};'></span><span style='color:{GREEN};'>Bitget 연동</span>"
+              f"<span style='color:{SUB};font-weight:500;'>· {hist['loaded_at'].strftime('%H:%M')} 기준</span>")
+page_head("Mungge Trading Journal", "매매 히스토리", "포지션 변화와 거래 기록, 손익을 한눈에.", status, clear_all)
+
 if hist["errors"]:
     shown = "<br>".join(hist["errors"][:5])
     more = f"<br>외 {len(hist['errors']) - 5}건" if len(hist["errors"]) > 5 else ""
-    html(f"<div class='err-box'><b>일부 데이터를 불러오지 못했어요</b><br>{shown}{more}</div>")
-
-
-def clear_all():
-    D.fetch_positions.clear(); D.fetch_history.clear(); D.fetch_usdt_krw.clear(); D.fetch_live_ohlcv.clear()
-
+    html(f"<div class='err-box' style='margin-top:16px;'><b>일부 데이터를 불러오지 못했어요</b><br>{shown}{more}</div>")
 
 # -----------------------------------------------------------------------------
 # 보유 포지션 (10초 갱신)
 # -----------------------------------------------------------------------------
-with st.container(key="pos_header_row"):
-    html(f"<div style='display:flex;align-items:center;gap:10px;line-height:36px;'><span style='font-size:19px;font-weight:800;color:{TEXT};'>보유 포지션</span>"
-         f"<span class='badge' style='margin-right:46px;margin-left:auto;'>{badge}</span></div>")
-    if st.button("🔄", key="manual_refresh_main", help="모든 데이터 새로고침"):
-        clear_all(); st.rerun()
+section("보유 포지션")
 
 
 @st.fragment(run_every=10)
@@ -119,7 +117,7 @@ def live_positions():
                 xaxis=dict(showgrid=True, gridcolor="#F8F9FA", tickformat="%H:%M", tickfont=dict(color=GRAY, size=11)),
                 yaxis=dict(showgrid=True, gridcolor="#F0F3F6", side="right", tickfont=dict(color=GRAY, size=11)),
                 hoverlabel=dict(bgcolor="#fff", bordercolor="#F2F4F6", font=dict(color=TEXT, size=12)))
-            st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+            st.plotly_chart(fig, width="stretch", config={"displayModeBar": False}, key=f"poschart_{safe}")
 
 
 live_positions()
@@ -205,49 +203,6 @@ perf = D.performance(f_trades)
 st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 손익 구성 + 성과 지표
-# -----------------------------------------------------------------------------
-col_bd, col_perf = st.columns([1, 1.55])
-with col_bd:
-    n_pay = int((f_events["kind"] == "payback").sum()) if not f_events.empty else 0
-    ledger_net = float(f_ledger["net"].sum()) if not f_ledger.empty else None
-    ledger_html = ""
-    if ledger_net is not None:
-        ledger_html = (f"<div class='bd-note'>검증 · 거래소 장부 합계(페이백 제외, 진입 수수료 즉시 차감) "
-                       f"<b style='color:{pnl_color(ledger_net)};'>{money(ledger_net)}</b></div>")
-    html(f"""<div class="card" style="min-height:336px;">
-<div class="card-title"><span>손익 구성</span><span>{start_str[5:]} ~ {end_str[5:]}</span></div>
-<div style="margin-top:8px;">
-<div class="bd-row"><span>청산 손익 (수수료 전)</span><b style="color:{pnl_color(bd['gross'])};">{money(bd['gross'])}</b></div>
-<div class="bd-row"><span>거래 수수료</span><b style="color:{RED if bd['fee'] > 0 else SUB};">{money(-bd['fee'])}</b></div>
-<div class="bd-row"><span>펀딩비</span><b style="color:{pnl_color(bd['funding'])};">{money(bd['funding'])}</b></div>
-<div class="bd-row"><span>페이백 <span style="color:{SUB};font-weight:500;">({n_pay}건)</span></span><b style="color:{pnl_color(bd['payback'])};">{money(bd['payback'])}</b></div>
-</div>
-<div class="bd-total"><span>순손익</span><b style="color:{pnl_color(bd['net'])};">{money(bd['net'])}</b></div>
-{ledger_html}</div>""")
-
-with col_perf:
-    if perf:
-        pf = f"{perf['profit_factor']:.2f}" if perf["profit_factor"] is not None else "∞"
-        rr = f"{perf['rr']:.2f}" if perf["rr"] is not None else "-"
-        items = [
-            kpi("Profit Factor", pf, GREEN if (perf["profit_factor"] or 99) >= 1 else RED, "총 익절 ÷ 총 손절"),
-            kpi("손익비", rr, TEXT, "평균 익절 ÷ 평균 손절"),
-            kpi("거래당 기대값", money(perf["expectancy"]), pnl_color(perf["expectancy"]), f"청산 {perf['count']}건 평균"),
-            kpi("수수료 비중", f"{(bd['fee'] / abs(bd['gross']) * 100):.0f}%" if bd["gross"] else "-", TEXT, "청산 손익 대비"),
-            kpi("평균 익절", money(perf["avg_win"]), GREEN, f"최대 {money(perf['best'])}"),
-            kpi("평균 손절", money(-perf["avg_loss"]), RED, f"최대 {money(perf['worst'])}"),
-            kpi("최대 연속 손절", f"{perf['max_loss_streak']}회", TEXT),
-            kpi("최대 낙폭", money(perf["mdd"]), RED if perf["mdd"] < 0 else TEXT, "누적 순손익 기준"),
-        ]
-        html(f"""<div class="card" style="min-height:336px;"><div class="card-title"><span>성과 지표</span><span>수수료 차감 후 · 청산 기준</span></div>
-<div class="kpi-grid" style="margin-top:6px;">{''.join(items)}</div></div>""")
-    else:
-        html(f"<div class='card' style='min-height:336px;color:{SUB};text-align:center;padding:40px;'>선택한 기간에 청산 거래가 없습니다</div>")
-
-st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
-
-# -----------------------------------------------------------------------------
 # 주문 횟수 · 롱숏 · 승률 추이
 # -----------------------------------------------------------------------------
 col_t1, col_t2, col_t3 = st.columns([1, 1, 1.2])
@@ -319,6 +274,51 @@ with col_t3:
 st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
+# 성과 지표
+# -----------------------------------------------------------------------------
+
+
+def perf_html(p):
+    pf = p["profit_factor"]
+    pf_txt = f"{pf:.2f}" if pf is not None else "∞"
+    pf_col = GREEN if (pf is None or pf >= 1) else RED
+    pf_w = 100 if pf is None else min(pf, 3) / 3 * 100
+    rr_txt = f"{p['rr']:.2f}" if p["rr"] is not None else "-"
+    mx = max(p["avg_win"], p["avg_loss"]) or 1
+    streak = p["max_loss_streak"]
+    n_dots = min(max(streak, 6), 12)
+    dots = "".join(f"<span class='sd' style='background:{RED if i < streak else '#E5E8EB'};'></span>" for i in range(n_dots))
+    dd = p["dd"]
+    spark = ""
+    if len(dd) > 1:
+        lo = min(dd) or -1
+        pts = " ".join(f"{i / (len(dd) - 1) * 200:.1f},{(v / lo) * 40:.1f}" for i, v in enumerate(dd))
+        spark = (f"<svg viewBox='0 -2 200 44' preserveAspectRatio='none' style='width:100%;height:44px;display:block;'>"
+                 f"<polygon points='0,0 {pts} 200,0' fill='rgba(240,68,82,0.10)'/>"
+                 f"<polyline points='{pts}' fill='none' stroke='{RED}' stroke-width='1.6' vector-effect='non-scaling-stroke'/></svg>")
+    return f"""<div class="card"><div class="card-title"><span>성과 지표</span><span>수수료 차감 후 · 청산 {p['count']}건</span></div>
+<div class="pt-grid">
+<div class="pt"><div class="pt-label">Profit Factor</div><div class="pt-value" style="color:{pf_col};">{pf_txt}</div>
+  <div class="gauge"><div class="gauge-fill" style="width:{pf_w:.0f}%;background:{pf_col};"></div><div class="gauge-mark" style="left:33.33%;"></div></div>
+  <div class="pt-foot"><span>0</span><span>1.0 이상이면 수익</span><span>3+</span></div></div>
+<div class="pt"><div class="pt-label">손익비</div><div class="pt-value">{rr_txt}</div>
+  <div class="bar-row"><span>평균 익절</span><div class="bar"><div style="width:{p['avg_win'] / mx * 100:.0f}%;background:{GREEN};"></div></div><b style="color:{GREEN};">{money(p['avg_win'])}</b></div>
+  <div class="bar-row"><span>평균 손절</span><div class="bar"><div style="width:{p['avg_loss'] / mx * 100:.0f}%;background:{RED};"></div></div><b style="color:{RED};">{money(-p['avg_loss'])}</b></div></div>
+<div class="pt"><div class="pt-label">최대 연속 손절</div><div class="pt-value">{streak}<span class="pt-unit">회</span></div>
+  <div class="streak">{dots}</div>
+  <div class="pt-foot"><span>최고 <b style="color:{GREEN};">{money(p['best'])}</b></span><span>최악 <b style="color:{RED};">{money(p['worst'])}</b></span></div></div>
+<div class="pt"><div class="pt-label">최대 낙폭</div><div class="pt-value" style="color:{RED if p['mdd'] < 0 else TEXT};">{money(p['mdd'])}</div>
+  {spark}<div class="pt-foot"><span>누적 순손익 고점 대비 하락폭</span></div></div>
+</div></div>"""
+
+
+if perf:
+    html(perf_html(perf))
+else:
+    html(f"<div class='card' style='color:{SUB};text-align:center;padding:40px;'>선택한 기간에 청산 거래가 없어서 성과 지표를 계산할 수 없어요</div>")
+st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
+
+# -----------------------------------------------------------------------------
 # 기간 손익 차트
 # -----------------------------------------------------------------------------
 daily = D.daily_net(f_trades, f_events, start_str, end_str)
@@ -335,12 +335,22 @@ def style_fig(fig, height=330, category=True, ticks=None):
     return fig
 
 
+n_pay = int((f_events["kind"] == "payback").sum()) if not f_events.empty else 0
+bd_chips = "".join(
+    f"<span>{k} <b style='color:{c};'>{v}</b></span>" for k, v, c in [
+        ("청산 손익", money(bd["gross"]), pnl_color(bd["gross"])),
+        ("수수료", money(-bd["fee"]), RED if bd["fee"] > 0 else SUB),
+        ("펀딩비", money(bd["funding"]), pnl_color(bd["funding"])),
+        (f"페이백 {n_pay}건", money(bd["payback"]), pnl_color(bd["payback"])),
+    ])
+
 with st.container(key="pnl_card"):
     last_v = daily["pnl"].iloc[-1] if not daily.empty else 0.0
     html(f"""<div style='display:flex;justify-content:space-between;align-items:baseline;'><span style='font-size:13px;color:{TEXT};font-weight:700;'>기간 순손익</span>
 <span style='font-size:12px;color:{SUB};'>{end_str} <b style='color:{pnl_color(last_v)};'>{money(last_v)}</b></span></div>
 <div style='font-size:30px;font-weight:800;color:{pnl_color(bd["net"])};margin-top:8px;'>{money(bd["net"])} <span style='font-size:14px;color:{SUB};font-weight:600;'>USDT</span></div>
-<div style="border-bottom:1px solid {DIVIDER};margin:16px 0 6px;"></div>""")
+<div class='bd-chips'>{bd_chips}</div>
+<div style="border-bottom:1px solid {DIVIDER};margin:14px 0 6px;"></div>""")
     tab1, tab2 = st.tabs(["일별 손익", "기간 누적"])
     n = len(daily)
     ticks = list(daily["date"]) if n <= 10 else [daily["date"].iloc[i] for i in sorted(set(range(0, n, max(1, n // 6))) | {n - 1})]
@@ -353,40 +363,26 @@ with st.container(key="pnl_card"):
                                    marker=dict(size=5), fill="tozeroy", fillcolor="rgba(49,130,246,0.08)",
                                    hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT<extra></extra>"))
         st.plotly_chart(style_fig(fig, ticks=ticks), width="stretch", config={"displayModeBar": False})
+ledger_net = float(f_ledger["net"].sum()) if not f_ledger.empty else None
+if ledger_net is not None:
+    html(f"<div class='note-text'>검증용 · 거래소 장부 합계 {money(ledger_net)} (페이백 제외, 진입 수수료를 진입 시점에 바로 뺀 값)</div>")
 
 # -----------------------------------------------------------------------------
-# 종목별 · 시간대별 손익
+# 시간대별 손익
 # -----------------------------------------------------------------------------
 st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
-col_s, col_h = st.columns(2)
-side_h = max(260, 46 * (closes["symbol"].nunique() if decr else 0) + 40)
-with col_s:
-    with st.container(key="chart_card_symbol"):
-        html(f"<div class='card-title'><span>종목별 순손익</span><span>청산 기준</span></div>")
-        if decr:
-            by = closes.groupby("symbol").agg(net=("net", "sum"), n=("net", "size")).sort_values("net")
-            fig = go.Figure(go.Bar(y=[s.replace("/USDT", "") for s in by.index], x=by["net"], orientation="h",
-                                   marker=dict(color=[GREEN if v >= 0 else RED for v in by["net"]], line_width=0, cornerradius=6),
-                                   customdata=by["n"], hovertemplate="<b>%{y}</b><br>%{x:,.2f} USDT · %{customdata}건<extra></extra>"))
-            fig = style_fig(fig, height=side_h, category=False)
-            fig.update_layout(hovermode="closest", xaxis=dict(showgrid=True, gridcolor="#F2F4F6", zeroline=True, zerolinecolor="#E5E8EB"),
-                              yaxis=dict(showgrid=False, zeroline=False))
-            st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
-        else:
-            st.caption("청산 거래가 없습니다")
-with col_h:
-    with st.container(key="chart_card_hour"):
-        html(f"<div class='card-title'><span>시간대별 순손익</span><span>청산 시각 · KST</span></div>")
-        if decr:
-            hrs = closes.assign(h=pd.to_datetime(closes["datetime"]).dt.hour).groupby("h")["net"].agg(["sum", "size"]).reindex(range(24), fill_value=0)
-            fig = go.Figure(go.Bar(x=[f"{h}시" for h in hrs.index], y=hrs["sum"],
-                                   marker=dict(color=[GREEN if v >= 0 else RED for v in hrs["sum"]], line_width=0, cornerradius=4),
-                                   customdata=hrs["size"], hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT · %{customdata}건<extra></extra>"))
-            fig = style_fig(fig, height=side_h, ticks=[f"{h}시" for h in range(0, 24, 3)])
-            fig.update_layout(hovermode="closest")
-            st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
-        else:
-            st.caption("청산 거래가 없습니다")
+with st.container(key="chart_card_hour"):
+    html(f"<div class='card-title'><span>시간대별 순손익</span><span>청산 시각 · KST</span></div>")
+    if decr:
+        hrs = closes.assign(h=pd.to_datetime(closes["datetime"]).dt.hour).groupby("h")["net"].agg(["sum", "size"]).reindex(range(24), fill_value=0)
+        fig = go.Figure(go.Bar(x=[f"{h}시" for h in hrs.index], y=hrs["sum"],
+                               marker=dict(color=[GREEN if v >= 0 else RED for v in hrs["sum"]], line_width=0, cornerradius=4),
+                               customdata=hrs["size"], hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT · %{customdata}건<extra></extra>"))
+        fig = style_fig(fig, height=280, ticks=[f"{h}시" for h in range(0, 24, 2)])
+        fig.update_layout(hovermode="closest")
+        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+    else:
+        st.caption("청산 거래가 없습니다")
 
 # -----------------------------------------------------------------------------
 # 상세 매매 내역
@@ -435,8 +431,11 @@ else:
         sc, ss = (GREEN, GREEN_SOFT) if r.side == "LONG" else (RED, RED_SOFT)
         price = f"${r.price:,.2f}" if r.price > 0 else "-"
         coin = r.symbol.split("/")[0]
+        qty_txt = f"{r.amount:,.6g} {coin}"
+        notional = r.amount * r.price
         if r.bucket == "증가":
-            right = f"<div class='row-price'>{price}</div><div class='row-pnl' style='color:{SUB};'>-<span class='chip' style='background:{GRAY_SOFT};color:{SUB};'>진입</span></div>"
+            right = (f"<div class='row-price'>≈ ${notional:,.2f}</div>"
+                     f"<div class='row-pnl' style='color:{TEXT};'>{qty_txt}<span class='chip' style='background:{ss};color:{sc};'>진입</span></div>")
         else:
             c = pnl_color(r.net) if r.result in ("익절", "손절") else SUB
             chip_bg = GREEN_SOFT if r.result == "익절" else (RED_SOFT if r.result == "손절" else GRAY_SOFT)
@@ -444,7 +443,7 @@ else:
                      f"<div class='row-pnl' style='color:{c};'>{money(r.net) if r.has_pnl else '-'}<span class='chip' style='background:{chip_bg};color:{c};'>{r.result}</span></div>")
         out.append(f"<div class='log-row'><div class='log-left'><div class='sym-badge' style='background:{ss};color:{sc};'>{coin[:1]}</div>"
                    f"<div><div class='row-title'>{r.symbol} <span class='pill' style='background:{ss};color:{sc};'>{r.side}</span></div>"
-                   f"<div class='row-sub'>{dt_str} · {'진입' if r.bucket == '증가' else '청산'} · {r.amount:g} {coin} @ {price}</div></div></div>"
+                   f"<div class='row-sub'>{dt_str} · {'진입' if r.bucket == '증가' else '청산'} {qty_txt} @ {price}</div></div></div>"
                    f"<div class='row-right'>{right}</div></div>")
     html("<div class='card' style='padding:6px 20px;max-height:620px;overflow-y:auto;'>" + "".join(out) + "</div>")
     if len(rows) > 150:
