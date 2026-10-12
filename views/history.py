@@ -317,7 +317,9 @@ def style_fig(fig, height=330, category=True, ticks=None):
         font=dict(family="Pretendard, sans-serif", size=13, color="#6B7684"),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", hovermode="x unified", showlegend=False,
         xaxis=dict(showgrid=False, zeroline=False, type="category" if category else None,
-                   tickmode="array" if ticks is not None else None, tickvals=ticks, tickfont=dict(size=13, color="#6B7684")),
+                   tickmode="array" if ticks is not None else None, tickvals=ticks,
+                   ticktext=[f"{t[5:7]}/{t[8:10]}" if isinstance(t, str) and len(t) == 10 else t for t in ticks] if ticks is not None else None,
+                   tickangle=0, tickfont=dict(size=13, color="#6B7684")),
         yaxis=dict(showgrid=True, gridcolor="#F2F4F6", zeroline=True, zerolinecolor="#E5E8EB", zerolinewidth=1.5, nticks=5,
                    tickfont=dict(size=13, color="#6B7684")),
         hoverlabel=dict(bgcolor="#fff", bordercolor="#F2F4F6", font=dict(color=TEXT, size=12)))
@@ -338,7 +340,10 @@ with st.container(key="pnl_card"):
 <div style='font-size:13px;color:{SUB};margin-top:4px;'>Win <b style='color:{GREEN};'>{win_days} days</b> · Loss <b style='color:{RED};'>{loss_days} days</b></div>
 <div style='border-top:1px solid #E5E8EB;margin:16px 0 0;'></div>""")
     n = len(daily)
-    ticks = list(daily["date"]) if n <= 10 else [daily["date"].iloc[i] for i in sorted(set(range(0, n, max(1, n // 6))) | {n - 1})]
+    # 날짜 눈금: 최대 5개를 고르게 (마지막 날 포함), 'MM/DD'로 짧게 → 휴대폰에서도 눕지 않음
+    k = min(5, n)
+    idx = sorted({round(j * (n - 1) / (k - 1)) for j in range(k)}) if k > 1 else [0]
+    ticks = [daily["date"].iloc[i] for i in idx]
     if view == "일별":
         fig = go.Figure(go.Bar(x=daily["date"], y=daily["pnl"], marker=dict(color=[GREEN if v >= 0 else RED for v in daily["pnl"]], line_width=0, cornerradius=8),
                                hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT<extra></extra>"))
