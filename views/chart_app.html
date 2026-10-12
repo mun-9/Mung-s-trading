@@ -594,12 +594,15 @@ function renderBar() {
   $('kpBox').style.display = k == null ? 'none' : '';
   if (k != null) { $('kp').textContent = (k >= 0 ? '+' : '−') + Math.abs(k).toFixed(2) + '%'; $('kp').className = 'v num ' + cls(k); }
   document.title = `${base(s)} ${fmtPrice(t.last)} ${fmtPct(t.pct)}`;
-  $('posChips').innerHTML = DATA.positions.filter(p => p.symbol === s).map(p => {
+  // 내 포지션: 비중(포지션 규모) 큰 순서로 최대 3개, 누르면 그 종목 차트로
+  const notional = p => Math.abs(+p.size || 0) * ((state.tk[p.symbol] || {}).last || +p.mark_price || +p.entry_price || 0);
+  const top = [...DATA.positions].sort((a, b) => notional(b) - notional(a)).slice(0, 3);
+  $('posChips').innerHTML = top.map(p => {
     const { pnl, roe } = posPnl(p);
-    return `<div class="chip" title="진입 ${fmtPrice(p.entry_price)} · 청산가 ${fmtPrice(p.liq_price)}"><span class="tag ${p.side.toLowerCase()}">${p.side === 'LONG' ? '롱' : '숏'} ${p.leverage}x</span>
-      <span class="num">${fmtPrice(p.entry_price)}</span><b class="num ${cls(pnl)}">${fmtUsd(pnl)} · ${fmtPct(roe)}</b></div>`;
+    return `<div class="chip" data-sym="${p.symbol}" title="진입 ${fmtPrice(p.entry_price)} · 청산가 ${fmtPrice(p.liq_price)}"><b>${base(p.symbol)}</b><span class="tag ${p.side.toLowerCase()}">${p.side === 'LONG' ? '롱' : '숏'} ${p.leverage}x</span>
+      <b class="num ${cls(pnl)}">${fmtUsd(pnl)} · ${fmtPct(roe)}</b></div>`;
   }).join('');
-  $('posChips').querySelectorAll('.chip').forEach(c => c.onclick = () => showView('pos'));
+  $('posChips').querySelectorAll('.chip').forEach(c => c.onclick = () => { if (c.dataset.sym !== curSym()) selectSym(c.dataset.sym); else showView('pos'); });
 }
 function posPnl(p) {
   const t = state.tk[p.symbol] || {}, last = t.last != null ? t.last : p.mark_price;
