@@ -173,6 +173,35 @@ with c3:
 html(f"<div class='note-text'>순손익 = 청산 손익 − 수수료 + 펀딩비 + 페이백 · 진입 수수료는 청산할 때 그 거래에서 함께 차감 · 미실현손익은 합계에 미포함</div>")
 
 # -----------------------------------------------------------------------------
+# 계좌 기준 손익 (현재 자산 − 원금 + 출금) — 계산 없이 실제 잔고로 확인
+# -----------------------------------------------------------------------------
+transfers = hist.get("transfers", [])
+principal = sum(t["amount"] for t in transfers if t["kind"] == "principal")
+withdrawn = sum(t["amount"] for t in transfers if t["kind"] == "withdraw")
+paid_back = sum(t["amount"] for t in transfers if t["kind"] == "payback")
+fut_eq, spot_eq, eq_err = D.fetch_equity(keys) if hasattr(D, "fetch_equity") else (None, None, None)
+if hist["demo"]:
+    fut_eq, spot_eq = hist.get("demo_equity"), 0.0
+if fut_eq is not None and principal > 0:
+    equity = fut_eq + (spot_eq or 0)
+    acct = equity - principal + withdrawn
+    n_pr = sum(1 for t in transfers if t["kind"] == "principal")
+    html(f"""<div class="card acct" style="margin-top:16px;">
+<div class="acct-l"><div class="card-title"><span>계좌 전체 손익</span><span>현재 자산 − 원금 + 출금</span></div>
+<div style="display:flex;align-items:baseline;gap:8px;margin-top:10px;"><span style="font-size:30px;font-weight:800;color:{pnl_color(acct)};letter-spacing:-0.02em;">{money(acct)}</span>
+<span style="font-size:13px;color:{SUB};font-weight:600;">{(acct / principal * 100):+.2f}%</span></div>
+<div style="font-size:12px;color:{SUB};margin-top:6px;">Bitget 잔고로 바로 계산한 값이라 앱과 같아요 · 미실현손익 포함</div></div>
+<div class="acct-r">
+<div class="bd-row"><span>현재 자산</span><b>${equity:,.2f}</b></div>
+<div class="bd-row" style="font-size:12.5px;"><span style="font-weight:500;">└ 선물 ${fut_eq:,.2f} · 현물 USDT ${(spot_eq or 0):,.2f}</span><b></b></div>
+<div class="bd-row"><span>원금 입금 <span style="color:{SUB};font-weight:500;">({n_pr}건)</span></span><b>${principal:,.2f}</b></div>
+<div class="bd-row"><span>출금</span><b>${withdrawn:,.2f}</b></div>
+<div class="bd-row" style="border-bottom:none;"><span>받은 페이백 (자산에 포함)</span><b style="color:{GREEN};">+${paid_back:,.2f}</b></div>
+</div></div>""")
+elif eq_err:
+    html(f"<div class='note-text'>계좌 잔고를 불러오지 못해 계좌 전체 손익을 표시하지 못했어요 ({eq_err})</div>")
+
+# -----------------------------------------------------------------------------
 # 기간 선택
 # -----------------------------------------------------------------------------
 section("매매 동향")
@@ -406,7 +435,7 @@ with st.container(key="chart_card_hour"):
 section("상세 매매 내역")
 fc1, fc2 = st.columns([2.2, 1])
 with fc1:
-    kind = st.segmented_control("종류", ["전체", "청산", "진입", "페이백", "펀딩비"], default="전체",
+    kind = st.segmented_control("종류", ["전체", "청산", "진입", "입출금", "펀딩비"], default="전체",
                                 label_visibility="collapsed", key="log_kind") or "전체"
 with fc2:
     sym_opts = ["전체 종목"] + sorted(f_trades["symbol"].unique().tolist()) if not f_trades.empty else ["전체 종목"]
@@ -419,8 +448,11 @@ if kind in ("전체", "청산", "진입") and not tview.empty:
         tview = tview[tview["bucket"] == ("축소" if kind == "청산" else "증가")]
     for r in tview.itertuples(index=False):
         rows.append(("trade", r.datetime, r))
-if kind in ("전체", "페이백", "펀딩비") and not f_events.empty:
-    want = {"전체": ["payback"], "페이백": ["payback"], "펀딩비": ["funding"]}[kind]
+if kind == "입출금":
+    for t in transfers:
+        rows.append(("transfer", t["datetime"], t))
+if kind in ("전체", "펀딩비") and not f_events.empty:
+    want = {"전체": ["payback"], "펀딩비": ["funding"]}[kind]
     ev = f_events[f_events["kind"].isin(want)]
     if sym_pick != "전체 종목":
         ev = ev[(ev["symbol"] == sym_pick) | (ev["kind"] == "payback")] if kind != "펀딩비" else ev[ev["symbol"] == sym_pick]
@@ -434,6 +466,15 @@ else:
     out = []
     for typ, dt, r in rows[:150]:
         dt_str = pd.Timestamp(dt).strftime("%m.%d %H:%M")
+        if typ == "transfer":
+            label, tag, c, icon = {"principal": ("원금 입금", "원금", BLUE, "🏦"), "payback": ("수수료 페이백", "페이백", GREEN, "💰"),
+                                   "withdraw": ("출금", "출금", RED, "↗")}[r["kind"]]
+            sign = -1 if r["kind"] == "withdraw" else 1
+            out.append(f"<div class='log-row'><div class='log-left'><div class='sym-badge' style='background:{GRAY_SOFT};color:{c};'>{icon}</div>"
+                       f"<div><div class='row-title'>{label} <span class='pill' style='background:{GRAY_SOFT};color:{c};'>{tag}</span></div>"
+                       f"<div class='row-sub'>{pd.Timestamp(dt).strftime('%Y.%m.%d %H:%M')}</div></div></div>"
+                       f"<div class='row-right'><div class='row-pnl' style='color:{c};'>{money(sign * r['amount'])}</div></div></div>")
+            continue
         if typ == "event":
             is_pay = r.kind == "payback"
             name = "수수료 페이백" if is_pay else f"펀딩비 · {r.symbol}"

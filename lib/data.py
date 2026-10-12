@@ -386,7 +386,26 @@ def fetch_history(keys, _format=2):
                 end = oldest
             cur = until
 
-    # 3) 페이백 입금 (현물 계좌로 들어오는 USDT 입금)
+    # 3) 입출금: 원금·페이백 구분 (현물 계좌로 들어오는 USDT 입금)
+    transfers = []
+    try:
+        look_from_w = int((datetime.strptime(DASHBOARD_START_DATE, "%Y-%m-%d").replace(tzinfo=KST)
+                           - timedelta(days=90)).timestamp() * 1000)
+        cur = look_from_w
+        wds = {}
+        while cur < now_ms:
+            until = min(cur + 30 * 24 * 60 * 60 * 1000, now_ms)
+            for w in ex.fetch_withdrawals(code="USDT", since=cur, limit=100, params={"until": until}):
+                if str(w.get("status", "")).lower() in ("ok", "success", "completed", "1") and w.get("timestamp"):
+                    wds[str(w.get("id") or w["timestamp"])] = w
+            cur = until
+        for w in wds.values():
+            dt = _to_kst(w["timestamp"])
+            transfers.append({"datetime": dt.replace(tzinfo=None), "date": dt.strftime("%Y-%m-%d"),
+                              "kind": "withdraw", "amount": float(w.get("amount") or 0)})
+    except Exception as e:
+        errors.append(f"출금 내역 조회 실패: {type(e).__name__}: {e}")
+
     #    PAYBACK_MAX 이상 입금 = 원금. 마지막 원금 입금 이후의 입금은 전부 페이백.
     try:
         look_from = int((datetime.strptime(DASHBOARD_START_DATE, "%Y-%m-%d").replace(tzinfo=KST)
@@ -403,17 +422,23 @@ def fetch_history(keys, _format=2):
                 ok[str(d.get("id") or d["timestamp"])] = d
         deps = sorted(ok.values(), key=lambda d: d["timestamp"])
         principal_ts = [d["timestamp"] for d in deps if float(d.get("amount") or 0) >= PAYBACK_MAX]
-        cutoff = max(principal_ts) if principal_ts else int(PAYBACK_START.timestamp() * 1000)
+        # 원금 입금을 못 찾으면 대시보드 시작일 이후 입금을 페이백으로 봄
+        cutoff = max(principal_ts) if principal_ts else since_ms
         for d in deps:
             amount = float(d.get("amount") or 0)
-            if d["timestamp"] > cutoff and 0 < amount < PAYBACK_MAX:
-                dt = _to_kst(d["timestamp"])
+            dt = _to_kst(d["timestamp"])
+            is_payback = d["timestamp"] > cutoff and 0 < amount < PAYBACK_MAX
+            transfers.append({"datetime": dt.replace(tzinfo=None), "date": dt.strftime("%Y-%m-%d"),
+                              "kind": "payback" if is_payback else "principal", "amount": amount})
+            if is_payback:
                 events.append({"datetime": dt.replace(tzinfo=None), "date": dt.strftime("%Y-%m-%d"),
                                "symbol": "", "kind": "payback", "amount": amount})
     except Exception as e:
         errors.append(f"입금(페이백) 조회 실패: {type(e).__name__}: {e}")
 
-    return _finish(fills, events, ledger, errors, demo=False)
+    out = _finish(fills, events, ledger, errors, demo=False)
+    out["transfers"] = sorted(transfers, key=lambda x: x["datetime"], reverse=True)
+    return out
 
 
 # -----------------------------------------------------------------------------
@@ -485,7 +510,14 @@ def _demo_history():
         day += timedelta(days=1)
 
     ledger_df = pd.DataFrame([{"date": k, "net": v} for k, v in ledger.items()])
-    return _finish(fills, events, ledger_df, [], demo=True)
+    out = _finish(fills, events, ledger_df, [], demo=True)
+    principal_dt = (start - timedelta(days=3)).replace(tzinfo=None)
+    out["transfers"] = sorted(
+        [{"datetime": principal_dt, "date": principal_dt.strftime("%Y-%m-%d"), "kind": "principal", "amount": 10000.0}]
+        + [{"datetime": e["datetime"], "date": e["date"], "kind": "payback", "amount": e["amount"]} for e in events if e["kind"] == "payback"],
+        key=lambda x: x["datetime"], reverse=True)
+    out["demo_equity"] = 10000.0 + sum(ledger.values()) + sum(e["amount"] for e in events if e["kind"] == "payback")
+    return out
 
 
 # -----------------------------------------------------------------------------
@@ -688,3 +720,17 @@ def pending_fee_for(pending, symbol, side, size):
         return fee * min(1.0, float(size or 0) / qty)
     except Exception:
         return 0.0
+
+
+@st.cache_data(ttl=30, show_spinner=False)
+def fetch_equity(keys):
+    """(선물 계정 자산(미실현 포함), 현물 USDT, 오류) — 계좌 기준 손익 계산용."""
+    if is_demo(keys):
+        return None, None, None
+    try:
+        ex = _exchange(keys)
+        fut = float((ex.fetch_balance({"type": "swap"}).get("USDT") or {}).get("total") or 0)
+        spot = float((ex.fetch_balance({"type": "spot"}).get("USDT") or {}).get("total") or 0)
+        return fut, spot, None
+    except Exception as e:
+        return None, None, f"{type(e).__name__}: {e}"

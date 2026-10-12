@@ -131,6 +131,10 @@ div[class*="st-key-refresh_btn"] button span { color: #172033 !important; }
 .bd-chips { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 12.5px; color: #8B95A1; }
 .bd-chips b { font-weight: 700; margin-left: 2px; }
 
+.acct { display:grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items:center; }
+.acct-r .bd-row { padding: 8px 0; font-size: 13.5px; }
+@media (max-width: 768px) { .acct { grid-template-columns: 1fr; gap: 10px; } }
+
 .bd-row { display:flex; justify-content:space-between; align-items:center; padding: 11px 0; font-size: 14px; border-bottom: 1px solid #F2F4F6; }
 .bd-row span:first-child { color:#4E5968; font-weight:600; }
 .bd-row b { font-weight: 700; }
