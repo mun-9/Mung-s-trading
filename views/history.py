@@ -6,12 +6,25 @@ import streamlit as st
 
 from lib import data as D
 from lib.ui import (BLUE, DIVIDER, GRAY, GRAY_SOFT, GREEN, GREEN_SOFT, LINE_COLOR, RED, RED_SOFT, SUB, TEXT,
-                    html, kpi, money, nav, pnl_color, section, title_row)
+                    html, kpi, money, nav, pnl_color, section, title_row, LOADER_HTML)
 
 nav("history")
+
+# 차트 확대·이동 끄기 (휴대폰에서 스크롤하다 차트가 확대되는 문제)
+PLOT_CFG = {"displayModeBar": False, "scrollZoom": False, "doubleClick": False, "staticPlot": False, "showAxisDragHandles": False}
+
+
+def no_zoom(fig):
+    fig.update_layout(dragmode=False)
+    fig.update_xaxes(fixedrange=True)
+    fig.update_yaxes(fixedrange=True)
+    return fig
 KST = D.KST
 keys = D.get_keys()
+_loader = st.empty()
+_loader.markdown(LOADER_HTML, unsafe_allow_html=True)
 hist = D.fetch_history(keys)
+_loader.empty()
 trades_all, events_all = hist["trades"], hist["events"]
 
 def clear_all():
@@ -112,7 +125,7 @@ def live_positions():
                 xaxis=dict(showgrid=True, gridcolor="#F8F9FA", tickformat="%H:%M", tickfont=dict(color=GRAY, size=11)),
                 yaxis=dict(showgrid=True, gridcolor="#F0F3F6", side="right", tickfont=dict(color=GRAY, size=11)),
                 hoverlabel=dict(bgcolor="#fff", bordercolor="#F2F4F6", font=dict(color=TEXT, size=12)))
-            st.plotly_chart(fig, width="stretch", config={"displayModeBar": False}, key=f"poschart_{safe}")
+            st.plotly_chart(no_zoom(fig), width="stretch", config=PLOT_CFG, key=f"poschart_{safe}")
 
 
 live_positions()
@@ -315,12 +328,12 @@ with st.container(key="pnl_card"):
     with tab1:
         fig = go.Figure(go.Bar(x=daily["date"], y=daily["pnl"], marker=dict(color=[GREEN if v >= 0 else RED for v in daily["pnl"]], line_width=0, cornerradius=8),
                                hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT<extra></extra>"))
-        st.plotly_chart(style_fig(fig, ticks=ticks), width="stretch", config={"displayModeBar": False})
+        st.plotly_chart(no_zoom(style_fig(fig, ticks=ticks)), width="stretch", config=PLOT_CFG)
     with tab2:
         fig = go.Figure(go.Scatter(x=daily["date"], y=daily["cum"], mode="lines+markers", line=dict(color=BLUE, width=3, shape="spline", smoothing=0.4),
                                    marker=dict(size=5), fill="tozeroy", fillcolor="rgba(49,130,246,0.08)",
                                    hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT<extra></extra>"))
-        st.plotly_chart(style_fig(fig, ticks=ticks), width="stretch", config={"displayModeBar": False})
+        st.plotly_chart(no_zoom(style_fig(fig, ticks=ticks)), width="stretch", config=PLOT_CFG)
 ledger_net = float(f_ledger["net"].sum()) if not f_ledger.empty else None
 if ledger_net is not None:
     html(f"<div class='note-text'>검증용 · 거래소 장부 합계 {money(ledger_net)} (페이백 제외, 진입 수수료를 진입 시점에 바로 뺀 값)</div>")
@@ -383,7 +396,7 @@ with st.container(key="chart_card_hour"):
                                customdata=hrs["size"], hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT · %{customdata}건<extra></extra>"))
         fig = style_fig(fig, height=280, ticks=[f"{h}시" for h in range(0, 24, 2)])
         fig.update_layout(hovermode="closest")
-        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+        st.plotly_chart(no_zoom(fig), width="stretch", config=PLOT_CFG)
     else:
         st.caption("청산 거래가 없습니다")
 

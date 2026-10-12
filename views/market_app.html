@@ -13,7 +13,9 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 .row { display: grid; gap: 18px; }
 .r4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .r2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.r3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.col { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.col .grow { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.col .grow .lfeed { flex: 1; max-height: none; min-height: 120px; height: 0; overflow-y: auto; }
 .r21 { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
 .card { background: #fff; border-radius: 20px; box-shadow: 0 2px 14px rgba(15,23,42,0.05); padding: 22px 24px; min-width: 0; }
 .ct { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 14px; }
@@ -54,11 +56,16 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 .two h4 { margin: 0 0 4px; font-size: 13px; color: var(--sub); font-weight: 700; }
 
 /* 롱숏 */
-.ls { margin-bottom: 14px; }
-.ls .top { display: flex; justify-content: space-between; font-size: 13px; color: var(--mid); margin-bottom: 6px; }
-.ls .bar { display: flex; height: 26px; border-radius: 8px; overflow: hidden; font-size: 12.5px; font-weight: 700; color: #fff; }
-.ls .bar div { display: flex; align-items: center; padding: 0 10px; white-space: nowrap; }
-.ls .bar .l { background: var(--up); } .ls .bar .s { background: var(--down); justify-content: flex-end; }
+.lsmain { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.lsmain b { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+.lsmain > span { font-size: 13px; color: var(--sub); font-weight: 600; }
+.lsbar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; gap: 2px; }
+.lsbar .l { background: var(--up); } .lsbar .s { background: var(--down); }
+.lsrows { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 6px; }
+.lsrow { display: grid; grid-template-columns: 62px 1fr 92px; gap: 10px; align-items: center; padding: 7px 0; font-size: 13px; }
+.lsrow .n { color: var(--mid); font-weight: 600; }
+.lsrow .lsbar { height: 6px; border-radius: 3px; }
+.lsrow .v { text-align: right; font-size: 12.5px; font-variant-numeric: tabular-nums; }
 
 /* 청산맵 */
 #lmap { width: 100%; height: 440px; display: block; }
@@ -79,7 +86,7 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 
 .tv { height: 520px; border-radius: 14px; overflow: hidden; }
 
-@media (max-width: 1000px) { .r4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .r21, .r2, .r3 { grid-template-columns: 1fr; } }
+@media (max-width: 1000px) { .col .grow .lfeed { height: auto; max-height: 330px; flex: none; } .r4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .r21, .r2, .r3 { grid-template-columns: 1fr; } }
 @media (max-width: 560px) { .r4 { grid-template-columns: 1fr; } .two { grid-template-columns: 1fr; } .card { padding: 18px; } #lmap { height: 380px; } }
 </style>
 </head>
@@ -98,18 +105,15 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
       <div class="lmap-legend"><span><i style="background:var(--down)"></i>롱 청산 예상 (가격 하락 시)</span><span><i style="background:var(--up)"></i>숏 청산 예상 (가격 상승 시)</span><span id="lmapNow"></span></div>
       <svg id="lmap"></svg>
     </div>
-    <div class="card"><div class="ct"><b>롱숏 비율</b><span id="lsSym">BTC · 1시간</span></div><div id="ls"><div class="loading">불러오는 중</div></div></div>
-  </div>
-
-  <div class="row r3">
-    <div class="card">
-      <div class="ct"><b>실시간 청산</b><span>Bybit · Binance</span></div>
-      <div class="lsum"><div><span>롱 청산</span><b class="down num" id="lqL">$0</b></div><div><span>숏 청산</span><b class="up num" id="lqS">$0</b></div></div>
-      <div class="lfeed" id="lqFeed"><div class="loading">청산이 생기면 바로 표시돼요</div></div>
-      <div class="note" id="lqNote"></div>
+    <div class="col">
+      <div class="card"><div class="ct"><b>롱숏 비율</b><span id="lsSym">BTC · 1시간</span></div><div id="ls"><div class="loading">불러오는 중</div></div></div>
+      <div class="card grow">
+        <div class="ct"><b>실시간 청산</b><span>Bybit · Binance</span></div>
+        <div class="lsum"><div><span>롱 청산</span><b class="down num" id="lqL">$0</b></div><div><span>숏 청산</span><b class="up num" id="lqS">$0</b></div></div>
+        <div class="lfeed" id="lqFeed"><div class="loading">청산이 생기면 바로 표시돼요</div></div>
+        <div class="note" id="lqNote"></div>
+      </div>
     </div>
-    <div class="card"><div class="ct"><b>24시간 상승 TOP</b><span>Bybit · 거래대금 $5M 이상</span></div><div class="tl" id="movers"><div class="loading">불러오는 중</div></div></div>
-    <div class="card"><div class="ct"><b>미결제약정 상위</b><span>Bitget</span></div><div class="tl" id="oiTop"><div class="loading">불러오는 중</div></div></div>
   </div>
 
   <div class="card"><div class="ct"><b>코인 히트맵</b><span>시가총액 크기 · 24시간 변동 · TradingView</span></div>
@@ -176,7 +180,7 @@ let bybit = {}, bitget = [];
 async function loadTickers() {
   try { (await get('https://api.bybit.com/v5/market/tickers?category=linear')).result.list.forEach(t => { bybit[t.symbol] = t; }); } catch (e) {}
   try { bitget = (await get('https://api.bitget.com/api/v2/mix/market/tickers?productType=USDT-FUTURES')).data || []; } catch (e) {}
-  renderKimp(); renderFund(); renderMovers(); renderOI(); fit();
+  renderKimp(); renderFund(); fit();
 }
 async function renderKimp() {
   const coins = ['BTC', 'ETH', 'XRP', 'SOL', 'DOGE'];
@@ -206,18 +210,6 @@ function renderFund() {
     <div class="kv"><span>전체 평균 (${liquid.length}종목)</span><b class="num ${cls(avg)}">${pct(avg, 4)}</b></div>`;
 }
 const trow = (i, n, sub, v, c) => `<div class="tr"><span class="rk">${i}</span><span class="nm">${n}</span><span class="sub num">${sub}</span><span class="vv num ${c}">${v}</span></div>`;
-function renderMovers() {
-  const l = Object.values(bybit).filter(t => t.symbol.endsWith('USDT') && +t.turnover24h > 5e6);
-  if (!l.length) { fail('movers'); return; }
-  l.sort((a, b) => +b.price24hPcnt - +a.price24hPcnt);
-  $('movers').innerHTML = l.slice(0, 10).map((x, i) => trow(i + 1, name(x.symbol), price(+x.lastPrice), pct(+x.price24hPcnt * 100), cls(+x.price24hPcnt))).join('');
-}
-function renderOI() {
-  const l = bitget.map(t => ({ s: t.symbol, oi: +t.holdingAmount * +t.lastPr, chg: +t.change24h * 100 })).filter(x => x.oi > 0).sort((a, b) => b.oi - a.oi).slice(0, 10);
-  if (!l.length) { fail('oiTop'); return; }
-  $('oiTop').innerHTML = l.map((x, i) => trow(i + 1, name(x.s), pct(x.chg), '$' + big(x.oi), '')).join('');
-}
-
 // ---------- 롱숏 비율 · 청산맵 (선택 종목) ----------
 const MAP_SYMS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT'];
 let mapSym = 'BTCUSDT';
@@ -227,7 +219,7 @@ function renderSeg() {
   $('mapSym').querySelectorAll('button').forEach(b => b.onclick = () => { mapSym = b.dataset.s; try { localStorage.setItem('mung_market_sym', mapSym); } catch (e) {} renderSeg(); loadLS(); loadMap(); });
 }
 async function loadLS() {
-  $('lsSym').textContent = name(mapSym) + ' · 최근 1시간 · 계좌 수 기준';
+  $('lsSym').textContent = name(mapSym) + ' · 롱 : 숏 계좌 비율';
   const ex = [];
   // Bitget · Bybit · OKX(미결제약정)는 브라우저에서, Binance · OKX(비율)는 서버에서 받은 값
   try {
@@ -244,16 +236,18 @@ async function loadLS() {
   if (ext.binance) ex.push({ n: 'Binance', ...ext.binance });
   if (ext.okx) ex.push({ n: 'OKX', ...ext.okx });
   const missing = ['Binance', 'OKX'].filter(n => !ex.some(e => e.n === n));
-  const totOI = ex.reduce((a, e) => a + (e.oi || 0), 0);
-  const bar = (l, s, h) => `<div class="bar" style="height:${h}px"><div class="l" style="width:${l * 100}%">롱 ${(l * 100).toFixed(1)}%</div><div class="s" style="width:${s * 100}%">${(s * 100).toFixed(1)}% 숏</div></div>`;
   if (!ex.length) { fail('ls'); fit(); return; }
+  // 통합 값: 거래소 규모(미결제약정)가 클수록 더 크게 반영
+  const totOI = ex.reduce((a, e) => a + (e.oi || 0), 0);
   let L = 0, S = 0;
-  if (totOI > 0) { ex.forEach(e => { L += e.long * e.oi / totOI; S += e.short * e.oi / totOI; }); }
-  else { ex.forEach(e => { L += e.long / ex.length; S += e.short / ex.length; }); }
+  if (totOI > 0) ex.forEach(e => { L += e.long * e.oi / totOI; S += e.short * e.oi / totOI; });
+  else ex.forEach(e => { L += e.long / ex.length; S += e.short / ex.length; });
   ex.sort((a, b) => (b.oi || 0) - (a.oi || 0));
-  $('ls').innerHTML = `<div class="ls"><div class="top"><b style="color:var(--text);font-size:14px">${ex.length}개 거래소 통합</b><span>미결제약정 비중으로 가중</span></div>${bar(L, S, 34)}</div>
-    ${ex.map(e => `<div class="ls"><div class="top"><span>${e.n}</span><span>미결제약정 $${big(e.oi)} · ${totOI > 0 ? (e.oi / totOI * 100).toFixed(0) : '-'}%</span></div>${bar(e.long, e.short, 22)}</div>`).join('')}
-    ${missing.length ? `<div class="note">${missing.join('·')} 데이터는 서버에서 접속이 막혀 빠졌어요</div>` : ''}`;
+  const bar = (l, s) => `<div class="lsbar"><div class="l" style="width:${l * 100}%"></div><div class="s" style="width:${s * 100}%"></div></div>`;
+  $('ls').innerHTML = `<div class="lsmain"><b><span style="color:var(--up)">${(L * 100).toFixed(1)}</span><span style="font-size:15px;color:var(--sub)"> : </span><span style="color:var(--down)">${(S * 100).toFixed(1)}</span></b><span>${ex.length}개 거래소 통합</span></div>
+    ${bar(L, S)}
+    <div class="lsrows">${ex.map(e => `<div class="lsrow"><span class="n">${e.n}</span>${bar(e.long, e.short)}<span class="v"><span class="up">${(e.long * 100).toFixed(1)}</span> : <span class="down">${(e.short * 100).toFixed(1)}</span></span></div>`).join('')}</div>
+    ${missing.length ? `<div class="note" style="margin-top:4px">${missing.join('·')}는 서버 접속이 막혀 제외됐어요</div>` : ''}`;
   fit();
 }
 async function loadMap() {

@@ -323,7 +323,7 @@ def _finish(fills, events, ledger, errors, demo):
             "pending_fees": pending, "errors": errors, "demo": demo, "loaded_at": datetime.now(KST)}
 
 
-@st.cache_data(ttl=1800, show_spinner="거래 내역을 불러오고 있어요...")
+@st.cache_data(ttl=1800, show_spinner=False)
 def fetch_history(keys):
     if is_demo(keys):
         return _demo_history()

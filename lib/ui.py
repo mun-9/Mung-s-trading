@@ -58,6 +58,9 @@ div[data-testid="stButtonGroup"] div[role="radiogroup"]::-webkit-scrollbar { dis
 div[data-testid="stButtonGroup"] button { white-space: nowrap !important; flex-shrink: 0; }
 div[data-testid="stElementContainer"]:has(> div[data-testid="stButtonGroup"]) { max-width: 100%; }
 
+/* 휴대폰: 차트 위에서도 페이지 스크롤이 되게 */
+.js-plotly-plot .nsewdrag, .js-plotly-plot .draglayer, .js-plotly-plot .main-svg { touch-action: pan-y !important; }
+
 /* 새로고침 중 회색으로 흐려지는 효과 끄기 */
 div[data-stale="true"], [data-stale="true"] { opacity: 1 !important; transition: none !important; filter: none !important; }
 
@@ -237,3 +240,34 @@ def title_row(title, right_html, on_refresh):
             with st.container(key="refresh_btn", width="content"):
                 if st.button("", icon=":material/refresh:", help="모든 데이터 새로고침"):
                     on_refresh()
+
+
+# 처음 거래 내역을 불러올 때 보여주는 로딩 화면
+LOADER_HTML = """
+<style>
+@keyframes mg-bar { 0%,100% { transform: scaleY(.45); opacity: .45; } 50% { transform: scaleY(1); opacity: 1; } }
+@keyframes mg-shine { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+@keyframes mg-prog { 0% { left: -40%; } 100% { left: 100%; } }
+.mg-load { background:#fff; border-radius:20px; box-shadow:0 2px 14px rgba(15,23,42,0.05); padding:30px 28px 26px; margin: 14px 0 18px;
+  display:flex; flex-direction:column; align-items:center; text-align:center; }
+.mg-bars { display:flex; align-items:flex-end; gap:5px; height:34px; margin-bottom:16px; }
+.mg-bars i { display:block; width:8px; border-radius:3px; background:#2459ED; transform-origin:bottom; animation: mg-bar 1s ease-in-out infinite; }
+.mg-bars i:nth-child(1) { height:16px; opacity:.5; animation-delay: 0s; }
+.mg-bars i:nth-child(2) { height:24px; opacity:.75; animation-delay: .15s; }
+.mg-bars i:nth-child(3) { height:34px; animation-delay: .3s; }
+.mg-t { font-size:17px; font-weight:800; color:#191F28; letter-spacing:-0.02em; }
+.mg-s { font-size:13px; color:#8B95A1; margin-top:6px; line-height:1.6; }
+.mg-prog { position:relative; width:220px; max-width:70%; height:4px; border-radius:2px; background:#EEF1F5; overflow:hidden; margin-top:18px; }
+.mg-prog::after { content:''; position:absolute; top:0; width:40%; height:100%; border-radius:2px; background:#2459ED; animation: mg-prog 1.2s ease-in-out infinite; }
+.mg-sk { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; width:100%; margin-top:22px; }
+.mg-sk div { height:86px; border-radius:16px; background:linear-gradient(90deg,#F2F4F6 0%,#F8F9FB 40%,#F2F4F6 80%); background-size:800px 100%; animation: mg-shine 1.4s linear infinite; }
+@media (max-width:768px) { .mg-sk { grid-template-columns:1fr; } .mg-sk div:nth-child(n+2) { display:none; } }
+</style>
+<div class="mg-load">
+  <div class="mg-bars"><i></i><i></i><i></i></div>
+  <div class="mg-t">거래 내역을 불러오고 있어요</div>
+  <div class="mg-s">Bitget에서 체결 · 펀딩비 · 입금 내역을 확인하는 중이에요<br>보통 5~20초 걸려요</div>
+  <div class="mg-prog"></div>
+  <div class="mg-sk"><div></div><div></div><div></div></div>
+</div>
+"""
