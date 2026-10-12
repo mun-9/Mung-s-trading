@@ -6,7 +6,8 @@ import streamlit as st
 
 from lib import data as D
 from lib.ui import (BLUE, DIVIDER, GRAY, GRAY_SOFT, GREEN, GREEN_SOFT, LINE_COLOR, RED, RED_SOFT, SUB, TEXT,
-                    html, kpi, money, nav, pnl_color, section, title_row, LOADER_HTML)
+                    html, kpi, money, nav, pnl_color, section, title_row)
+from lib import ui as _ui
 
 nav("history")
 
@@ -22,7 +23,7 @@ def no_zoom(fig):
 KST = D.KST
 keys = D.get_keys()
 _loader = st.empty()
-_loader.markdown(LOADER_HTML, unsafe_allow_html=True)
+_loader.markdown(getattr(_ui, "LOADER_HTML", ""), unsafe_allow_html=True)
 hist = D.fetch_history(keys)
 _loader.empty()
 trades_all, events_all = hist["trades"], hist["events"]
