@@ -1,0 +1,538 @@
+"""거래소 데이터 조회 + 손익 계산.
+
+손익 계산 원칙
+- 청산 손익(gross): Bitget 체결의 profit 값 (수수료 전)
+- 수수료: 체결마다 낸 수수료. 진입 수수료는 바로 빼지 않고 보관했다가
+  해당 포지션을 청산할 때 청산 수량 비율만큼 그 거래 손익에서 함께 뺀다 (FIFO).
+- 펀딩비: 거래소 장부(account bill)의 contract_settle_fee, 발생한 날짜에 반영
+- 페이백: USDT 입금 중 조건에 맞는 것, 입금된 날짜에 반영
+- 순손익 = 청산 손익 - 수수료(청산 + 배분된 진입) + 펀딩비 + 페이백
+"""
+import random
+from datetime import datetime, timedelta, timezone
+
+import ccxt
+import pandas as pd
+import streamlit as st
+
+KST = timezone(timedelta(hours=9))
+UTC = timezone.utc
+
+# 대시보드 기준 날짜 (이전 데이터는 표시하지 않음)
+DASHBOARD_START_DATE = "2026-09-28"
+
+# 페이백 판정 규칙: 이 날짜 이후, 이 금액 미만의 USDT 입금 = 페이백
+PAYBACK_START = datetime(2026, 10, 1, tzinfo=KST)
+PAYBACK_MAX = 10000
+
+PRODUCT_TYPE = "USDT-FUTURES"
+
+# 장부 조회가 실패했을 때만 쓰는 기본 종목 목록
+BASE_SYMBOLS = [
+    "BTC/USDT", "ETH/USDT", "SOL/USDT", "XRP/USDT", "DOGE/USDT",
+    "BNB/USDT", "ADA/USDT", "SUI/USDT", "1000PEPE/USDT", "WIF/USDT",
+]
+
+TRADE_BILL_TYPES = {
+    "open_long", "open_short", "close_long", "close_short",
+    "force_close_long", "force_close_short",
+    "burst_long_loss_query", "burst_short_loss_query",
+    "force_buy", "force_sell", "burst_buy", "burst_sell",
+    "delivery_long", "delivery_short",
+}
+FUNDING_BILL_TYPE = "contract_settle_fee"
+
+TRADE_COLS = [
+    "order_id", "datetime", "date", "symbol", "side", "bucket", "has_pnl",
+    "gross", "fee", "net", "amount", "price", "result",
+]
+EVENT_COLS = ["datetime", "date", "symbol", "kind", "amount"]
+
+
+# -----------------------------------------------------------------------------
+# 공통
+# -----------------------------------------------------------------------------
+def get_keys():
+    try:
+        return (st.secrets["API_KEY"], st.secrets["SECRET_KEY"], st.secrets["PASSPHRASE"])
+    except Exception:
+        return ("", "", "")
+
+
+def is_demo(keys):
+    return not keys[0] or not keys[1]
+
+
+def _exchange(keys=None):
+    cfg = {"enableRateLimit": True, "options": {"defaultType": "swap"}}
+    if keys:
+        cfg.update({"apiKey": keys[0], "secret": keys[1], "password": keys[2]})
+    return ccxt.bitget(cfg)
+
+
+def _to_kst(ms):
+    return datetime.fromtimestamp(int(ms) / 1000, tz=UTC).astimezone(KST)
+
+
+def _plain_symbol(sym):
+    return (sym or "").replace(":USDT", "")
+
+
+def result_of(bucket, has_pnl, net):
+    if bucket == "증가":
+        return "진입"
+    if not has_pnl:
+        return "미확인"
+    if net > 0:
+        return "익절"
+    if net < 0:
+        return "손절"
+    return "본전"
+
+
+# -----------------------------------------------------------------------------
+# 시세 (공개 API)
+# -----------------------------------------------------------------------------
+@st.cache_data(ttl=300, show_spinner=False)
+def fetch_usdt_krw():
+    try:
+        return float(ccxt.upbit({"enableRateLimit": True}).fetch_ticker("USDT/KRW").get("last") or 1350.0)
+    except Exception:
+        return 1350.0
+
+
+@st.cache_data(ttl=30, show_spinner=False)
+def fetch_live_ohlcv(symbol, timeframe, limit=120):
+    try:
+        bars = _exchange().fetch_ohlcv(symbol + ":USDT", timeframe, limit=limit)
+    except Exception:
+        return pd.DataFrame()
+    df = pd.DataFrame(bars, columns=["timestamp", "open", "high", "low", "close", "volume"])
+    df["datetime"] = (pd.to_datetime(df["timestamp"], unit="ms")
+                      .dt.tz_localize("UTC").dt.tz_convert("Asia/Seoul").dt.tz_localize(None))
+    return df
+
+
+# -----------------------------------------------------------------------------
+# 포지션 & 잔고 (10초 캐시)
+# -----------------------------------------------------------------------------
+DEMO_POSITIONS = [
+    {"symbol": "BTC/USDT", "side": "LONG", "leverage": 20, "entry_price": 63200.0, "mark_price": 64800.0,
+     "size": 0.3, "margin": 948.0, "liq_price": 60100.0, "unrealized_pnl": 480.0, "roe": 50.6},
+    {"symbol": "BTC/USDT", "side": "SHORT", "leverage": 20, "entry_price": 65100.0, "mark_price": 64800.0,
+     "size": 0.5, "margin": 1581.25, "liq_price": 68200.0, "unrealized_pnl": 150.0, "roe": 9.4},
+]
+
+
+@st.cache_data(ttl=10, show_spinner=False)
+def fetch_positions(keys):
+    """(포지션 목록, 지갑 잔고, 오류 메시지 or None)"""
+    if is_demo(keys):
+        return DEMO_POSITIONS, 10000.0, None
+    try:
+        ex = _exchange(keys)
+        bal = ex.fetch_balance({"type": "swap"})
+        total_balance = float((bal.get("USDT") or {}).get("total") or 0)
+        out = []
+        for p in ex.fetch_positions():
+            size = float(p.get("contracts") or 0)
+            if size <= 0:
+                continue
+            side = (p.get("side") or "long").upper()
+            entry, mark = float(p.get("entryPrice") or 0), float(p.get("markPrice") or 0)
+            margin = float(p.get("initialMargin") or 0)
+            upnl = p.get("unrealizedPnl")
+            upnl = float(upnl) if upnl is not None else ((mark - entry) * size if side == "LONG" else (entry - mark) * size)
+            out.append({
+                "symbol": _plain_symbol(p.get("symbol")), "side": side, "leverage": int(float(p.get("leverage") or 1)),
+                "entry_price": entry, "mark_price": mark, "size": size, "margin": margin,
+                "liq_price": float(p.get("liquidationPrice") or 0), "unrealized_pnl": upnl,
+                "roe": (upnl / margin * 100) if margin > 0 else 0.0,
+            })
+        return out, total_balance, None
+    except Exception as e:
+        return [], 0.0, f"{type(e).__name__}: {e}"
+
+
+# -----------------------------------------------------------------------------
+# 체결 → 거래(주문) 단위 + 수수료 배분
+# -----------------------------------------------------------------------------
+def parse_fill(t):
+    info = t.get("info") or {}
+    ts = str(info.get("tradeSide", "")).lower()
+    ro = info.get("reduceOnly", t.get("reduceOnly"))
+    raw = info.get("profit", info.get("realizedPnl"))
+    has_pnl = raw not in (None, "")
+    gross = float(raw or 0)
+
+    if "open" in ts:
+        is_close = False
+    elif "close" in ts:
+        is_close = True
+    elif ro in (True, "true", "YES", "yes"):
+        is_close = True
+    elif ro in (False, "false", "NO", "no"):
+        is_close = False
+    else:
+        is_close = has_pnl and gross != 0
+
+    if "long" in ts:
+        side = "LONG"
+    elif "short" in ts:
+        side = "SHORT"
+    else:
+        buy = str(t.get("side", "")).lower() == "buy"
+        # 청산 체결은 반대 방향 주문이므로 포지션 방향을 뒤집어서 판단
+        side = ("LONG" if buy else "SHORT") if not is_close else ("SHORT" if buy else "LONG")
+
+    fee = 0.0
+    fee_obj = t.get("fee") or {}
+    if fee_obj.get("cost") is not None and str(fee_obj.get("currency", "USDT")).upper() in ("USDT", ""):
+        fee = abs(float(fee_obj["cost"]))
+
+    dt = _to_kst(t["timestamp"])
+    return {
+        "trade_id": str(t.get("id") or f"{t.get('order')}_{t['timestamp']}"),
+        "order_id": str(t.get("order") or t["timestamp"]),
+        "datetime": dt.replace(tzinfo=None), "date": dt.strftime("%Y-%m-%d"),
+        "symbol": _plain_symbol(t.get("symbol")), "side": side, "is_close": bool(is_close),
+        "has_pnl": has_pnl, "gross": gross, "fee": fee,
+        "amount": float(t.get("amount") or 0), "price": float(t.get("price") or t.get("average") or 0),
+    }
+
+
+def build_trades(fills):
+    """체결 목록 → 주문 단위 거래 DataFrame + 아직 청산되지 않은 진입 수수료.
+
+    진입 체결의 수수료는 (종목, 방향)별로 보관하고, 청산 체결이 나올 때
+    청산 수량 / 보유 수량 비율만큼 꺼내서 그 청산 거래의 수수료로 함께 계산한다.
+    """
+    if not fills:
+        return pd.DataFrame(columns=TRADE_COLS), {}
+    df = pd.DataFrame(fills).drop_duplicates(subset=["trade_id"]).sort_values("datetime", kind="stable")
+
+    book = {}  # (symbol, side) -> [보유 수량, 보관 중인 진입 수수료]
+    fee_total, nets = [], []
+    for r in df.itertuples(index=False):
+        key = (r.symbol, r.side)
+        qty, pool = book.get(key, [0.0, 0.0])
+        if not r.is_close:
+            book[key] = [qty + r.amount, pool + r.fee]
+            fee_total.append(r.fee)
+            nets.append(0.0)
+            continue
+        alloc = 0.0
+        if qty > 0 and pool > 0:
+            if r.amount >= qty - 1e-12:
+                alloc = pool
+            else:
+                alloc = pool * (r.amount / qty)
+        book[key] = [max(qty - r.amount, 0.0), pool - alloc]
+        fee_total.append(r.fee + alloc)
+        nets.append(r.gross - r.fee - alloc)
+
+    df["fee_all"] = fee_total
+    df["net"] = nets
+    df["bucket"] = df["is_close"].map({True: "축소", False: "증가"})
+    df["notional"] = df["amount"] * df["price"]
+
+    g = df.groupby(["order_id", "symbol", "side"], as_index=False).agg(
+        datetime=("datetime", "last"), date=("date", "last"),
+        bucket=("bucket", lambda s: s.mode().iat[0]), has_pnl=("has_pnl", "max"),
+        gross=("gross", "sum"), fee=("fee_all", "sum"), net=("net", "sum"),
+        amount=("amount", "sum"), notional=("notional", "sum"),
+    )
+    g["price"] = (g["notional"] / g["amount"]).where(g["amount"] > 0, 0.0)
+    # 진입 주문은 손익이 없으므로 net=0, 수수료는 청산 때 반영되므로 0으로 표기
+    is_open = g["bucket"] == "증가"
+    g.loc[is_open, "fee"] = 0.0
+    g["result"] = [result_of(b, h, n) for b, h, n in zip(g["bucket"], g["has_pnl"], g["net"])]
+    g = g.drop(columns=["notional"]).sort_values("datetime", ascending=False)
+
+    pending = {f"{k[0]}|{k[1]}": v[1] for k, v in book.items() if v[0] > 1e-12 and v[1] > 0}
+    return g[TRADE_COLS].reset_index(drop=True), pending
+
+
+# -----------------------------------------------------------------------------
+# 거래소 장부 (펀딩비, 거래한 종목 목록, 검증용 합계)
+# -----------------------------------------------------------------------------
+def fetch_bills(ex, since_ms, now_ms):
+    bills, window = [], 7 * 24 * 60 * 60 * 1000
+    start = since_ms
+    while start < now_ms:
+        end = min(start + window, now_ms)
+        id_less = None
+        for _ in range(100):
+            req = {"productType": PRODUCT_TYPE, "startTime": str(start), "endTime": str(end), "limit": "100"}
+            if id_less:
+                req["idLessThan"] = id_less
+            data = (ex.privateMixGetV2MixAccountBill(req) or {}).get("data") or {}
+            page = data.get("bills") or []
+            bills.extend(page)
+            if len(page) < 100:
+                break
+            next_id = data.get("endId") or page[-1].get("billId")
+            if not next_id or next_id == id_less:
+                break
+            id_less = next_id
+        start = end
+    uniq = {b.get("billId"): b for b in bills}
+    return list(uniq.values())
+
+
+def parse_bills(ex, bills):
+    """→ (펀딩비 이벤트, 장부 일별 순손익 DataFrame, 거래한 종목 set)"""
+    events, ledger, symbols = [], [], set()
+    for b in bills:
+        bt = str(b.get("businessType", ""))
+        if str(b.get("coin", "USDT")).upper() != "USDT":
+            continue
+        dt = _to_kst(b.get("cTime") or 0)
+        amount = float(b.get("amount") or 0)
+        fee = float(b.get("fee") or 0)
+        sym = _plain_symbol(ex.safe_symbol(b.get("symbol"), None, None, "swap")) if b.get("symbol") else ""
+        if bt == FUNDING_BILL_TYPE:
+            events.append({"datetime": dt.replace(tzinfo=None), "date": dt.strftime("%Y-%m-%d"),
+                           "symbol": sym, "kind": "funding", "amount": amount + fee})
+            ledger.append({"date": dt.strftime("%Y-%m-%d"), "net": amount + fee})
+        elif bt in TRADE_BILL_TYPES:
+            if sym:
+                symbols.add(sym)
+            ledger.append({"date": dt.strftime("%Y-%m-%d"), "net": amount + fee})
+    ledger_df = (pd.DataFrame(ledger).groupby("date", as_index=False)["net"].sum()
+                 if ledger else pd.DataFrame(columns=["date", "net"]))
+    return events, ledger_df, symbols
+
+
+# -----------------------------------------------------------------------------
+# 전체 거래 데이터 (캐시)
+# -----------------------------------------------------------------------------
+def _empty_result(errors=None, demo=False):
+    return {"trades": pd.DataFrame(columns=TRADE_COLS), "events": pd.DataFrame(columns=EVENT_COLS),
+            "ledger": pd.DataFrame(columns=["date", "net"]), "pending_fees": {}, "fills": [],
+            "errors": errors or [], "demo": demo, "loaded_at": datetime.now(KST)}
+
+
+def _finish(fills, events, ledger, errors, demo):
+    trades, pending = build_trades(fills)
+    trades = trades[trades["date"] >= DASHBOARD_START_DATE] if not trades.empty else trades
+    ev = pd.DataFrame(events, columns=EVENT_COLS) if events else pd.DataFrame(columns=EVENT_COLS)
+    if not ev.empty:
+        ev = ev[ev["date"] >= DASHBOARD_START_DATE].sort_values("datetime", ascending=False)
+    return {"trades": trades.reset_index(drop=True), "events": ev.reset_index(drop=True), "ledger": ledger,
+            "pending_fees": pending, "errors": errors, "demo": demo, "loaded_at": datetime.now(KST)}
+
+
+@st.cache_data(ttl=1800, show_spinner="거래 내역을 불러오고 있어요...")
+def fetch_history(keys):
+    if is_demo(keys):
+        return _demo_history()
+
+    errors = []
+    try:
+        ex = _exchange(keys)
+        ex.load_markets()
+    except Exception as e:
+        return _empty_result([f"거래소 연결 실패: {type(e).__name__}: {e}"])
+
+    since_ms = int(datetime.strptime(DASHBOARD_START_DATE, "%Y-%m-%d").replace(tzinfo=KST).timestamp() * 1000)
+    now_ms = int(datetime.now(UTC).timestamp() * 1000)
+
+    # 1) 장부: 펀딩비 + 실제로 거래한 종목 찾기
+    events, ledger, traded = [], pd.DataFrame(columns=["date", "net"]), set()
+    try:
+        events, ledger, traded = parse_bills(ex, fetch_bills(ex, since_ms, now_ms))
+    except Exception as e:
+        errors.append(f"장부(펀딩비) 조회 실패 — 펀딩비 미반영: {type(e).__name__}: {e}")
+
+    # 2) 체결: 장부에서 찾은 종목 + 현재 보유 종목 (장부 실패 시 기본 목록)
+    symbols = set(traded)
+    if not symbols:
+        symbols = set(BASE_SYMBOLS)
+    try:
+        pos, _, _ = fetch_positions(keys)
+        symbols |= {p["symbol"] for p in pos}
+    except Exception:
+        pass
+
+    fills = []
+    chunk = 2 * 24 * 60 * 60 * 1000
+    for sym in sorted(symbols):
+        mkt = f"{sym}:USDT"
+        if mkt not in ex.markets:
+            continue
+        cur = since_ms
+        while cur < now_ms:
+            until = min(cur + chunk, now_ms)
+            end = until
+            # 한 번에 최대 100건 → 100건이 꽉 차면 가장 오래된 체결 이전 구간을 다시 조회
+            for _ in range(50):
+                try:
+                    trades = ex.fetch_my_trades(symbol=mkt, since=cur, limit=100, params={"until": end})
+                except Exception as e:
+                    errors.append(f"{sym} 체결 조회 실패: {type(e).__name__}: {e}")
+                    break
+                fills.extend(parse_fill(t) for t in trades)
+                if len(trades) < 100:
+                    break
+                oldest = min(t["timestamp"] for t in trades)
+                if oldest <= cur or oldest >= end:
+                    break
+                end = oldest
+            cur = until
+
+    # 3) 페이백 입금 (현물 계좌로 들어오는 USDT 입금)
+    #    PAYBACK_MAX 이상 입금 = 원금. 마지막 원금 입금 이후의 입금은 전부 페이백.
+    try:
+        look_from = int((datetime.strptime(DASHBOARD_START_DATE, "%Y-%m-%d").replace(tzinfo=KST)
+                         - timedelta(days=90)).timestamp() * 1000)
+        deps = []
+        cur = look_from
+        while cur < now_ms:
+            until = min(cur + 30 * 24 * 60 * 60 * 1000, now_ms)
+            deps.extend(ex.fetch_deposits(code="USDT", since=cur, limit=100, params={"until": until}))
+            cur = until
+        ok = {}
+        for d in deps:
+            if str(d.get("status", "")).lower() in ("ok", "success", "completed", "1") and d.get("timestamp"):
+                ok[str(d.get("id") or d["timestamp"])] = d
+        deps = sorted(ok.values(), key=lambda d: d["timestamp"])
+        principal_ts = [d["timestamp"] for d in deps if float(d.get("amount") or 0) >= PAYBACK_MAX]
+        cutoff = max(principal_ts) if principal_ts else int(PAYBACK_START.timestamp() * 1000)
+        for d in deps:
+            amount = float(d.get("amount") or 0)
+            if d["timestamp"] > cutoff and 0 < amount < PAYBACK_MAX:
+                dt = _to_kst(d["timestamp"])
+                events.append({"datetime": dt.replace(tzinfo=None), "date": dt.strftime("%Y-%m-%d"),
+                               "symbol": "", "kind": "payback", "amount": amount})
+    except Exception as e:
+        errors.append(f"입금(페이백) 조회 실패: {type(e).__name__}: {e}")
+
+    return _finish(fills, events, ledger, errors, demo=False)
+
+
+# -----------------------------------------------------------------------------
+# 데모 데이터 (API 키가 없을 때)
+# -----------------------------------------------------------------------------
+def _demo_history():
+    rnd = random.Random(7)
+    start = datetime.strptime(DASHBOARD_START_DATE, "%Y-%m-%d").replace(tzinfo=KST)
+    now = datetime.now(KST)
+    fee_rate = 0.0006
+    base = {"BTC/USDT": 63000.0, "ETH/USDT": 2500.0, "SOL/USDT": 150.0}
+    size = {"BTC/USDT": 0.2, "ETH/USDT": 3.0, "SOL/USDT": 40.0}
+    fills, events, ledger = [], [], {}
+    n = 0
+
+    def add_fill(t, sym, side, is_close, qty, price, gross):
+        nonlocal n
+        n += 1
+        fee = qty * price * fee_rate
+        fills.append({"trade_id": f"D{n}", "order_id": f"DO{n}",
+                      "datetime": t.replace(tzinfo=None), "date": t.strftime("%Y-%m-%d"),
+                      "symbol": sym, "side": side, "is_close": is_close, "has_pnl": is_close,
+                      "gross": round(gross, 4), "fee": round(fee, 4), "amount": qty, "price": round(price, 2)})
+        d = t.strftime("%Y-%m-%d")
+        ledger[d] = ledger.get(d, 0.0) + gross - fee
+
+    t = start + timedelta(hours=2)
+    while t < now - timedelta(hours=6):
+        sym = rnd.choice(list(base))
+        side = rnd.choice(["LONG", "SHORT"])
+        entry = base[sym] * (1 + rnd.uniform(-0.03, 0.03))
+        qty = size[sym] * rnd.choice([0.5, 1, 1.5])
+        parts = rnd.choice([1, 1, 2])
+        for _ in range(parts):
+            add_fill(t, sym, side, False, qty / parts, entry, 0.0)
+            t += timedelta(minutes=rnd.randint(1, 20))
+        move = rnd.choice([1, 1, -1]) * rnd.uniform(0.001, 0.012)
+        exit_p = entry * (1 + move) if side == "LONG" else entry * (1 - move)
+        t += timedelta(minutes=rnd.randint(10, 300))
+        closes = rnd.choice([1, 2])
+        for _ in range(closes):
+            q = qty / closes
+            gross = (exit_p - entry) * q if side == "LONG" else (entry - exit_p) * q
+            add_fill(t, sym, side, True, q, exit_p, gross)
+            t += timedelta(minutes=rnd.randint(1, 30))
+        t += timedelta(hours=rnd.uniform(1, 9))
+
+    # 지금 보유 중인 데모 포지션의 진입 체결 (청산 전이라 수수료 보관)
+    for p in DEMO_POSITIONS:
+        add_fill(now - timedelta(hours=3), p["symbol"], p["side"], False, p["size"], p["entry_price"], 0.0)
+
+    # 펀딩비 (8시간마다) & 페이백 (전날 수수료의 50%)
+    day = start
+    while day < now:
+        for h in (1, 9, 17):
+            ft = day.replace(hour=h)
+            if ft < now and rnd.random() < 0.7:
+                amt = round(rnd.uniform(-4, 1.5), 4)
+                events.append({"datetime": ft.replace(tzinfo=None), "date": ft.strftime("%Y-%m-%d"),
+                               "symbol": "BTC/USDT", "kind": "funding", "amount": amt})
+                ledger[ft.strftime("%Y-%m-%d")] = ledger.get(ft.strftime("%Y-%m-%d"), 0.0) + amt
+        prev = (day - timedelta(days=1)).strftime("%Y-%m-%d")
+        prev_fee = sum(f["fee"] for f in fills if f["date"] == prev)
+        if day >= PAYBACK_START and prev_fee > 0:
+            pt = day.replace(hour=11)
+            if pt < now:
+                events.append({"datetime": pt.replace(tzinfo=None), "date": pt.strftime("%Y-%m-%d"),
+                               "symbol": "", "kind": "payback", "amount": round(prev_fee * 0.5, 2)})
+        day += timedelta(days=1)
+
+    ledger_df = pd.DataFrame([{"date": k, "net": v} for k, v in ledger.items()])
+    return _finish(fills, events, ledger_df, [], demo=True)
+
+
+# -----------------------------------------------------------------------------
+# 집계 헬퍼
+# -----------------------------------------------------------------------------
+def period_slice(hist, start_str, end_str):
+    t, ev, lg = hist["trades"], hist["events"], hist["ledger"]
+    t = t[(t["date"] >= start_str) & (t["date"] <= end_str)] if not t.empty else t
+    ev = ev[(ev["date"] >= start_str) & (ev["date"] <= end_str)] if not ev.empty else ev
+    lg = lg[(lg["date"] >= start_str) & (lg["date"] <= end_str)] if not lg.empty else lg
+    return t, ev, lg
+
+
+def breakdown(trades, events):
+    closes = trades[trades["bucket"] == "축소"] if not trades.empty else trades
+    gross = float(closes["gross"].sum()) if not closes.empty else 0.0
+    fee = float(closes["fee"].sum()) if not closes.empty else 0.0
+    funding = float(events.loc[events["kind"] == "funding", "amount"].sum()) if not events.empty else 0.0
+    payback = float(events.loc[events["kind"] == "payback", "amount"].sum()) if not events.empty else 0.0
+    return {"gross": gross, "fee": fee, "funding": funding, "payback": payback,
+            "net": gross - fee + funding + payback}
+
+
+def daily_net(trades, events, start_str, end_str):
+    dates = [d.strftime("%Y-%m-%d") for d in pd.date_range(start=start_str, end=end_str)]
+    out = pd.DataFrame({"date": dates})
+    closes = trades[trades["bucket"] == "축소"] if not trades.empty else trades
+    t = closes.groupby("date")["net"].sum() if not closes.empty else pd.Series(dtype=float)
+    e = events.groupby("date")["amount"].sum() if not events.empty else pd.Series(dtype=float)
+    out["pnl"] = out["date"].map(t).fillna(0.0) + out["date"].map(e).fillna(0.0)
+    out["cum"] = out["pnl"].cumsum()
+    return out
+
+
+def performance(trades):
+    closes = trades[(trades["bucket"] == "축소") & trades["has_pnl"]] if not trades.empty else trades
+    if closes.empty:
+        return None
+    c = closes.sort_values("datetime")
+    wins, losses = c[c["net"] > 0]["net"], c[c["net"] < 0]["net"]
+    gw, gl = float(wins.sum()), float(-losses.sum())
+    streak = worst = 0
+    for v in c["net"]:
+        streak = streak + 1 if v < 0 else 0
+        worst = max(worst, streak)
+    eq = c["net"].cumsum()
+    mdd = float((eq - eq.cummax()).min())
+    avg_w = float(wins.mean()) if len(wins) else 0.0
+    avg_l = float(-losses.mean()) if len(losses) else 0.0
+    return {
+        "count": len(c), "profit_factor": (gw / gl) if gl > 0 else None,
+        "avg_win": avg_w, "avg_loss": avg_l, "rr": (avg_w / avg_l) if avg_l > 0 else None,
+        "expectancy": float(c["net"].mean()), "max_loss_streak": worst, "mdd": mdd,
+        "best": float(c["net"].max()), "worst": float(c["net"].min()),
+    }

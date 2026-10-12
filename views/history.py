@@ -1,0 +1,454 @@
+from datetime import datetime, timedelta
+
+import pandas as pd
+import plotly.graph_objects as go
+import streamlit as st
+
+from lib import data as D
+from lib.ui import (BLUE, DIVIDER, GRAY, GRAY_SOFT, GREEN, GREEN_SOFT, LINE_COLOR, RED, RED_SOFT, SUB, TEXT,
+                    html, kpi, money, pnl_color, section)
+
+KST = D.KST
+keys = D.get_keys()
+hist = D.fetch_history(keys)
+trades_all, events_all = hist["trades"], hist["events"]
+
+# -----------------------------------------------------------------------------
+# 헤더
+# -----------------------------------------------------------------------------
+if hist["demo"]:
+    badge = f"<span class='dot' style='background:#F5A623;'></span><span style='font-size:12.5px;font-weight:700;color:{TEXT};'>데모 데이터</span>"
+else:
+    badge = (f"<span class='dot' style='background:{GREEN};'></span><span style='font-size:12.5px;font-weight:700;color:{TEXT};'>Bitget</span>"
+             f"<span class='hide-on-mobile' style='font-size:11.5px;color:{SUB};'>{hist['loaded_at'].strftime('%H:%M')} 기준</span>")
+html(f"""<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:22px;">📈</span>
+<span style="font-size:21px;font-weight:800;color:{TEXT};letter-spacing:-0.02em;white-space:nowrap;">매매 히스토리</span></div>
+<div class="badge">{badge}</div></div>""")
+
+if hist["errors"]:
+    shown = "<br>".join(hist["errors"][:5])
+    more = f"<br>외 {len(hist['errors']) - 5}건" if len(hist["errors"]) > 5 else ""
+    html(f"<div class='err-box'><b>일부 데이터를 불러오지 못했어요</b><br>{shown}{more}</div>")
+
+
+def clear_all():
+    D.fetch_positions.clear(); D.fetch_history.clear(); D.fetch_usdt_krw.clear(); D.fetch_live_ohlcv.clear()
+
+
+# -----------------------------------------------------------------------------
+# 보유 포지션 (10초 갱신)
+# -----------------------------------------------------------------------------
+with st.container(key="pos_header_row"):
+    html(f"<div style='font-size:19px;font-weight:800;color:{TEXT};line-height:36px;'>보유 포지션</div>")
+    if st.button("🔄", key="manual_refresh_main", help="모든 데이터 새로고침"):
+        clear_all(); st.rerun()
+
+
+@st.fragment(run_every=10)
+def live_positions():
+    positions, wallet, err = D.fetch_positions(keys)
+    if err:
+        html(f"<div class='err-box'><b>포지션을 불러오지 못했어요</b> — API 키·권한 또는 거래소 응답을 확인해줘.<br>{err}</div>")
+        return
+    if not positions:
+        html(f"<div class='card' style='text-align:center;color:{SUB};font-size:14px;padding:32px;'>현재 진행 중인 포지션이 없습니다</div>")
+        return
+
+    groups = {}
+    for p in positions:
+        groups.setdefault(p["symbol"], []).append(p)
+
+    for sym, plist in groups.items():
+        safe = sym.replace("/", "_")
+        with st.container(key=f"pos_container_{safe}"):
+            for i, p in enumerate(plist):
+                sc, ss = (GREEN, GREEN_SOFT) if p["side"] == "LONG" else (RED, RED_SOFT)
+                pc = GREEN if p["unrealized_pnl"] >= 0 else RED
+                sign = "+" if p["unrealized_pnl"] >= 0 else ""
+                coin = sym.split("/")[0]
+                ratio = (p["margin"] / wallet * 100) if wallet > 0 else 0
+                pend = hist["pending_fees"].get(f"{sym}|{p['side']}", 0.0)
+                pend_html = (f"<div style='font-size:11.5px;color:{SUB};margin-top:6px;'>진입 수수료 -${pend:,.2f} · 청산 시 반영</div>"
+                             if pend > 0 else "")
+                html(f"""<div style="display:flex;flex-wrap:wrap;margin-bottom:5px;">
+<div class="pos-box" style="padding-left:0;"><div style='font-size:12.5px;color:{SUB};font-weight:600;margin-bottom:9px;'>종목 · 방향</div>
+<div style='font-size:22px;font-weight:800;color:{TEXT};'>{sym} <span class='pill' style='background:{ss};color:{sc};font-size:12px;padding:4px 10px;'>{p['side']} {p['leverage']}x</span></div>
+<div style='font-size:13px;color:{SUB};margin-top:8px;'>{p['size']} {coin} ≈ ${p['size'] * p['entry_price']:,.2f}</div></div>
+<div class="pos-box pos-divider"><div style='font-size:12.5px;color:{SUB};font-weight:600;margin-bottom:12px;'>진입가 · 현재가</div>
+<div style='display:flex;align-items:baseline;gap:8px;margin-bottom:6px;'><span style='width:42px;font-size:11.5px;color:{SUB};'>진입가</span><span style='font-size:17px;font-weight:700;color:{TEXT};'>${p['entry_price']:,.2f}</span></div>
+<div style='display:flex;align-items:baseline;gap:8px;'><span style='width:42px;font-size:11.5px;color:{SUB};'>현재가</span><span style='font-size:17px;font-weight:700;color:{BLUE};'>${p['mark_price']:,.2f}</span></div></div>
+<div class="pos-box pos-divider"><div style='font-size:12.5px;color:{SUB};font-weight:600;margin-bottom:12px;'>미실현 손익 · ROI</div>
+<div style='font-size:24px;font-weight:800;color:{pc};margin-bottom:-4px;'>{sign}${p['unrealized_pnl']:,.2f}</div>
+<div style='font-size:14px;font-weight:700;color:{pc};'>({sign}{p['roe']:.2f}%)</div>{pend_html}</div>
+<div class="pos-box pos-divider" style="padding-right:0;"><div style='font-size:12.5px;color:{SUB};font-weight:600;margin-bottom:12px;'>증거금 <span style="color:{BLUE};">(비중%)</span> · 청산가</div>
+<div style='display:flex;align-items:baseline;gap:8px;margin-bottom:6px;'><span style='width:42px;font-size:11.5px;color:{SUB};'>증거금</span><span style='font-size:17px;font-weight:700;color:{TEXT};'>${p['margin']:,.2f} <span style='font-size:13px;color:{BLUE};'>({ratio:.1f}%)</span></span></div>
+<div style='display:flex;align-items:baseline;gap:8px;'><span style='width:42px;font-size:11.5px;color:{SUB};'>청산가</span><span style='font-size:17px;font-weight:700;color:#4b5563;'>${p['liq_price']:,.2f}</span></div></div></div>""")
+                if i < len(plist) - 1:
+                    html(f"<div style='border-top:1px solid {DIVIDER};margin:10px 0 15px;'></div>")
+
+            html(f"<div style='border-top:1px solid {DIVIDER};margin:16px 0 15px;'></div>")
+            tf = st.segmented_control("분봉", ["3분봉", "5분봉", "15분봉", "1시간봉"], default="3분봉",
+                                      label_visibility="collapsed", key=f"tf_{safe}") or "3분봉"
+            df = D.fetch_live_ohlcv(sym, {"3분봉": "3m", "5분봉": "5m", "15분봉": "15m", "1시간봉": "1h"}[tf], 120)
+            if df.empty:
+                st.caption("차트 데이터를 불러오지 못했어요")
+                continue
+            fig = go.Figure(go.Candlestick(
+                x=df["datetime"], open=df["open"], high=df["high"], low=df["low"], close=df["close"],
+                increasing_line_color=GREEN, increasing_fillcolor=GREEN,
+                decreasing_line_color=RED, decreasing_fillcolor=RED, line=dict(width=1), name="Price"))
+            for p in plist:
+                c = GREEN if p["side"] == "LONG" else RED
+                fig.add_hline(y=p["entry_price"], line_dash="dot", line_width=1.3, line_color=c, opacity=0.6)
+                fig.add_annotation(x=0.01, xref="paper", y=p["entry_price"], text=f" {p['side']} ${p['entry_price']:,.2f} ",
+                                   showarrow=False, font=dict(color="#fff", size=10), bgcolor=c, borderpad=3,
+                                   xanchor="left", yanchor="bottom")
+            if not trades_all.empty:
+                st_ = trades_all[(trades_all["symbol"] == sym) & (trades_all["datetime"] >= df["datetime"].min())]
+                if not st_.empty:
+                    buy = ((st_["side"] == "LONG") & (st_["bucket"] == "증가")) | ((st_["side"] == "SHORT") & (st_["bucket"] == "축소"))
+                    off = ((df["high"].max() - df["low"].min()) or df["close"].iloc[-1] * 0.01) * 0.05
+                    for mask, sym_m, col, name, dy in ((buy, "triangle-up", GREEN, "매수", -off), (~buy, "triangle-down", RED, "매도", off)):
+                        part = st_[mask]
+                        if not part.empty:
+                            fig.add_trace(go.Scatter(
+                                x=part["datetime"], y=part["price"] + dy, mode="markers", customdata=part["price"],
+                                marker=dict(symbol=sym_m, size=11, color=col, line=dict(width=1, color="#fff")),
+                                name=name, hovertemplate=f"<b>{name} 체결</b><br>%{{x}}<br>$%{{customdata:,.2f}}<extra></extra>"))
+            fig.update_layout(
+                height=350, margin=dict(t=15, b=10, l=10, r=45), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                xaxis_rangeslider_visible=False, showlegend=False, hovermode="x unified",
+                xaxis=dict(showgrid=True, gridcolor="#F8F9FA", tickformat="%H:%M", tickfont=dict(color=GRAY, size=11)),
+                yaxis=dict(showgrid=True, gridcolor="#F0F3F6", side="right", tickfont=dict(color=GRAY, size=11)),
+                hoverlabel=dict(bgcolor="#fff", bordercolor="#F2F4F6", font=dict(color=TEXT, size=12)))
+            st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+
+
+live_positions()
+
+# -----------------------------------------------------------------------------
+# 상단 손익 카드
+# -----------------------------------------------------------------------------
+now = datetime.now(KST)
+today_str, month_start = now.strftime("%Y-%m-%d"), now.strftime("%Y-%m-01")
+
+
+def top_card(title, value, sub, krw_rate):
+    color = GREEN if value >= 0 else RED
+    krw = value * krw_rate
+    krw_str = f"+ ₩{krw:,.0f}" if krw >= 0 else f"- ₩{abs(krw):,.0f}"
+    return f"""<div class="card" style="min-height:150px;display:flex;flex-direction:column;">
+<div class="card-title"><span>{title}</span></div>
+<div style="display:flex;align-items:baseline;gap:8px;margin:14px 0 2px;flex-wrap:wrap;">
+<span style="font-size:30px;font-weight:800;color:{color};letter-spacing:-0.02em;">{money(value)}</span>
+<span style="font-size:13px;font-weight:600;color:{SUB};">{krw_str}</span></div>
+<div style="font-size:12px;color:{SUB};margin-top:auto;padding-top:10px;">{sub}</div></div>"""
+
+
+rate = D.fetch_usdt_krw()
+c1, c2, c3 = st.columns(3)
+with c1:
+    t, e, _ = D.period_slice(hist, today_str, today_str)
+    b = D.breakdown(t, e)
+    html(top_card("오늘 순손익", b["net"], f"수수료 -${b['fee']:,.2f} · 펀딩 {money(b['funding'])} · 페이백 {money(b['payback'])}", rate))
+with c2:
+    t, e, _ = D.period_slice(hist, month_start, today_str)
+    b = D.breakdown(t, e)
+    html(top_card("이번 달 순손익", b["net"], f"수수료 -${b['fee']:,.2f} · 펀딩 {money(b['funding'])} · 페이백 {money(b['payback'])}", rate))
+with c3:
+    @st.fragment(run_every=10)
+    def unrealized_card():
+        pos, _, _ = D.fetch_positions(keys)
+        u = sum(p["unrealized_pnl"] for p in pos) if pos else 0.0
+        pend = sum(hist["pending_fees"].values())
+        sub = f"진입 수수료 -${pend:,.2f} 별도 · 10초 갱신" if pend > 0 else "전체 포지션 합계 · 10초 갱신"
+        html(top_card("현재 미실현손익", u, sub, D.fetch_usdt_krw()))
+    unrealized_card()
+
+html(f"<div class='note-text'>순손익 = 청산 손익 − 수수료 + 펀딩비 + 페이백 · 진입 수수료는 청산할 때 그 거래에서 함께 차감 · 미실현손익은 합계에 미포함</div>")
+
+# -----------------------------------------------------------------------------
+# 기간 선택
+# -----------------------------------------------------------------------------
+section("매매 동향")
+today_d = now.date()
+dash_start = datetime.strptime(D.DASHBOARD_START_DATE, "%Y-%m-%d").date()
+if "date_range" not in st.session_state:
+    st.session_state.date_range = (max(dash_start, today_d - timedelta(days=30)), today_d)
+
+
+def set_range(mode):
+    starts = {"today": today_d, "week": today_d - timedelta(days=6), "month": today_d.replace(day=1),
+              "30d": today_d - timedelta(days=30)}
+    st.session_state.date_range = (max(dash_start, starts[mode]), today_d)
+
+
+cd, b1, b2, b3, b4 = st.columns([2.6, 0.8, 0.8, 0.9, 1])
+with b1:
+    st.button("오늘", on_click=set_range, args=("today",), width="stretch")
+with b2:
+    st.button("7일", on_click=set_range, args=("week",), width="stretch")
+with b3:
+    st.button("이번 달", on_click=set_range, args=("month",), width="stretch")
+with b4:
+    st.button("최근 30일", on_click=set_range, args=("30d",), width="stretch")
+with cd:
+    dates = st.date_input("기간", key="date_range", min_value=dash_start, max_value=today_d, label_visibility="collapsed")
+
+if isinstance(dates, (tuple, list)):
+    start_d, end_d = (dates[0], dates[-1]) if len(dates) else (today_d, today_d)
+else:
+    start_d = end_d = dates
+start_str, end_str = max(start_d, dash_start).strftime("%Y-%m-%d"), end_d.strftime("%Y-%m-%d")
+f_trades, f_events, f_ledger = D.period_slice(hist, start_str, end_str)
+bd = D.breakdown(f_trades, f_events)
+perf = D.performance(f_trades)
+
+st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
+
+# -----------------------------------------------------------------------------
+# 손익 구성 + 성과 지표
+# -----------------------------------------------------------------------------
+col_bd, col_perf = st.columns([1, 1.55])
+with col_bd:
+    n_pay = int((f_events["kind"] == "payback").sum()) if not f_events.empty else 0
+    ledger_net = float(f_ledger["net"].sum()) if not f_ledger.empty else None
+    ledger_html = ""
+    if ledger_net is not None:
+        ledger_html = (f"<div class='bd-note'>검증 · 거래소 장부 합계(페이백 제외, 진입 수수료 즉시 차감) "
+                       f"<b style='color:{pnl_color(ledger_net)};'>{money(ledger_net)}</b></div>")
+    html(f"""<div class="card" style="min-height:336px;">
+<div class="card-title"><span>손익 구성</span><span>{start_str[5:]} ~ {end_str[5:]}</span></div>
+<div style="margin-top:8px;">
+<div class="bd-row"><span>청산 손익 (수수료 전)</span><b style="color:{pnl_color(bd['gross'])};">{money(bd['gross'])}</b></div>
+<div class="bd-row"><span>거래 수수료</span><b style="color:{RED if bd['fee'] > 0 else SUB};">{money(-bd['fee'])}</b></div>
+<div class="bd-row"><span>펀딩비</span><b style="color:{pnl_color(bd['funding'])};">{money(bd['funding'])}</b></div>
+<div class="bd-row"><span>페이백 <span style="color:{SUB};font-weight:500;">({n_pay}건)</span></span><b style="color:{pnl_color(bd['payback'])};">{money(bd['payback'])}</b></div>
+</div>
+<div class="bd-total"><span>순손익</span><b style="color:{pnl_color(bd['net'])};">{money(bd['net'])}</b></div>
+{ledger_html}</div>""")
+
+with col_perf:
+    if perf:
+        pf = f"{perf['profit_factor']:.2f}" if perf["profit_factor"] is not None else "∞"
+        rr = f"{perf['rr']:.2f}" if perf["rr"] is not None else "-"
+        items = [
+            kpi("Profit Factor", pf, GREEN if (perf["profit_factor"] or 99) >= 1 else RED, "총 익절 ÷ 총 손절"),
+            kpi("손익비", rr, TEXT, "평균 익절 ÷ 평균 손절"),
+            kpi("거래당 기대값", money(perf["expectancy"]), pnl_color(perf["expectancy"]), f"청산 {perf['count']}건 평균"),
+            kpi("수수료 비중", f"{(bd['fee'] / abs(bd['gross']) * 100):.0f}%" if bd["gross"] else "-", TEXT, "청산 손익 대비"),
+            kpi("평균 익절", money(perf["avg_win"]), GREEN, f"최대 {money(perf['best'])}"),
+            kpi("평균 손절", money(-perf["avg_loss"]), RED, f"최대 {money(perf['worst'])}"),
+            kpi("최대 연속 손절", f"{perf['max_loss_streak']}회", TEXT),
+            kpi("최대 낙폭", money(perf["mdd"]), RED if perf["mdd"] < 0 else TEXT, "누적 순손익 기준"),
+        ]
+        html(f"""<div class="card" style="min-height:336px;"><div class="card-title"><span>성과 지표</span><span>수수료 차감 후 · 청산 기준</span></div>
+<div class="kpi-grid" style="margin-top:6px;">{''.join(items)}</div></div>""")
+    else:
+        html(f"<div class='card' style='min-height:336px;color:{SUB};text-align:center;padding:40px;'>선택한 기간에 청산 거래가 없습니다</div>")
+
+st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
+
+# -----------------------------------------------------------------------------
+# 주문 횟수 · 롱숏 · 승률 추이
+# -----------------------------------------------------------------------------
+col_t1, col_t2, col_t3 = st.columns([1, 1, 1.2])
+total = len(f_trades)
+incr = int((f_trades["bucket"] == "증가").sum()) if total else 0
+closes = f_trades[f_trades["bucket"] == "축소"] if total else f_trades
+decr = len(closes)
+wins = int((closes["result"] == "익절").sum()) if decr else 0
+losses = int((closes["result"] == "손절").sum()) if decr else 0
+win_rate = (wins / (wins + losses) * 100) if (wins + losses) else 0
+lg = int((closes["side"] == "LONG").sum()) if decr else 0
+sh = int((closes["side"] == "SHORT").sum()) if decr else 0
+lp = (lg / (lg + sh) * 100) if (lg + sh) else 0
+long_net = float(closes.loc[closes["side"] == "LONG", "net"].sum()) if decr else 0.0
+short_net = float(closes.loc[closes["side"] == "SHORT", "net"].sum()) if decr else 0.0
+card_style = "background:#fff;border-radius:20px;padding:22px;box-shadow:0 2px 14px rgba(15,23,42,0.05);height:320px;display:flex;flex-direction:column;justify-content:space-between;"
+
+
+def pair(l1, v1, c1, l2, v2, c2):
+    return (f"<div style='display:flex;font-size:13px;'><div style='flex:1;display:flex;justify-content:space-between;padding-right:15px;'>"
+            f"<span style='color:{SUB};'>{l1}</span><b style='color:{c1};'>{v1}</b></div>"
+            f"<div style='flex:1;display:flex;justify-content:space-between;padding-left:15px;'>"
+            f"<span style='color:{SUB};'>{l2}</span><b style='color:{c2};'>{v2}</b></div></div>")
+
+
+with col_t1:
+    html(f"""<div style="{card_style}"><div><div class="card-title"><span>총 주문 횟수</span><span>선택 기간</span></div>
+<div style='display:flex;align-items:baseline;margin:14px 0 22px;'><span style='font-size:34px;font-weight:800;color:{TEXT};'>{total}</span><span style='font-size:13px;font-weight:600;color:{SUB};margin-left:4px;'>회</span></div>
+<div style='display:flex;flex-direction:column;gap:14px;'>{pair('진입', f'{incr} 회', TEXT, '청산', f'{decr} 회', TEXT)}{pair('익절', f'{wins} 회', GREEN, '손절', f'{losses} 회', RED)}</div></div>
+<div style='border-top:1px solid {DIVIDER};padding-top:14px;display:flex;justify-content:space-between;align-items:center;'>
+<span style='font-size:13px;color:{SUB};font-weight:600;'>기간 승률 <span style='font-weight:500;'>(수수료 차감 후)</span></span><b style='color:{BLUE};font-size:17px;'>{win_rate:.1f}%</b></div></div>""")
+
+with col_t2:
+    grad = f"conic-gradient({GREEN} 0% {lp}%, {RED} {lp}% 100%)" if (lg + sh) else "conic-gradient(#EEF0F4 0% 100%)"
+    html(f"""<div style="{card_style}"><div class="card-title"><span>LONG / SHORT</span><span>청산 횟수 · 순손익</span></div>
+<div style="display:flex;justify-content:center;align-items:center;flex-grow:1;"><div style="width:118px;height:118px;border-radius:50%;background:{grad};display:flex;justify-content:center;align-items:center;">
+<div style="width:86px;height:86px;background:#fff;border-radius:50%;display:flex;flex-direction:column;justify-content:center;align-items:center;">
+<span style="font-size:11.5px;color:{SUB};font-weight:600;">총 청산</span><b style="font-size:22px;color:{TEXT};">{decr}건</b></div></div></div>
+<div><div style='display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px;'><span style='color:{GREEN};font-weight:700;'>LONG {lg}건 · {lp:.0f}%</span><b style='color:{pnl_color(long_net)};'>{money(long_net)}</b></div>
+<div style='display:flex;justify-content:space-between;font-size:13px;'><span style='color:{RED};font-weight:700;'>SHORT {sh}건 · {100 - lp if (lg + sh) else 0:.0f}%</span><b style='color:{pnl_color(short_net)};'>{money(short_net)}</b></div></div></div>""")
+
+with col_t3:
+    labels, vals, tw, tl = [], [], 0, 0
+    for i in range(6, -1, -1):
+        d = now - timedelta(days=i)
+        ds = d.strftime("%Y-%m-%d")
+        labels.append(d.strftime("%m/%d"))
+        dc = trades_all[(trades_all["date"] == ds) & (trades_all["bucket"] == "축소")] if not trades_all.empty else trades_all
+        w, l = int((dc["result"] == "익절").sum()), int((dc["result"] == "손절").sum())
+        tw += w; tl += l
+        vals.append(w / (w + l) * 100 if (w + l) else None)
+    r7 = round(tw / (tw + tl) * 100) if (tw + tl) else 0
+    step = 280 / 6
+    runs, cur = [], []
+    for i, v in enumerate(vals):
+        if v is None:
+            if cur: runs.append(cur); cur = []
+        else:
+            cur.append((i * step, 110 - v / 100 * 85, v))
+    if cur: runs.append(cur)
+    lines = "".join(f"<polyline points='{' '.join(f'{x:.1f},{y:.1f}' for x, y, _ in r)}' fill='none' stroke='{BLUE}' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/>" for r in runs if len(r) > 1)
+    dots = "".join(f"<circle cx='{x:.1f}' cy='{y:.1f}' r='4' fill='{BLUE}'/><text x='{x:.1f}' y='{y - 12:.1f}' font-size='12' font-weight='bold' fill='{BLUE}' text-anchor='middle'>{v:.0f}%</text>" for r in runs for x, y, v in r)
+    dashes = "".join(f"<text x='{i * step:.1f}' y='60' font-size='13' fill='#D1D6DB' text-anchor='middle'>―</text>" for i, v in enumerate(vals) if v is None)
+    days = "".join(f"<text x='{i * step:.1f}' y='130' font-size='10' fill='{SUB}' text-anchor='middle'>{labels[i]}</text>" for i in range(7))
+    html(f"""<div style="{card_style}"><div class="card-title"><span>승률 추이</span><span>최근 7일 · 오늘 포함</span></div>
+<div style="display:flex;align-items:baseline;gap:10px;margin-top:10px;"><span style="font-size:30px;font-weight:800;color:{BLUE};">{r7}%</span><span style="font-size:12px;color:{SUB};">익절 {tw} · 손절 {tl}</span></div>
+<div style="flex-grow:1;display:flex;flex-direction:column;justify-content:flex-end;"><svg viewBox='-15 -15 310 150' style='width:100%;height:130px;display:block;'>{lines}{dots}{dashes}{days}</svg></div></div>""")
+
+st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
+
+# -----------------------------------------------------------------------------
+# 기간 손익 차트
+# -----------------------------------------------------------------------------
+daily = D.daily_net(f_trades, f_events, start_str, end_str)
+
+
+def style_fig(fig, height=330, category=True, ticks=None):
+    fig.update_layout(
+        template="plotly_white", margin=dict(t=20, b=10, l=10, r=10), height=height,
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", hovermode="x unified", showlegend=False,
+        xaxis=dict(showgrid=False, zeroline=False, type="category" if category else None,
+                   tickmode="array" if ticks is not None else None, tickvals=ticks),
+        yaxis=dict(showgrid=True, gridcolor="#F2F4F6", zeroline=True, zerolinecolor="#E5E8EB", zerolinewidth=1.5, nticks=5),
+        hoverlabel=dict(bgcolor="#fff", bordercolor="#F2F4F6", font=dict(color=TEXT, size=12)))
+    return fig
+
+
+with st.container(key="pnl_card"):
+    last_v = daily["pnl"].iloc[-1] if not daily.empty else 0.0
+    html(f"""<div style='display:flex;justify-content:space-between;align-items:baseline;'><span style='font-size:13px;color:{TEXT};font-weight:700;'>기간 순손익</span>
+<span style='font-size:12px;color:{SUB};'>{end_str} <b style='color:{pnl_color(last_v)};'>{money(last_v)}</b></span></div>
+<div style='font-size:30px;font-weight:800;color:{pnl_color(bd["net"])};margin-top:8px;'>{money(bd["net"])} <span style='font-size:14px;color:{SUB};font-weight:600;'>USDT</span></div>
+<div style="border-bottom:1px solid {DIVIDER};margin:16px 0 6px;"></div>""")
+    tab1, tab2 = st.tabs(["일별 손익", "기간 누적"])
+    n = len(daily)
+    ticks = list(daily["date"]) if n <= 10 else [daily["date"].iloc[i] for i in sorted(set(range(0, n, max(1, n // 6))) | {n - 1})]
+    with tab1:
+        fig = go.Figure(go.Bar(x=daily["date"], y=daily["pnl"], marker=dict(color=[GREEN if v >= 0 else RED for v in daily["pnl"]], line_width=0, cornerradius=8),
+                               hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT<extra></extra>"))
+        st.plotly_chart(style_fig(fig, ticks=ticks), width="stretch", config={"displayModeBar": False})
+    with tab2:
+        fig = go.Figure(go.Scatter(x=daily["date"], y=daily["cum"], mode="lines+markers", line=dict(color=BLUE, width=3, shape="spline", smoothing=0.4),
+                                   marker=dict(size=5), fill="tozeroy", fillcolor="rgba(49,130,246,0.08)",
+                                   hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT<extra></extra>"))
+        st.plotly_chart(style_fig(fig, ticks=ticks), width="stretch", config={"displayModeBar": False})
+
+# -----------------------------------------------------------------------------
+# 종목별 · 시간대별 손익
+# -----------------------------------------------------------------------------
+st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
+col_s, col_h = st.columns(2)
+side_h = max(260, 46 * (closes["symbol"].nunique() if decr else 0) + 40)
+with col_s:
+    with st.container(key="chart_card_symbol"):
+        html(f"<div class='card-title'><span>종목별 순손익</span><span>청산 기준</span></div>")
+        if decr:
+            by = closes.groupby("symbol").agg(net=("net", "sum"), n=("net", "size")).sort_values("net")
+            fig = go.Figure(go.Bar(y=[s.replace("/USDT", "") for s in by.index], x=by["net"], orientation="h",
+                                   marker=dict(color=[GREEN if v >= 0 else RED for v in by["net"]], line_width=0, cornerradius=6),
+                                   customdata=by["n"], hovertemplate="<b>%{y}</b><br>%{x:,.2f} USDT · %{customdata}건<extra></extra>"))
+            fig = style_fig(fig, height=side_h, category=False)
+            fig.update_layout(hovermode="closest", xaxis=dict(showgrid=True, gridcolor="#F2F4F6", zeroline=True, zerolinecolor="#E5E8EB"),
+                              yaxis=dict(showgrid=False, zeroline=False))
+            st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+        else:
+            st.caption("청산 거래가 없습니다")
+with col_h:
+    with st.container(key="chart_card_hour"):
+        html(f"<div class='card-title'><span>시간대별 순손익</span><span>청산 시각 · KST</span></div>")
+        if decr:
+            hrs = closes.assign(h=pd.to_datetime(closes["datetime"]).dt.hour).groupby("h")["net"].agg(["sum", "size"]).reindex(range(24), fill_value=0)
+            fig = go.Figure(go.Bar(x=[f"{h}시" for h in hrs.index], y=hrs["sum"],
+                                   marker=dict(color=[GREEN if v >= 0 else RED for v in hrs["sum"]], line_width=0, cornerradius=4),
+                                   customdata=hrs["size"], hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT · %{customdata}건<extra></extra>"))
+            fig = style_fig(fig, height=side_h, ticks=[f"{h}시" for h in range(0, 24, 3)])
+            fig.update_layout(hovermode="closest")
+            st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+        else:
+            st.caption("청산 거래가 없습니다")
+
+# -----------------------------------------------------------------------------
+# 상세 매매 내역
+# -----------------------------------------------------------------------------
+section("상세 매매 내역")
+fc1, fc2 = st.columns([2.2, 1])
+with fc1:
+    kind = st.segmented_control("종류", ["전체", "청산", "진입", "페이백", "펀딩비"], default="전체",
+                                label_visibility="collapsed", key="log_kind") or "전체"
+with fc2:
+    sym_opts = ["전체 종목"] + sorted(f_trades["symbol"].unique().tolist()) if not f_trades.empty else ["전체 종목"]
+    sym_pick = st.selectbox("종목", sym_opts, label_visibility="collapsed")
+
+rows = []
+tview = f_trades if sym_pick == "전체 종목" else f_trades[f_trades["symbol"] == sym_pick]
+if kind in ("전체", "청산", "진입") and not tview.empty:
+    if kind != "전체":
+        tview = tview[tview["bucket"] == ("축소" if kind == "청산" else "증가")]
+    for r in tview.itertuples(index=False):
+        rows.append(("trade", r.datetime, r))
+if kind in ("전체", "페이백", "펀딩비") and not f_events.empty:
+    want = {"전체": ["payback"], "페이백": ["payback"], "펀딩비": ["funding"]}[kind]
+    ev = f_events[f_events["kind"].isin(want)]
+    if sym_pick != "전체 종목":
+        ev = ev[(ev["symbol"] == sym_pick) | (ev["kind"] == "payback")] if kind != "펀딩비" else ev[ev["symbol"] == sym_pick]
+    for r in ev.itertuples(index=False):
+        rows.append(("event", r.datetime, r))
+rows.sort(key=lambda x: x[1], reverse=True)
+
+if not rows:
+    html(f"<div class='card' style='text-align:center;color:{SUB};padding:32px;'>표시할 내역이 없습니다</div>")
+else:
+    out = []
+    for typ, dt, r in rows[:150]:
+        dt_str = pd.Timestamp(dt).strftime("%m.%d %H:%M")
+        if typ == "event":
+            is_pay = r.kind == "payback"
+            name = "수수료 페이백" if is_pay else f"펀딩비 · {r.symbol}"
+            badge, tag = ("💰", "입금") if is_pay else ("⏱", "펀딩")
+            c = pnl_color(r.amount)
+            out.append(f"<div class='log-row'><div class='log-left'><div class='sym-badge' style='background:{GREEN_SOFT if r.amount >= 0 else RED_SOFT};color:{c};'>{badge}</div>"
+                       f"<div><div class='row-title'>{name} <span class='pill' style='background:{GRAY_SOFT};color:{SUB};'>{tag}</span></div>"
+                       f"<div class='row-sub'>{dt_str}</div></div></div>"
+                       f"<div class='row-right'><div class='row-pnl' style='color:{c};'>{money(r.amount)}</div></div></div>")
+            continue
+        sc, ss = (GREEN, GREEN_SOFT) if r.side == "LONG" else (RED, RED_SOFT)
+        price = f"${r.price:,.2f}" if r.price > 0 else "-"
+        coin = r.symbol.split("/")[0]
+        if r.bucket == "증가":
+            right = f"<div class='row-price'>{price}</div><div class='row-pnl' style='color:{SUB};'>-<span class='chip' style='background:{GRAY_SOFT};color:{SUB};'>진입</span></div>"
+        else:
+            c = pnl_color(r.net) if r.result in ("익절", "손절") else SUB
+            chip_bg = GREEN_SOFT if r.result == "익절" else (RED_SOFT if r.result == "손절" else GRAY_SOFT)
+            right = (f"<div class='row-price'>손익 {money(r.gross)} · 수수료 -${r.fee:,.2f}</div>"
+                     f"<div class='row-pnl' style='color:{c};'>{money(r.net) if r.has_pnl else '-'}<span class='chip' style='background:{chip_bg};color:{c};'>{r.result}</span></div>")
+        out.append(f"<div class='log-row'><div class='log-left'><div class='sym-badge' style='background:{ss};color:{sc};'>{coin[:1]}</div>"
+                   f"<div><div class='row-title'>{r.symbol} <span class='pill' style='background:{ss};color:{sc};'>{r.side}</span></div>"
+                   f"<div class='row-sub'>{dt_str} · {'진입' if r.bucket == '증가' else '청산'} · {r.amount:g} {coin} @ {price}</div></div></div>"
+                   f"<div class='row-right'>{right}</div></div>")
+    html("<div class='card' style='padding:6px 20px;max-height:620px;overflow-y:auto;'>" + "".join(out) + "</div>")
+    if len(rows) > 150:
+        html(f"<div class='note-text'>최근 150건만 표시 (전체 {len(rows)}건)</div>")
