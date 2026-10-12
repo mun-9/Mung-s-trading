@@ -114,6 +114,23 @@ def inject():
     js = _JS.replace("__TRACKS__", json.dumps(TRACKS, ensure_ascii=False))
     components.html(
         f"""<script>
+// Streamlit Cloud가 화면 오른쪽 아래에 붙이는 배지(만든 사람 프사·'Hosted with Streamlit') 숨기기
+(function () {{
+  if (window.top === window.parent) return; // 감싸는 화면이 없으면(직접 실행) 할 일 없음
+  let top; try {{ top = window.top.document; top.body; }} catch (e) {{ return; }}
+  if (top.getElementById('mg-hide-badge')) return;
+  const css = top.createElement('style'); css.id = 'mg-hide-badge';
+  css.textContent = '[class*="viewerBadge"],[class*="profileContainer"],[class*="ProfileContainer"],a[href*="streamlit.io/cloud"],a[href*="share.streamlit.io/user"]{{display:none !important;}}';
+  top.head.appendChild(css);
+  const hide = () => top.querySelectorAll('a[href*="streamlit.io"], img[src*="avatars.githubusercontent"]').forEach(el => {{
+    let n = el;
+    for (let i = 0; i < 6 && n && n !== top.body; i++, n = n.parentElement) {{
+      const pos = getComputedStyle(n).position;
+      if (pos === 'fixed' || pos === 'absolute') {{ n.style.setProperty('display', 'none', 'important'); return; }}
+    }}
+  }});
+  hide(); new MutationObserver(hide).observe(top.body, {{ childList: true, subtree: true }});
+}})();
 (function () {{
   const d = window.parent.document;
   if (d.getElementById('mg-music-style')) return;
