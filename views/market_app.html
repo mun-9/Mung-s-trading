@@ -285,7 +285,7 @@ async function loadMap() {
 }
 function drawMap(longB, shortB, lo, step, now, BINS) {
   const svg = $('lmap'), W = svg.clientWidth || 700, H = svg.clientHeight || 440;
-  const padL = 78, padR = 70, top = 10, bot = 10, plotW = W - padL - padR, bh = (H - top - bot) / BINS;
+  const padL = 78, padR = 70, top = 10, bot = 10, plotW = (W - padL - padR) * 0.72, bh = (H - top - bot) / BINS; // 오른쪽에 금액 라벨 자리 남김
   const mx = Math.max(...longB, ...shortB) || 1;
   const y = i => H - bot - (i + 1) * bh; // 아래가 낮은 가격
   let s = '';
