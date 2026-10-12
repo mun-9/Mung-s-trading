@@ -20,6 +20,30 @@ svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-widt
 
 #app { display: flex; flex-direction: column; height: 100vh; }
 
+/* 로딩 화면 */
+#splash { position: fixed; inset: 0; z-index: 100; background: radial-gradient(ellipse at 50% 40%, #182038 0%, #0D1018 70%); display: flex; align-items: center; justify-content: center; transition: opacity .5s ease, visibility .5s; }
+#splash.hide { opacity: 0; visibility: hidden; }
+.sp-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(41,98,255,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(41,98,255,.07) 1px, transparent 1px);
+  background-size: 40px 40px; mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%); animation: sp-pan 8s linear infinite; }
+@keyframes sp-pan { to { background-position: 40px 40px; } }
+.sp-in { position: relative; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.sp-logo { display: flex; align-items: flex-end; gap: 6px; height: 44px; filter: drop-shadow(0 0 14px rgba(41,98,255,.7)); }
+.sp-logo i { display: block; width: 10px; border-radius: 3px; background: linear-gradient(#5B8CFF, #2962FF); animation: sp-pulse 1.1s ease-in-out infinite; transform-origin: bottom; }
+.sp-logo i:nth-child(1) { height: 20px; animation-delay: 0s; } .sp-logo i:nth-child(2) { height: 31px; animation-delay: .15s; } .sp-logo i:nth-child(3) { height: 44px; animation-delay: .3s; }
+@keyframes sp-pulse { 0%,100% { transform: scaleY(.55); opacity: .55; } 50% { transform: scaleY(1); opacity: 1; } }
+.sp-name { font-size: 15px; letter-spacing: 6px; color: #9AA4BF; font-weight: 600; }
+.sp-name b { color: #EDF0F5; font-weight: 800; }
+.sp-candles { display: flex; align-items: center; gap: 7px; height: 70px; margin-top: 4px; }
+.sp-candles span { position: relative; width: 8px; height: var(--h); border-radius: 2px; animation: sp-c 1.6s ease-in-out infinite; animation-delay: var(--d); }
+.sp-candles span::before { content: ''; position: absolute; left: 3.5px; top: calc(var(--w) / -2); width: 1px; height: calc(100% + var(--w)); background: currentColor; opacity: .7; }
+.sp-candles .g { background: #089981; color: #089981; box-shadow: 0 0 10px rgba(8,153,129,.5); }
+.sp-candles .r { background: #F23645; color: #F23645; box-shadow: 0 0 10px rgba(242,54,69,.5); }
+@keyframes sp-c { 0%,100% { transform: translateY(6px) scaleY(.7); opacity: .5; } 50% { transform: translateY(-6px) scaleY(1); opacity: 1; } }
+.sp-bar { position: relative; width: 220px; height: 3px; border-radius: 2px; background: rgba(255,255,255,.08); overflow: hidden; }
+.sp-bar i { position: absolute; top: 0; left: -40%; width: 40%; height: 100%; border-radius: 2px; background: linear-gradient(90deg, transparent, #2962FF, #7FA3FF); animation: sp-run 1.1s ease-in-out infinite; }
+@keyframes sp-run { to { left: 100%; } }
+.sp-txt { font-size: 12.5px; color: #787B86; letter-spacing: .5px; }
+
 /* ① 맨 위 줄: 로고 · 화면 탭 · 매매 히스토리 */
 #upper { display: flex; align-items: center; height: 34px; padding: 0 8px 0 12px; background: var(--top); flex-shrink: 0; gap: 4px; }
 .logo { display: flex; align-items: center; gap: 7px; margin-right: 18px; color: var(--strong); font-size: 14px; font-weight: 700; white-space: nowrap; }
@@ -78,7 +102,13 @@ svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-widt
 .cell { background: var(--bg); position: relative; min-height: 0; min-width: 0; display: flex; flex-direction: column; }
 .cell::after { content: ''; position: absolute; inset: 0; border: 1px solid transparent; pointer-events: none; z-index: 3; }
 #grid:not(.l1) .cell.active::after { border-color: rgba(41,98,255,0.7); }
-.phead { display: flex; align-items: center; gap: 7px; height: 26px; padding: 0 10px; font-size: 12px; color: var(--mid); cursor: pointer; flex-shrink: 0; border-bottom: 1px solid var(--line2); }
+.phead { display: flex; align-items: center; gap: 7px; height: 28px; padding: 0 10px; font-size: 12px; color: var(--mid); cursor: pointer; flex-shrink: 0; border-bottom: 1px solid var(--line2);
+  white-space: nowrap; overflow: hidden; }
+.phead * { white-space: nowrap; flex-shrink: 0; }
+.phead .hint { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.cell { container-type: inline-size; }
+@container (max-width: 640px) { .phead .kind, .phead .hint { display: none; } .tfs button { padding: 0 5px; } }
+@container (max-width: 470px) { .phead .pct { display: none; } .tfs { margin-left: auto; } }
 #grid.l1.tv .phead { display: none; }
 .tfs { display: flex; gap: 1px; margin-left: 6px; }
 .tfs button { height: 20px; padding: 0 7px; border: 0; border-radius: 4px; background: transparent; color: var(--sub); font-size: 11.5px; font-weight: 600; cursor: pointer; }
@@ -211,6 +241,21 @@ svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-widt
 </style>
 </head>
 <body>
+<div id="splash">
+  <div class="sp-grid"></div>
+  <div class="sp-in">
+    <div class="sp-logo"><i></i><i></i><i></i></div>
+    <div class="sp-name">MUNGGE <b>TERMINAL</b></div>
+    <div class="sp-candles">
+      <span style="--h:38px;--w:18px;--d:0s" class="g"></span><span style="--h:24px;--w:30px;--d:.12s" class="r"></span>
+      <span style="--h:46px;--w:14px;--d:.24s" class="g"></span><span style="--h:30px;--w:22px;--d:.36s" class="g"></span>
+      <span style="--h:20px;--w:34px;--d:.48s" class="r"></span><span style="--h:52px;--w:12px;--d:.6s" class="g"></span>
+      <span style="--h:34px;--w:26px;--d:.72s" class="r"></span><span style="--h:58px;--w:16px;--d:.84s" class="g"></span>
+    </div>
+    <div class="sp-bar"><i></i></div>
+    <div class="sp-txt" id="spTxt">OKX 실시간 시세 연결 중</div>
+  </div>
+</div>
 <div id="app">
   <div id="upper">
     <div class="logo"><svg viewBox="0 0 24 24"><rect x="3" y="12" width="4" height="9" rx="1.5" fill="#2962FF" opacity=".5"/><rect x="10" y="7" width="4" height="14" rx="1.5" fill="#2962FF" opacity=".75"/><rect x="17" y="3" width="4" height="18" rx="1.5" fill="#2962FF"/></svg><span class="logo-t">Mungge</span></div>
@@ -337,10 +382,10 @@ const OKX_ID2SYM = Object.fromEntries(DATA.symbols.map(s => [okxId(s), s]));
 let CTVAL = {};
 fetch('https://www.okx.com/api/v5/public/instruments?instType=SWAP').then(r => r.json())
   .then(j => { for (const x of j.data || []) CTVAL[x.instId] = +x.ctVal || 1; }).catch(() => {});
-const TFS = [['1', '1분'], ['3', '3분'], ['5', '5분'], ['15', '15분'], ['60', '1시간'], ['240', '4시간'], ['D', '1일']];
+const TFS = [['1', '1분'], ['3', '3분'], ['5', '5분'], ['15', '15분'], ['60', '1H'], ['240', '4H'], ['D', '1D']];
 function paneInfo(i) {
   const s = panes[i].sym, t = state.tk[s] || {};
-  return `${coin(s)}<b>${base(s)}</b><span>무기한</span><span class="num ${cls(t.pct)}">${fmtPrice(t.last)}</span><span class="num ${cls(t.pct)}">${fmtPct(t.pct)}</span>`;
+  return `${coin(s)}<b>${base(s)}</b><span class="kind">무기한</span><span class="num ${cls(t.pct)}">${fmtPrice(t.last)}</span><span class="num pct ${cls(t.pct)}">${fmtPct(t.pct)}</span>`;
 }
 function paneHead(i) {
   const tfs = state.engine === 'live' ? `<div class="tfs">${TFS.map(([v, l]) => `<button data-tf="${v}" class="${panes[i].iv === v ? 'on' : ''}">${l}</button>`).join('')}</div>` : '';
@@ -907,6 +952,16 @@ setInterval(checkFocus, 250);
 document.getElementById('grid').addEventListener('mousedown', e => {
   const cell = e.target.closest('.cell'); if (cell) setActive(+cell.id.replace('cell_', ''));
 });
+
+// ---------- 로딩 화면 닫기: 첫 차트가 그려지거나 실시간 시세가 들어오면 ----------
+let splashDone = false;
+function hideSplash() { if (splashDone) return; splashDone = true; $('splash').classList.add('hide'); setTimeout(() => $('splash').remove(), 600); }
+const spWatch = setInterval(() => {
+  const c = LC[0];
+  if ((c && c.ready) || (state.engine === 'tv' && document.querySelector('#grid iframe'))) { clearInterval(spWatch); setTimeout(hideSplash, 250); }
+  else if ($('live').classList.contains('on')) $('spTxt').textContent = '차트 데이터 불러오는 중';
+}, 150);
+setTimeout(hideSplash, 6000);
 
 // ---------- 시작 ----------
 fitHeight(); setTimeout(fitHeight, 400);

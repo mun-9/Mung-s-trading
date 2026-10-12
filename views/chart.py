@@ -22,6 +22,16 @@ with st.container(key="hidden_nav_history"):
 with st.container(key="hidden_nav_market"):
     st.page_link("views/market.py", label="시장")
 
+_boot = st.empty()
+_boot.markdown("""<style>@keyframes mgp{0%,100%{transform:scaleY(.55);opacity:.55}50%{transform:scaleY(1);opacity:1}}</style>
+<div style="height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:radial-gradient(ellipse at 50% 40%,#182038 0%,#0D1018 70%);">
+<div style="display:flex;align-items:flex-end;gap:6px;height:44px;filter:drop-shadow(0 0 14px rgba(41,98,255,.7));">
+<i style="display:block;width:10px;height:20px;border-radius:3px;background:#2962FF;transform-origin:bottom;animation:mgp 1.1s infinite"></i>
+<i style="display:block;width:10px;height:31px;border-radius:3px;background:#2962FF;transform-origin:bottom;animation:mgp 1.1s .15s infinite"></i>
+<i style="display:block;width:10px;height:44px;border-radius:3px;background:#2962FF;transform-origin:bottom;animation:mgp 1.1s .3s infinite"></i></div>
+<div style="font-size:15px;letter-spacing:6px;color:#9AA4BF;font-weight:600;">MUNGGE <b style="color:#EDF0F5;">TERMINAL</b></div>
+<div style="font-size:12.5px;color:#787B86;">시장 데이터 준비 중</div></div>""", unsafe_allow_html=True)
+
 keys = D.get_keys()
 positions, _, _ = D.fetch_positions(keys)
 # 차트·시세 모두 OKX 기준 (OKX 조회가 막히면 Bitget 시세를 초기값으로만 사용, 브라우저가 OKX 실시간으로 덮어씀)
@@ -50,5 +60,6 @@ payload = {
     "krw": D.fetch_usdt_krw(),
 }
 
+_boot.empty()
 page = (Path(__file__).parent / "chart_app.html").read_text(encoding="utf-8")
 components.html(page.replace("__DATA__", json.dumps(payload)), height=900)
