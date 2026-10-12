@@ -6,7 +6,7 @@ import streamlit as st
 
 from lib import data as D
 from lib.ui import (BLUE, DIVIDER, GRAY, GRAY_SOFT, GREEN, GREEN_SOFT, LINE_COLOR, RED, RED_SOFT, SUB, TEXT,
-                    html, kpi, money, nav, page_head, pnl_color, section)
+                    html, kpi, money, nav, pnl_color, section, title_row)
 
 nav("history")
 KST = D.KST
@@ -14,30 +14,25 @@ keys = D.get_keys()
 hist = D.fetch_history(keys)
 trades_all, events_all = hist["trades"], hist["events"]
 
-# -----------------------------------------------------------------------------
-# 제목 블록
-# -----------------------------------------------------------------------------
 def clear_all():
     D.fetch_positions.clear(); D.fetch_history.clear(); D.fetch_usdt_krw.clear(); D.fetch_live_ohlcv.clear()
     st.rerun()
 
 
-if hist["demo"]:
-    status = "<span class='dot' style='background:#F5A623;'></span><span style='color:#D98B00;'>데모 데이터</span>"
-else:
-    status = (f"<span class='dot' style='background:{GREEN};'></span><span style='color:{GREEN};'>Bitget 연동</span>"
-              f"<span style='color:{SUB};font-weight:500;'>· {hist['loaded_at'].strftime('%H:%M')} 기준</span>")
-page_head("Mungge Trading Journal", "매매 히스토리", "포지션 변화와 거래 기록, 손익을 한눈에.", status, clear_all)
-
 if hist["errors"]:
     shown = "<br>".join(hist["errors"][:5])
     more = f"<br>외 {len(hist['errors']) - 5}건" if len(hist["errors"]) > 5 else ""
-    html(f"<div class='err-box' style='margin-top:16px;'><b>일부 데이터를 불러오지 못했어요</b><br>{shown}{more}</div>")
+    html(f"<div class='err-box'><b>일부 데이터를 불러오지 못했어요</b><br>{shown}{more}</div>")
 
 # -----------------------------------------------------------------------------
 # 보유 포지션 (10초 갱신)
 # -----------------------------------------------------------------------------
-section("보유 포지션")
+if hist["demo"]:
+    badge = f"<span class='dot' style='background:#F5A623;'></span><span style='font-size:12.5px;font-weight:700;color:{TEXT};'>데모 데이터</span>"
+else:
+    badge = (f"<span class='dot' style='background:{GREEN};'></span><span style='font-size:12.5px;font-weight:700;color:{TEXT};'>Bitget</span>"
+             f"<span class='hide-on-mobile' style='font-size:11.5px;color:{SUB};'>실시간 연동 · {hist['loaded_at'].strftime('%H:%M')} 기준</span>")
+title_row("보유 포지션", f"<span class='badge'>{badge}</span>", clear_all)
 
 
 @st.fragment(run_every=10)
@@ -47,7 +42,7 @@ def live_positions():
         html(f"<div class='err-box'><b>포지션을 불러오지 못했어요</b> — API 키·권한 또는 거래소 응답을 확인해줘.<br>{err}</div>")
         return
     if not positions:
-        html(f"<div class='card' style='text-align:center;color:{SUB};font-size:14px;padding:32px;'>현재 진행 중인 포지션이 없습니다</div>")
+        html(f"<div class='card' style='text-align:center;color:{SUB};font-size:14px;padding:32px;margin-bottom:22px;'>현재 진행 중인 포지션이 없습니다</div>")
         return
 
     groups = {}
@@ -156,7 +151,8 @@ with c3:
     def unrealized_card():
         pos, _, _ = D.fetch_positions(keys)
         u = sum(p["unrealized_pnl"] for p in pos) if pos else 0.0
-        pend = sum(hist["pending_fees"].values())
+        open_keys = {f"{p['symbol']}|{p['side']}" for p in pos} if pos else set()
+        pend = sum(v for k, v in hist["pending_fees"].items() if k in open_keys)
         sub = f"진입 수수료 -${pend:,.2f} 별도 · 10초 갱신" if pend > 0 else "전체 포지션 합계 · 10초 갱신"
         html(top_card("현재 미실현손익", u, sub, D.fetch_usdt_krw()))
     unrealized_card()
@@ -274,51 +270,6 @@ with col_t3:
 st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 성과 지표
-# -----------------------------------------------------------------------------
-
-
-def perf_html(p):
-    pf = p["profit_factor"]
-    pf_txt = f"{pf:.2f}" if pf is not None else "∞"
-    pf_col = GREEN if (pf is None or pf >= 1) else RED
-    pf_w = 100 if pf is None else min(pf, 3) / 3 * 100
-    rr_txt = f"{p['rr']:.2f}" if p["rr"] is not None else "-"
-    mx = max(p["avg_win"], p["avg_loss"]) or 1
-    streak = p["max_loss_streak"]
-    n_dots = min(max(streak, 6), 12)
-    dots = "".join(f"<span class='sd' style='background:{RED if i < streak else '#E5E8EB'};'></span>" for i in range(n_dots))
-    dd = p["dd"]
-    spark = ""
-    if len(dd) > 1:
-        lo = min(dd) or -1
-        pts = " ".join(f"{i / (len(dd) - 1) * 200:.1f},{(v / lo) * 40:.1f}" for i, v in enumerate(dd))
-        spark = (f"<svg viewBox='0 -2 200 44' preserveAspectRatio='none' style='width:100%;height:44px;display:block;'>"
-                 f"<polygon points='0,0 {pts} 200,0' fill='rgba(240,68,82,0.10)'/>"
-                 f"<polyline points='{pts}' fill='none' stroke='{RED}' stroke-width='1.6' vector-effect='non-scaling-stroke'/></svg>")
-    return f"""<div class="card"><div class="card-title"><span>성과 지표</span><span>수수료 차감 후 · 청산 {p['count']}건</span></div>
-<div class="pt-grid">
-<div class="pt"><div class="pt-label">Profit Factor</div><div class="pt-value" style="color:{pf_col};">{pf_txt}</div>
-  <div class="gauge"><div class="gauge-fill" style="width:{pf_w:.0f}%;background:{pf_col};"></div><div class="gauge-mark" style="left:33.33%;"></div></div>
-  <div class="pt-foot"><span>0</span><span>1.0 이상이면 수익</span><span>3+</span></div></div>
-<div class="pt"><div class="pt-label">손익비</div><div class="pt-value">{rr_txt}</div>
-  <div class="bar-row"><span>평균 익절</span><div class="bar"><div style="width:{p['avg_win'] / mx * 100:.0f}%;background:{GREEN};"></div></div><b style="color:{GREEN};">{money(p['avg_win'])}</b></div>
-  <div class="bar-row"><span>평균 손절</span><div class="bar"><div style="width:{p['avg_loss'] / mx * 100:.0f}%;background:{RED};"></div></div><b style="color:{RED};">{money(-p['avg_loss'])}</b></div></div>
-<div class="pt"><div class="pt-label">최대 연속 손절</div><div class="pt-value">{streak}<span class="pt-unit">회</span></div>
-  <div class="streak">{dots}</div>
-  <div class="pt-foot"><span>최고 <b style="color:{GREEN};">{money(p['best'])}</b></span><span>최악 <b style="color:{RED};">{money(p['worst'])}</b></span></div></div>
-<div class="pt"><div class="pt-label">최대 낙폭</div><div class="pt-value" style="color:{RED if p['mdd'] < 0 else TEXT};">{money(p['mdd'])}</div>
-  {spark}<div class="pt-foot"><span>누적 순손익 고점 대비 하락폭</span></div></div>
-</div></div>"""
-
-
-if perf:
-    html(perf_html(perf))
-else:
-    html(f"<div class='card' style='color:{SUB};text-align:center;padding:40px;'>선택한 기간에 청산 거래가 없어서 성과 지표를 계산할 수 없어요</div>")
-st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
-
-# -----------------------------------------------------------------------------
 # 기간 손익 차트
 # -----------------------------------------------------------------------------
 daily = D.daily_net(f_trades, f_events, start_str, end_str)
@@ -368,9 +319,54 @@ if ledger_net is not None:
     html(f"<div class='note-text'>검증용 · 거래소 장부 합계 {money(ledger_net)} (페이백 제외, 진입 수수료를 진입 시점에 바로 뺀 값)</div>")
 
 # -----------------------------------------------------------------------------
+# 성과 지표
+# -----------------------------------------------------------------------------
+st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
+
+
+def perf_html(p):
+    pf = p["profit_factor"]
+    pf_txt = f"{pf:.2f}" if pf is not None else "∞"
+    pf_col = GREEN if (pf is None or pf >= 1) else RED
+    pf_w = 100 if pf is None else min(pf, 3) / 3 * 100
+    rr_txt = f"{p['rr']:.2f}" if p["rr"] is not None else "-"
+    mx = max(p["avg_win"], p["avg_loss"]) or 1
+    streak = p["max_loss_streak"]
+    n_dots = min(max(streak, 6), 12)
+    dots = "".join(f"<span class='sd' style='background:{RED if i < streak else '#E5E8EB'};'></span>" for i in range(n_dots))
+    dd = p["dd"]
+    spark = ""
+    if len(dd) > 1:
+        lo = min(dd) or -1
+        pts = " ".join(f"{i / (len(dd) - 1) * 200:.1f},{(v / lo) * 40:.1f}" for i, v in enumerate(dd))
+        spark = (f"<svg viewBox='0 -2 200 44' preserveAspectRatio='none' style='width:100%;height:44px;display:block;'>"
+                 f"<polygon points='0,0 {pts} 200,0' fill='rgba(240,68,82,0.10)'/>"
+                 f"<polyline points='{pts}' fill='none' stroke='{RED}' stroke-width='1.6' vector-effect='non-scaling-stroke'/></svg>")
+    return f"""<div class="card"><div class="card-title"><span>성과 지표</span><span>수수료 차감 후 · 청산 {p['count']}건</span></div>
+<div class="pt-grid">
+<div class="pt"><div class="pt-label">Profit Factor</div><div class="pt-value" style="color:{pf_col};">{pf_txt}</div>
+  <div class="gauge"><div class="gauge-fill" style="width:{pf_w:.0f}%;background:{pf_col};"></div><div class="gauge-mark" style="left:33.33%;"></div></div>
+  <div class="pt-foot"><span>0</span><span>1.0 이상이면 수익</span><span>3+</span></div></div>
+<div class="pt"><div class="pt-label">손익비</div><div class="pt-value">{rr_txt}</div>
+  <div class="bar-row"><span>평균 익절</span><div class="bar"><div style="width:{p['avg_win'] / mx * 100:.0f}%;background:{GREEN};"></div></div><b style="color:{GREEN};">{money(p['avg_win'])}</b></div>
+  <div class="bar-row"><span>평균 손절</span><div class="bar"><div style="width:{p['avg_loss'] / mx * 100:.0f}%;background:{RED};"></div></div><b style="color:{RED};">{money(-p['avg_loss'])}</b></div></div>
+<div class="pt"><div class="pt-label">최대 연속 손절</div><div class="pt-value">{streak}<span class="pt-unit">회</span></div>
+  <div class="streak">{dots}</div>
+  <div class="pt-foot"><span>최고 <b style="color:{GREEN};">{money(p['best'])}</b></span><span>최악 <b style="color:{RED};">{money(p['worst'])}</b></span></div></div>
+<div class="pt"><div class="pt-label">최대 낙폭</div><div class="pt-value" style="color:{RED if p['mdd'] < 0 else TEXT};">{money(p['mdd'])}</div>
+  {spark}<div class="pt-foot"><span>누적 순손익 고점 대비 하락폭</span></div></div>
+</div></div>"""
+
+
+if perf:
+    html(perf_html(perf))
+else:
+    html(f"<div class='card' style='color:{SUB};text-align:center;padding:40px;'>선택한 기간에 청산 거래가 없어서 성과 지표를 계산할 수 없어요</div>")
+st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
+
+# -----------------------------------------------------------------------------
 # 시간대별 손익
 # -----------------------------------------------------------------------------
-st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
 with st.container(key="chart_card_hour"):
     html(f"<div class='card-title'><span>시간대별 순손익</span><span>청산 시각 · KST</span></div>")
     if decr:
@@ -435,7 +431,7 @@ else:
         notional = r.amount * r.price
         if r.bucket == "증가":
             right = (f"<div class='row-price'>≈ ${notional:,.2f}</div>"
-                     f"<div class='row-pnl' style='color:{TEXT};'>{qty_txt}<span class='chip' style='background:{ss};color:{sc};'>진입</span></div>")
+                     f"<div class='row-pnl' style='color:{TEXT};font-weight:600;font-size:14px;'>{qty_txt}<span class='chip' style='background:{ss};color:{sc};'>진입</span></div>")
         else:
             c = pnl_color(r.net) if r.result in ("익절", "손절") else SUB
             chip_bg = GREEN_SOFT if r.result == "익절" else (RED_SOFT if r.result == "손절" else GRAY_SOFT)

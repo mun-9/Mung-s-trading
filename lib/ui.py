@@ -62,13 +62,14 @@ div[class*="st-key-topnav_"] {
     background: rgba(255,255,255,0.93); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid #E7EBF1; margin-bottom: 30px;
 }
-div[class*="st-key-topnav_dark"] { background: rgba(19,23,34,0.96); border-bottom-color: #2A2E39; margin-bottom: 12px; padding: 0 20px !important; height: 64px; }
+div[class*="st-key-topnav_dark"] { background: #0F121A; border-bottom-color: #1E222D; margin-bottom: 8px; padding: 0 14px !important; height: 50px; }
+div[class*="st-key-topnav_dark"] .nav-logo .word { font-size: 17px; }
 div[class*="st-key-topnav_"] [data-testid="stMarkdownContainer"] { margin: 0 !important; }
 .nav-logo { display: flex; align-items: center; gap: 9px; margin: 0; white-space: nowrap; }
-.nav-logo .mark { width: 34px; height: 34px; border-radius: 9px; background: #2459ED; color: #fff; display: flex; align-items: center; justify-content: center;
-    font-size: 17px; font-weight: 900; letter-spacing: -0.5px; }
-.nav-logo .word { font-size: 21px; font-weight: 850; color: #172033; letter-spacing: -0.8px; }
-.nav-logo .word i { font-style: normal; color: #2459ED; }
+.nav-logo { gap: 8px !important; }
+.nav-logo .word { font-size: 20px; font-weight: 800; color: #172033; letter-spacing: -0.6px; }
+.nav-logo .tag { font-size: 11px; font-weight: 700; color: #2459ED; background: rgba(36,89,237,0.08); padding: 3px 7px; border-radius: 6px; letter-spacing: 0.2px; }
+div[class*="st-key-topnav_dark"] .nav-logo .tag { background: rgba(41,98,255,0.18); color: #7FA3FF; }
 div[class*="st-key-topnav_dark"] .nav-logo .word { color: #D1D4DC; }
 div[class*="st-key-navlink_"] a { padding: 8px 4px !important; min-height: 0 !important; background: transparent !important; border-radius: 0 !important; }
 div[class*="st-key-navlink_"] a p, div[class*="st-key-navlink_"] a span { font-size: 15px !important; font-weight: 600 !important; color: #172033 !important; }
@@ -78,16 +79,12 @@ div[class*="st-key-topnav_dark"] div[class*="st-key-navlink_"] a p { color: #959
 div[class*="st-key-topnav_dark"] div[class*="st-key-navlink_"][class*="_on"] a p { color: #FFFFFF !important; }
 div[class*="st-key-topnav_dark"] div[class*="st-key-navlink_"] a:hover p { color: #FFFFFF !important; }
 
-/* 페이지 제목 블록 */
+/* 섹션 제목 줄 (보유 포지션 + 배지 + 새로고침) */
+div[class*="st-key-page_head"] { margin: 4px 0 6px; }
 div[class*="st-key-page_head"] > div:last-child { margin-left: auto !important; }
-div[class*="st-key-page_head"] { align-items: flex-end !important; padding-bottom: 22px; border-bottom: 1px solid #D1D6DB; margin-bottom: 8px; }
-.ph-eyebrow { font-size: 12px; font-weight: 800; color: #2459ED; letter-spacing: 1.8px; text-transform: uppercase; }
-.ph-title { font-size: 33px; font-weight: 780; color: #172033; letter-spacing: -1px; line-height: 1.5; margin: 4px 0 2px; }
-.ph-sub { font-size: 15px; color: #7A8497; }
-.ph-status { display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 600; white-space: nowrap; line-height: 40px; }
-.ph-status .dot { width: 7px; height: 7px; border-radius: 50%; }
-div[class*="st-key-refresh_btn"] button { width: 40px !important; height: 40px !important; min-height: 40px !important; padding: 0 !important; border-radius: 10px !important;
-    background: #fff !important; border: 1px solid #E7EBF1 !important; }
+.ph-title { font-size: 24px; font-weight: 800; color: #191F28; letter-spacing: -0.03em; }
+div[class*="st-key-refresh_btn"] button { width: 36px !important; height: 36px !important; min-height: 36px !important; padding: 0 !important; border-radius: 12px !important; box-shadow: 0 2px 8px rgba(15,23,42,0.03);
+    background: #fff !important; border: 1px solid rgba(15,23,42,0.08) !important; }
 div[class*="st-key-refresh_btn"] button:hover { border-color: #2459ED !important; }
 div[class*="st-key-refresh_btn"] button span { color: #172033 !important; }
 
@@ -188,12 +185,10 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
 @media (max-width: 768px) {
     .block-container { padding-top: 0.8rem; }
     div[class*="st-key-topnav_"] { height: 60px; gap: 16px !important; margin-bottom: 20px; padding: 0 16px !important; }
-    .nav-logo .mark { width: 30px; height: 30px; font-size: 15px; }
     .nav-logo .word { font-size: 18px; }
+    .nav-logo .tag { display: none; }
     div[class*="st-key-navlink_"] a p { font-size: 14px !important; }
-    .ph-title { font-size: 27px; }
-    .ph-sub { font-size: 13.5px; }
-    div[class*="st-key-page_head"] { flex-wrap: wrap !important; }
+    .ph-title { font-size: 21px; }
     .pos-divider { border-left: none !important; border-top: 1px solid rgba(15,23,42,0.06) !important; padding-top: 14px !important; margin-top: 6px !important; }
     .hide-on-mobile { display: none !important; }
     .kpi-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
@@ -215,18 +210,20 @@ def nav(current, dark=False):
     """전체 폭 상단 헤더: 로고 + 메뉴."""
     mode = "dark" if dark else "light"
     with st.container(key=f"topnav_{mode}", horizontal=True, vertical_alignment="center"):
-        html("<div class='nav-logo'><span class='mark'>m.</span><span class='word'>MUNGGE<i>.</i></span></div>")
+        html("<div class='nav-logo'><svg viewBox='0 0 24 24' width='22' height='22'><rect x='3' y='12' width='4' height='9' rx='1.5' fill='#2459ED' opacity='.45'/>"
+             "<rect x='10' y='7' width='4' height='14' rx='1.5' fill='#2459ED' opacity='.7'/><rect x='17' y='3' width='4' height='18' rx='1.5' fill='#2459ED'/></svg>"
+             "<span class='word'>Mungge</span><span class='tag'>Trading</span></div>")
         for key, path, label in NAV_PAGES:
             with st.container(key=f"navlink_{key}_{'on' if key == current else 'off'}", width="content"):
                 st.page_link(path, label=label)
 
 
-def page_head(eyebrow, title, sub, status_html, on_refresh):
-    """페이지 제목 블록 (왼쪽 제목, 오른쪽 상태 + 새로고침)."""
-    with st.container(key="page_head", horizontal=True, vertical_alignment="bottom"):
-        html(f"<div><div class='ph-eyebrow'>{eyebrow}</div><div class='ph-title'>{title}</div><div class='ph-sub'>{sub}</div></div>")
+def title_row(title, right_html, on_refresh):
+    """섹션 제목 (왼쪽) + 상태 배지·새로고침 버튼 (오른쪽)."""
+    with st.container(key="page_head", horizontal=True, vertical_alignment="center"):
+        html(f"<div class='ph-title'>{title}</div>")
         with st.container(horizontal=True, vertical_alignment="center", width="content", gap="small"):
-            html(f"<div class='ph-status'>{status_html}</div>")
+            html(right_html)
             with st.container(key="refresh_btn", width="content"):
                 if st.button("", icon=":material/refresh:", help="모든 데이터 새로고침"):
                     on_refresh()

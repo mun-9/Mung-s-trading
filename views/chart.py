@@ -10,8 +10,9 @@ from lib.ui import html, nav
 # 차트 페이지는 어두운 전체 화면 레이아웃
 html("""<style>
 html, body, .stApp { background-color: #0F121A !important; }
-.block-container { max-width: 100% !important; padding: 0.7rem 1rem 0 !important; }
-iframe[title="st.iframe"], .stIFrame, iframe { border-radius: 12px; }
+.block-container { max-width: 100% !important; padding: 0 0.6rem 0 !important; }
+iframe { border-radius: 10px; }
+.block-container div[data-testid="stVerticalBlock"] { gap: 0 !important; }
 </style>""")
 nav("chart", dark=True)
 
