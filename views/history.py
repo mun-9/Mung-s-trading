@@ -22,14 +22,20 @@ def no_zoom(fig):
     return fig
 KST = D.KST
 keys = D.get_keys()
+# 처음 들어왔을 때·새로고침 버튼을 눌렀을 때만 로딩 화면을 보여주고, 그동안 예전 화면은 숨김
+_full_load = st.session_state.pop("_full_reload", False) or "hist_seen" not in st.session_state
 _loader = st.empty()
-_loader.markdown(getattr(_ui, "LOADER_HTML", ""), unsafe_allow_html=True)
+if _full_load:
+    _loader.markdown("<style>[data-stale='true']{display:none !important;}</style>" + getattr(_ui, "LOADER_HTML", ""),
+                     unsafe_allow_html=True)
 hist = D.fetch_history(keys)
+st.session_state["hist_seen"] = True
 _loader.empty()
 trades_all, events_all = hist["trades"], hist["events"]
 
 def clear_all():
     D.fetch_positions.clear(); D.fetch_history.clear(); D.fetch_usdt_krw.clear(); D.fetch_live_ohlcv.clear()
+    st.session_state["_full_reload"] = True
     st.rerun()
 
 
@@ -44,8 +50,8 @@ if hist["errors"]:
 if hist["demo"]:
     badge = f"<span class='dot' style='background:#F5A623;'></span><span style='font-size:12.5px;font-weight:700;color:{TEXT};'>데모 데이터</span>"
 else:
-    badge = (f"<span class='dot' style='background:{GREEN};'></span><span style='font-size:12.5px;font-weight:700;color:{TEXT};'>Bitget</span>"
-             f"<span class='hide-on-mobile' style='font-size:11.5px;color:{SUB};'>실시간 연동 · {hist['loaded_at'].strftime('%H:%M')} 기준</span>")
+    badge = (f"<span class='dot' style='background:{GREEN};'></span><span style='font-size:13px;font-weight:700;color:{TEXT};'>Bitget</span>"
+             f"<span class='hide-on-mobile' style='font-size:12px;color:{SUB};'>{hist['loaded_at'].strftime('%H:%M')} 기준</span>")
 title_row("보유 포지션", f"<span class='badge'>{badge}</span>", clear_all)
 
 
@@ -138,39 +144,43 @@ now = datetime.now(KST)
 today_str, month_start = now.strftime("%Y-%m-%d"), now.strftime("%Y-%m-01")
 
 
-def top_card(title, value, sub, krw_rate):
+def top_card(title, value, chip, krw_rate):
     color = GREEN if value >= 0 else RED
     krw = value * krw_rate
-    krw_str = f"+ ₩{krw:,.0f}" if krw >= 0 else f"- ₩{abs(krw):,.0f}"
-    return f"""<div class="card" style="min-height:150px;display:flex;flex-direction:column;">
-<div class="card-title"><span>{title}</span><span></span></div>
-<div style="display:flex;align-items:baseline;gap:8px;margin:14px 0 2px;flex-wrap:wrap;">
-<span style="font-size:30px;font-weight:800;color:{color};letter-spacing:-0.02em;">{money(value)}</span>
-<span style="font-size:13px;font-weight:600;color:{SUB};">{krw_str}</span></div>
-<div style="font-size:12px;color:{SUB};margin-top:auto;padding-top:10px;">{sub}</div></div>"""
+    krw_str = f"+₩{krw:,.0f}" if krw >= 0 else f"-₩{abs(krw):,.0f}"
+    return f"""<div class="card topc">
+<div class="topc-h"><span class="topc-t">{title}</span><span class="topc-chip">{chip}</span></div>
+<div class="topc-v" style="color:{color};">{money(value)}</div>
+<div class="topc-k">{krw_str}</div></div>"""
+
+
+def day_chip(t):
+    c = t[t["bucket"] == "축소"] if not t.empty else t
+    if c.empty:
+        return "거래 없음"
+    w = int((c["result"] == "익절").sum()); l = int((c["result"] == "손절").sum())
+    rate = f" · 승률 {w / (w + l) * 100:.0f}%" if (w + l) else ""
+    return f"청산 {len(c)}건{rate}"
 
 
 rate = D.fetch_usdt_krw()
 c1, c2, c3 = st.columns(3)
 with c1:
     t, e, _ = D.period_slice(hist, today_str, today_str)
-    b = D.breakdown(t, e)
-    html(top_card("오늘 순손익", b["net"], f"수수료 -${b['fee']:,.2f} · 펀딩 {money(b['funding'])} · 페이백 {money(b['payback'])}", rate))
+    html(top_card("오늘 PNL", D.breakdown(t, e)["net"], day_chip(t), rate))
 with c2:
     t, e, _ = D.period_slice(hist, month_start, today_str)
-    b = D.breakdown(t, e)
-    html(top_card("이번 달 순손익", b["net"], f"수수료 -${b['fee']:,.2f} · 펀딩 {money(b['funding'])} · 페이백 {money(b['payback'])}", rate))
+    html(top_card("이번 달 PNL", D.breakdown(t, e)["net"], day_chip(t), rate))
 with c3:
     @st.fragment(run_every=10)
     def unrealized_card():
         pos, _, _ = D.fetch_positions(keys)
         u = sum(p["unrealized_pnl"] for p in pos) if pos else 0.0
-        pend = sum(D.pending_fee_for(hist["pending_fees"], p["symbol"], p["side"], p["size"]) for p in (pos or []))
-        sub = f"진입 수수료 -${pend:,.2f} 별도 · 10초 갱신" if pend > 0 else "전체 포지션 합계 · 10초 갱신"
-        html(top_card("현재 미실현손익", u, sub, D.fetch_usdt_krw()))
+        chip = f"포지션 {len(pos)}개 · 실시간" if pos else "포지션 없음"
+        html(top_card("미실현 PNL", u, chip, D.fetch_usdt_krw()))
     unrealized_card()
 
-html(f"<div class='note-text'>순손익 = 청산 손익 − 수수료 + 펀딩비 + 페이백 · 진입 수수료는 청산할 때 그 거래에서 함께 차감 · 미실현손익은 합계에 미포함</div>")
+html(f"<div class='note-text' style='margin-top:-8px;'>PNL = 청산 손익 − 수수료 + 펀딩비 + 페이백 · 진입 수수료는 청산할 때 그 거래에서 함께 차감 · 미실현은 합계에 미포함</div>")
 
 transfers = hist.get("transfers", [])
 
@@ -200,12 +210,11 @@ def clear_quick():
     st.session_state.quick_range = None
 
 
-cd, cq = st.columns([1.3, 1])
-with cq:
+with st.container(key="range_row", horizontal=True, vertical_alignment="center", gap="small"):
+    with st.container(key="range_date", width="content"):
+        dates = st.date_input("기간", key="date_range", min_value=dash_start, max_value=today_d, label_visibility="collapsed",
+                              on_change=clear_quick)
     st.segmented_control("빠른 기간", list(RANGES), key="quick_range", on_change=set_range, label_visibility="collapsed")
-with cd:
-    dates = st.date_input("기간", key="date_range", min_value=dash_start, max_value=today_d, label_visibility="collapsed",
-                          on_change=clear_quick)
 
 if isinstance(dates, (tuple, list)):
     start_d, end_d = (dates[0], dates[-1]) if len(dates) else (today_d, today_d)
@@ -248,7 +257,7 @@ with col_t1:
     html(f"""<div style="{card_style}"><div><div class="card-title"><span>총 주문 횟수</span><span>선택 기간</span></div>
 <div style='display:flex;align-items:baseline;margin:14px 0 22px;'><span style='font-size:34px;font-weight:800;color:{TEXT};'>{total}</span><span style='font-size:13px;font-weight:600;color:{SUB};margin-left:4px;'>회</span></div>
 <div style='display:flex;flex-direction:column;gap:14px;'>{pair('진입', f'{incr} 회', TEXT, '청산', f'{decr} 회', TEXT)}{pair('익절', f'{wins} 회', GREEN, '손절', f'{losses} 회', RED)}</div></div>
-<div style='border-top:1px solid {DIVIDER};padding-top:14px;display:flex;justify-content:space-between;align-items:center;'>
+<div style='border-top:1px solid #E5E8EB;padding-top:14px;display:flex;justify-content:space-between;align-items:center;'>
 <span style='font-size:13px;color:{SUB};font-weight:600;'>기간 승률 <span style='font-weight:500;'>(수수료 차감 후)</span></span><b style='color:{BLUE};font-size:17px;'>{win_rate:.1f}%</b></div></div>""")
 
 with col_t2:
@@ -308,34 +317,27 @@ def style_fig(fig, height=330, category=True, ticks=None):
     return fig
 
 
-n_pay = int((f_events["kind"] == "payback").sum()) if not f_events.empty else 0
-bd_chips = "".join(
-    f"<span>{k} <b style='color:{c};'>{v}</b></span>" for k, v, c in [
-        ("청산 손익", money(bd["gross"]), pnl_color(bd["gross"])),
-        ("수수료", money(-bd["fee"]), RED if bd["fee"] > 0 else SUB),
-        ("펀딩비", money(bd["funding"]), pnl_color(bd["funding"])),
-        (f"페이백 {n_pay}건", money(bd["payback"]), pnl_color(bd["payback"])),
-    ])
-
 with st.container(key="pnl_card"):
     last_v = daily["pnl"].iloc[-1] if not daily.empty else 0.0
-    html(f"""<div style='display:flex;justify-content:space-between;align-items:baseline;'><span style='font-size:17px;color:{TEXT};font-weight:800;letter-spacing:-0.02em;'>기간 순손익</span>
-<span style='font-size:12px;color:{SUB};'>{end_str} <b style='color:{pnl_color(last_v)};'>{money(last_v)}</b></span></div>
-<div style='font-size:30px;font-weight:800;color:{pnl_color(bd["net"])};margin-top:8px;'>{money(bd["net"])} <span style='font-size:14px;color:{SUB};font-weight:600;'>USDT</span></div>
-<div class='bd-chips' style='font-size:13.5px;'>{bd_chips}</div>
-<div style="border-bottom:1px solid {DIVIDER};margin:14px 0 6px;"></div>""")
-    tab1, tab2 = st.tabs(["일별 손익", "기간 누적"])
+    win_days = int((daily["pnl"] > 0).sum()) if not daily.empty else 0
+    loss_days = int((daily["pnl"] < 0).sum()) if not daily.empty else 0
+    with st.container(key="pnl_head", horizontal=True, vertical_alignment="top"):
+        html(f"""<div><div style='font-size:17px;color:{TEXT};font-weight:800;letter-spacing:-0.02em;'>기간 PNL</div>
+<div style='display:flex;align-items:baseline;gap:8px;margin-top:6px;flex-wrap:wrap;'><span style='font-size:30px;font-weight:800;color:{pnl_color(bd["net"])};letter-spacing:-0.02em;'>{money(bd["net"])}</span>
+<span style='font-size:14px;color:{SUB};font-weight:600;'>USDT</span></div>
+<div style='font-size:13px;color:{SUB};margin-top:4px;'>수익 <b style='color:{GREEN};'>{win_days}일</b> · 손실 <b style='color:{RED};'>{loss_days}일</b> · 마지막 날 <b style='color:{pnl_color(last_v)};'>{money(last_v)}</b></div></div>""")
+        with st.container(key="pnl_view_box", width="content"):
+            view = st.segmented_control("보기", ["일별", "누적"], default="일별", key="pnl_view", label_visibility="collapsed") or "일별"
     n = len(daily)
     ticks = list(daily["date"]) if n <= 10 else [daily["date"].iloc[i] for i in sorted(set(range(0, n, max(1, n // 6))) | {n - 1})]
-    with tab1:
+    if view == "일별":
         fig = go.Figure(go.Bar(x=daily["date"], y=daily["pnl"], marker=dict(color=[GREEN if v >= 0 else RED for v in daily["pnl"]], line_width=0, cornerradius=8),
                                hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT<extra></extra>"))
-        st.plotly_chart(no_zoom(style_fig(fig, ticks=ticks)), width="stretch", config=PLOT_CFG)
-    with tab2:
+    else:
         fig = go.Figure(go.Scatter(x=daily["date"], y=daily["cum"], mode="lines+markers", line=dict(color=BLUE, width=3, shape="spline", smoothing=0.4),
                                    marker=dict(size=5), fill="tozeroy", fillcolor="rgba(49,130,246,0.08)",
                                    hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT<extra></extra>"))
-        st.plotly_chart(no_zoom(style_fig(fig, ticks=ticks)), width="stretch", config=PLOT_CFG)
+    st.plotly_chart(no_zoom(style_fig(fig, ticks=ticks)), width="stretch", config=PLOT_CFG)
 ledger_net = float(f_ledger["net"].sum()) if not f_ledger.empty else None
 if ledger_net is not None:
     html(f"<div class='note-text'>검증용 · 거래소 장부 합계 {money(ledger_net)} (페이백 제외, 진입 수수료를 진입 시점에 바로 뺀 값)</div>")
