@@ -314,3 +314,32 @@ LOADER_HTML = """
   <div class="mg-sk"><div></div><div></div><div></div></div>
 </div>
 """
+
+
+# 포지션 불러오는 동안 보여주는 자리 표시 카드
+_SK = "background:linear-gradient(90deg,#EEF1F5 0%,#F7F8FA 40%,#EEF1F5 80%);background-size:800px 100%;animation:mg-shine 1.3s linear infinite;border-radius:8px;"
+POS_SKELETON = f"""
+<style>@keyframes mg-shine {{ 0% {{ background-position: -400px 0; }} 100% {{ background-position: 400px 0; }} }}
+@keyframes mg-dot {{ 0%,100% {{ opacity:.3; transform:scale(.8); }} 50% {{ opacity:1; transform:scale(1); }} }}
+.psk {{ background:#fff; border-radius:20px; box-shadow:0 2px 14px rgba(15,23,42,0.05); padding:18px 24px 20px; margin-bottom:18px; }}
+.psk-row {{ display:grid; grid-template-columns:repeat(4,1fr); gap:0; }}
+.psk-col {{ padding:6px 14px; border-left:1px solid rgba(15,23,42,0.06); display:flex; flex-direction:column; gap:10px; }}
+.psk-col:first-child {{ border-left:none; padding-left:0; }}
+.psk-st {{ display:flex; align-items:center; gap:8px; margin-top:16px; padding-top:14px; border-top:1px solid #F2F4F6; font-size:12.5px; color:#8B95A1; font-weight:600; }}
+.psk-st i {{ width:6px; height:6px; border-radius:50%; background:#3182F6; animation:mg-dot 1s ease-in-out infinite; }}
+.psk-st i:nth-child(2) {{ animation-delay:.15s; }} .psk-st i:nth-child(3) {{ animation-delay:.3s; margin-right:4px; }}
+@media (max-width:768px) {{ .psk-row {{ grid-template-columns:1fr 1fr; row-gap:14px; }} .psk-col:nth-child(3) {{ border-left:none; padding-left:0; }} }}
+</style>
+<div class="psk"><div class="psk-row">
+<div class="psk-col"><div style="{_SK}width:60px;height:11px;"></div><div style="{_SK}width:150px;height:24px;"></div><div style="{_SK}width:110px;height:11px;"></div></div>
+<div class="psk-col"><div style="{_SK}width:80px;height:11px;"></div><div style="{_SK}width:130px;height:18px;"></div><div style="{_SK}width:130px;height:18px;"></div></div>
+<div class="psk-col"><div style="{_SK}width:90px;height:11px;"></div><div style="{_SK}width:120px;height:26px;"></div><div style="{_SK}width:70px;height:13px;"></div></div>
+<div class="psk-col"><div style="{_SK}width:100px;height:11px;"></div><div style="{_SK}width:120px;height:18px;"></div><div style="{_SK}width:120px;height:18px;"></div></div>
+</div>
+<div class="psk-st"><i></i><i></i><i></i>Bitget에서 실시간 포지션 확인 중</div></div>
+"""
+
+TOPCARD_SKELETON = f"""<div class="card topc">
+<div class="topc-h"><span class="topc-t">{{title}}</span><span style="{_SK}width:96px;height:22px;border-radius:999px;"></span></div>
+<div style="{_SK}width:150px;height:32px;margin-top:12px;"></div>
+<div style="{_SK}width:80px;height:14px;margin-top:8px;"></div></div>"""

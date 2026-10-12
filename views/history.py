@@ -135,7 +135,11 @@ def live_positions():
             st.plotly_chart(no_zoom(fig), width="stretch", config=PLOT_CFG, key=f"poschart_{safe}")
 
 
-live_positions()
+# 포지션은 거래소에서 바로 받아와야 해서 조금 늦음 → 자리만 먼저 잡고(로딩 카드), 아래 화면을 먼저 그린 뒤 맨 마지막에 채움
+pos_slot = st.container()
+with pos_slot:
+    pos_skel = st.empty()
+    pos_skel.markdown(_ui.POS_SKELETON, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
 # 상단 손익 카드
@@ -178,7 +182,10 @@ with c3:
         u = sum(p["unrealized_pnl"] for p in pos) if pos else 0.0
         chip = f"포지션 {len(pos)}개 · 실시간" if pos else "포지션 없음"
         html(top_card("미실현 PNL", u, chip, D.fetch_usdt_krw()))
-    unrealized_card()
+    u_slot = st.container()
+    with u_slot:
+        u_skel = st.empty()
+        u_skel.markdown(_ui.TOPCARD_SKELETON.replace("{title}", "미실현 PNL"), unsafe_allow_html=True)
 
 html(f"<div class='note-text' style='margin-top:-8px;'>PNL = 청산 손익 − 수수료 + 펀딩비 + 페이백 · 진입 수수료는 청산할 때 그 거래에서 함께 차감 · 미실현은 합계에 미포함</div>")
 
@@ -482,3 +489,13 @@ else:
     html("<div class='card' style='padding:6px 20px;max-height:620px;overflow-y:auto;'>" + "".join(out) + "</div>")
     if len(rows) > 150:
         html(f"<div class='note-text'>최근 150건만 표시 (전체 {len(rows)}건)</div>")
+
+# -----------------------------------------------------------------------------
+# 늦게 오는 포지션 정보를 맨 마지막에 채우기
+# -----------------------------------------------------------------------------
+with pos_slot:
+    live_positions()
+pos_skel.empty()
+with u_slot:
+    unrealized_card()
+u_skel.empty()
