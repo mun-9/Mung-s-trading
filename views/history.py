@@ -36,6 +36,7 @@ trades_all, events_all = hist["trades"], hist["events"]
 def clear_all():
     D.fetch_positions.clear(); D.fetch_history.clear(); D.fetch_usdt_krw.clear(); D.fetch_live_ohlcv.clear()
     st.session_state["_full_reload"] = True
+    st.session_state["_pos_ready"] = False
     st.rerun()
 
 
@@ -136,10 +137,15 @@ def live_positions():
 
 
 # 포지션은 거래소에서 바로 받아와야 해서 조금 늦음 → 자리만 먼저 잡고(로딩 카드), 아래 화면을 먼저 그린 뒤 맨 마지막에 채움
+# 로딩 카드는 이 화면을 처음 열 때(또는 새로고침)만 → 이미 포지션을 받아온 뒤 다시 그릴 때는 바로 그 자리에 그림
+_pos_ready = st.session_state.get("_pos_ready", False)
 pos_slot = st.container()
 with pos_slot:
     pos_skel = st.empty()
-    pos_skel.markdown(_ui.POS_SKELETON, unsafe_allow_html=True)
+    if _pos_ready:
+        live_positions()
+    else:
+        pos_skel.markdown(_ui.POS_SKELETON, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
 # 상단 손익 카드
@@ -185,7 +191,10 @@ with c3:
     u_slot = st.container()
     with u_slot:
         u_skel = st.empty()
-        u_skel.markdown(_ui.TOPCARD_SKELETON.replace("{title}", "미실현 PNL"), unsafe_allow_html=True)
+        if _pos_ready:
+            unrealized_card()
+        else:
+            u_skel.markdown(_ui.TOPCARD_SKELETON.replace("{title}", "미실현 PNL"), unsafe_allow_html=True)
 
 html(f"<div class='note-text' style='margin-top:-8px;'>PNL = 청산 손익 − 수수료 + 펀딩비 + 페이백 · 진입 수수료는 청산할 때 그 거래에서 함께 차감 · 미실현은 합계에 미포함</div>")
 
@@ -498,9 +507,11 @@ else:
 # -----------------------------------------------------------------------------
 # 늦게 오는 포지션 정보를 맨 마지막에 채우기
 # -----------------------------------------------------------------------------
-with pos_slot:
-    live_positions()
-pos_skel.empty()
-with u_slot:
-    unrealized_card()
-u_skel.empty()
+if not _pos_ready:
+    with pos_slot:
+        live_positions()
+    pos_skel.empty()
+    with u_slot:
+        unrealized_card()
+    u_skel.empty()
+    st.session_state["_pos_ready"] = True
