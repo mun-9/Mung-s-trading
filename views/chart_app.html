@@ -79,7 +79,14 @@ svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-widt
 .cell::after { content: ''; position: absolute; inset: 0; border: 1px solid transparent; pointer-events: none; z-index: 3; }
 #grid:not(.l1) .cell.active::after { border-color: rgba(41,98,255,0.7); }
 .phead { display: flex; align-items: center; gap: 7px; height: 26px; padding: 0 10px; font-size: 12px; color: var(--mid); cursor: pointer; flex-shrink: 0; border-bottom: 1px solid var(--line2); }
-#grid.l1 .phead { display: none; }
+#grid.l1.tv .phead { display: none; }
+.tfs { display: flex; gap: 1px; margin-left: 6px; }
+.tfs button { height: 20px; padding: 0 7px; border: 0; border-radius: 4px; background: transparent; color: var(--sub); font-size: 11.5px; font-weight: 600; cursor: pointer; }
+.tfs button:hover { color: var(--strong); background: var(--hover); }
+.tfs button.on { color: #fff; background: rgba(41,98,255,0.85); }
+.engine { display: flex; gap: 2px; padding: 2px; background: rgba(255,255,255,0.04); border: 1px solid var(--line); border-radius: 7px; }
+.engine button { height: 24px; padding: 0 9px; border: 0; border-radius: 5px; background: transparent; color: var(--sub); font-size: 12px; font-weight: 600; cursor: pointer; }
+.engine button.on { background: rgba(255,255,255,0.1); color: var(--strong); }
 .phead .coin { width: 15px; height: 15px; font-size: 8.5px; }
 .phead b { font-size: 12.5px; font-weight: 600; color: var(--strong); }
 .phead .hint { margin-left: auto; font-size: 11px; color: var(--dim); }
@@ -224,6 +231,7 @@ svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-widt
     <div class="ms hide-lg" id="kpBox"><span class="lb">김프</span><span class="v num" id="kp">-</span></div>
     <div id="posChips" class="hide-sm"></div>
     <div class="bar-right">
+      <div class="engine hide-sm" id="engineSeg" title="실시간: 체결마다 바로 움직이는 차트 · TradingView: 그리기 도구·지표 사용 가능"><button data-e="live">실시간</button><button data-e="tv">TradingView</button></div>
       <span class="tbtn hide-md" style="cursor:default" title="차트와 시세 모두 OKX 기준 · 펀딩비만 Bitget">OKX 기준</span>
       <span class="tbtn" title="OKX 실시간 시세 연결 상태"><span class="livedot" id="live"></span></span>
     </div>
@@ -251,6 +259,7 @@ svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-widt
 </div>
 
 <script src="https://s3.tradingview.com/tv.js"></script>
+<script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 const DATA = __DATA__;
 const COIN_COLORS = { BTC: '#F7931A', ETH: '#627EEA', SOL: '#9945FF', XRP: '#23292F', DOGE: '#C2A633', BNB: '#F3BA2F', ADA: '#0033AD',
@@ -280,13 +289,14 @@ if (!saved.panes && DATA.initial) panes[0].sym = DATA.initial;
 const state = {
   layout: [1, 2, 3, 4].includes(saved.layout) ? saved.layout : 1,
   active: Number.isInteger(saved.active) ? saved.active : 0,
+  engine: saved.engine === 'tv' ? 'tv' : 'live',
   panel: saved.panel === false ? false : true, view: ['pos', 'book', 'liq'].includes(saved.view) ? saved.view : 'watch', liqFilter: saved.liqFilter || 'all',
   stars: (saved.stars || ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'XRP/USDT']).filter(valid),
   closed: saved.closed || {}, sortKey: saved.sortKey || 'pct', sortDir: saved.sortDir || -1,
   tk: Object.assign({}, DATA.tickers), bgf: Object.assign({}, DATA.bgfund || {}), up: Object.assign({}, DATA.upbit || {}), q: '',
 };
 if (state.active >= state.layout) state.active = 0;
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ panes, layout: state.layout, active: state.active, panel: state.panel, view: state.view, stars: state.stars, closed: state.closed, liqFilter: state.liqFilter, sortKey: state.sortKey, sortDir: state.sortDir })); } catch (e) {} };
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ panes, engine: state.engine, layout: state.layout, active: state.active, panel: state.panel, view: state.view, stars: state.stars, closed: state.closed, liqFilter: state.liqFilter, sortKey: state.sortKey, sortDir: state.sortDir })); } catch (e) {} };
 const curSym = () => panes[state.active].sym;
 const $ = id => document.getElementById(id);
 
@@ -327,13 +337,28 @@ const OKX_ID2SYM = Object.fromEntries(DATA.symbols.map(s => [okxId(s), s]));
 let CTVAL = {};
 fetch('https://www.okx.com/api/v5/public/instruments?instType=SWAP').then(r => r.json())
   .then(j => { for (const x of j.data || []) CTVAL[x.instId] = +x.ctVal || 1; }).catch(() => {});
-function paneHead(i) {
+const TFS = [['1', '1분'], ['3', '3분'], ['5', '5분'], ['15', '15분'], ['60', '1시간'], ['240', '4시간'], ['D', '1일']];
+function paneInfo(i) {
   const s = panes[i].sym, t = state.tk[s] || {};
-  return `${coin(s)}<b>${base(s)}</b><span>무기한</span><span class="num ${cls(t.pct)}">${fmtPrice(t.last)}</span><span class="num ${cls(t.pct)}">${fmtPct(t.pct)}</span>
-    <span class="hint">${i === state.active ? '선택됨 · 오른쪽 목록에서 종목 변경' : '차트를 누르면 선택'}</span>`;
+  return `${coin(s)}<b>${base(s)}</b><span>무기한</span><span class="num ${cls(t.pct)}">${fmtPrice(t.last)}</span><span class="num ${cls(t.pct)}">${fmtPct(t.pct)}</span>`;
+}
+function paneHead(i) {
+  const tfs = state.engine === 'live' ? `<div class="tfs">${TFS.map(([v, l]) => `<button data-tf="${v}" class="${panes[i].iv === v ? 'on' : ''}">${l}</button>`).join('')}</div>` : '';
+  return `<span id="phi_${i}" style="display:flex;align-items:center;gap:7px">${paneInfo(i)}</span>${tfs}
+    <span class="hint" id="phh_${i}">${state.layout === 1 ? '' : i === state.active ? '선택됨 · 오른쪽 목록에서 종목 변경' : '차트를 누르면 선택'}</span>`;
+}
+function bindHead(i) {
+  const h = $('ph_' + i); if (!h) return;
+  h.querySelectorAll('.tfs button').forEach(b => b.onclick = e => {
+    e.stopPropagation(); setActive(i);
+    if (panes[i].iv === b.dataset.tf) return;
+    panes[i].iv = b.dataset.tf; save(); h.innerHTML = paneHead(i); bindHead(i); buildPane(i);
+  });
 }
 function buildPane(i) {
   const body = $('pb_' + i); if (!body) return;
+  destroyLive(i);
+  if (state.engine === 'live' && typeof LightweightCharts !== 'undefined') { buildLive(i, body); return; }
   body.innerHTML = `<div id="tv_${i}"></div>`;
   if (typeof TradingView === 'undefined') { body.innerHTML = '<div class="empty" style="position:static">TradingView 차트를 불러오지 못했어요. 새로고침해 줘.</div>'; return; }
   const big = state.layout === 1 || (state.layout === 3 && i === 0);
@@ -346,19 +371,22 @@ function buildPane(i) {
   });
 }
 function buildGrid() {
-  const g = $('grid'); g.className = 'l' + state.layout; g.innerHTML = '';
+  const g = $('grid'); g.className = 'l' + state.layout + (state.engine === 'tv' ? ' tv' : ''); g.innerHTML = '';
+  for (const k of Object.keys(LC)) destroyLive(+k);
   for (let i = 0; i < state.layout; i++) {
     const c = document.createElement('div');
     c.className = 'cell' + (i === state.active ? ' active' : ''); c.id = 'cell_' + i;
     c.innerHTML = `<div class="phead" id="ph_${i}">${paneHead(i)}</div><div class="pbody" id="pb_${i}"></div>`;
     c.querySelector('.phead').onclick = () => setActive(i);
     g.appendChild(c);
+    bindHead(i);
   }
   for (let i = 0; i < state.layout; i++) buildPane(i);
 }
 function refreshHeads() {
   for (let i = 0; i < state.layout; i++) {
-    const h = $('ph_' + i); if (h) h.innerHTML = paneHead(i);
+    const h = $('phi_' + i); if (h) h.innerHTML = paneInfo(i);
+    const k = $('phh_' + i); if (k) k.textContent = state.layout === 1 ? '' : i === state.active ? '선택됨 · 오른쪽 목록에서 종목 변경' : '차트를 누르면 선택';
     const c = $('cell_' + i); if (c) c.classList.toggle('active', i === state.active);
   }
 }
@@ -367,6 +395,99 @@ function selectSym(sym) {
   $('pop').classList.remove('open');
   const p = panes[state.active]; if (sym === p.sym) return;
   p.sym = sym; save(); refreshHeads(); renderBar(); renderPanel(); buildPane(state.active);
+}
+
+// ---------- 실시간 차트 (OKX 체결마다 바로 갱신) ----------
+const BAR = { '1': ['1m', 60e3], '3': ['3m', 180e3], '5': ['5m', 300e3], '15': ['15m', 900e3], '30': ['30m', 1800e3],
+  '60': ['1H', 3600e3], '240': ['4H', 14400e3], 'D': ['1Dutc', 86400e3] };
+const KST_OFF = 9 * 3600; // 차트 시간 축을 한국 시간으로
+const LC = {}; // pane 번호 → { chart, candle, vol, sym, ms, last, lines }
+function destroyLive(i) {
+  const c = LC[i]; if (!c) return;
+  try { c.ro && c.ro.disconnect(); c.chart.remove(); } catch (e) {}
+  delete LC[i]; syncTrades();
+}
+async function buildLive(i, body) {
+  body.innerHTML = '<div></div>';
+  const el = body.firstChild, sym = panes[i].sym, [bar, ms] = BAR[panes[i].iv] || BAR['3'];
+  const chart = LightweightCharts.createChart(el, {
+    autoSize: true,
+    layout: { background: { type: 'solid', color: '#131722' }, textColor: '#9598A1', fontFamily: 'Pretendard, sans-serif', fontSize: 11 },
+    grid: { vertLines: { color: 'rgba(42,46,57,0.45)' }, horzLines: { color: 'rgba(42,46,57,0.45)' } },
+    rightPriceScale: { borderColor: '#2A2E39', scaleMargins: { top: 0.08, bottom: 0.22 } },
+    timeScale: { borderColor: '#2A2E39', timeVisible: true, secondsVisible: false, rightOffset: 6, barSpacing: 7 },
+    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+    localization: { priceFormatter: p => fmtPrice(p) },
+  });
+  const candle = chart.addCandlestickSeries({ upColor: '#089981', downColor: '#F23645', borderVisible: false, wickUpColor: '#089981', wickDownColor: '#F23645' });
+  const vol = chart.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: 'vol', lastValueVisible: false, priceLineVisible: false });
+  chart.priceScale('vol').applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
+  const st = LC[i] = { chart, candle, vol, sym, ms, last: null, ready: false, buf: [] };
+  // 내 포지션 진입가 · 청산가 표시
+  for (const p of DATA.positions.filter(p => p.symbol === sym)) {
+    const c = p.side === 'LONG' ? '#089981' : '#F23645';
+    candle.createPriceLine({ price: p.entry_price, color: c, lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: `${p.side === 'LONG' ? '롱' : '숏'} 진입` });
+    if (p.liq_price > 0) candle.createPriceLine({ price: p.liq_price, color: '#F7A600', lineWidth: 1, lineStyle: 1, axisLabelVisible: true, title: '청산가' });
+  }
+  syncTrades();
+  try {
+    const id = okxId(sym);
+    const a = await fetch(`https://www.okx.com/api/v5/market/candles?instId=${id}&bar=${bar}&limit=300`).then(r => r.json());
+    if (LC[i] !== st) return;
+    const rows = [...(a.data || [])].reverse();
+    const ct = CTVAL[id] || 1;
+    const data = rows.map(r => ({ time: +r[0] / 1000 + KST_OFF, open: +r[1], high: +r[2], low: +r[3], close: +r[4], v: +r[6] || +r[5] * ct }));
+    candle.setData(data.map(({ v, ...c }) => c));
+    vol.setData(data.map(c => ({ time: c.time, value: c.v, color: c.close >= c.open ? 'rgba(8,153,129,0.35)' : 'rgba(242,54,69,0.35)' })));
+    st.last = data.length ? { ...data[data.length - 1] } : null;
+    st.ready = true;
+    for (const t of st.buf) applyTrade(st, t); st.buf = [];
+  } catch (e) {
+    el.innerHTML = '<div class="empty">OKX 차트 데이터를 불러오지 못했어요</div>';
+  }
+}
+function applyTrade(st, t) {
+  if (!st.ready) { st.buf.push(t); return; }
+  const start = Math.floor(t.ts / st.ms) * st.ms / 1000 + KST_OFF;
+  let c = st.last;
+  if (!c || start > c.time) c = st.last = { time: start, open: t.px, high: t.px, low: t.px, close: t.px, v: 0 };
+  else if (start < c.time) return;
+  c.high = Math.max(c.high, t.px); c.low = Math.min(c.low, t.px); c.close = t.px; c.v += t.v;
+  st.candle.update({ time: c.time, open: c.open, high: c.high, low: c.low, close: c.close });
+  st.vol.update({ time: c.time, value: c.v, color: c.close >= c.open ? 'rgba(8,153,129,0.35)' : 'rgba(242,54,69,0.35)' });
+}
+// 체결 스트림: 화면에 떠 있는 차트 종목만 구독
+let tws = null, tSubs = new Set();
+function syncTrades() {
+  const want = new Set(Object.values(LC).map(c => okxId(c.sym)));
+  if (!tws || tws.readyState > 1) {
+    if (!want.size) return;
+    tws = new WebSocket('wss://ws.okx.com:8443/ws/v5/public'); tSubs = new Set();
+    tws.onopen = () => { syncTrades(); tws._p = setInterval(() => { try { tws.send('ping'); } catch (e) {} }, 25000); };
+    tws.onmessage = ev => {
+      if (ev.data === 'pong') return;
+      let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+      if (!m.arg || m.arg.channel !== 'trades' || !m.data) return;
+      const ct = CTVAL[m.arg.instId] || 1;
+      for (const st of Object.values(LC)) {
+        if (okxId(st.sym) !== m.arg.instId) continue;
+        for (const x of [...m.data].reverse()) applyTrade(st, { ts: +x.ts, px: +x.px, v: +x.sz * ct });
+      }
+    };
+    tws.onclose = () => { clearInterval(tws && tws._p); setTimeout(() => { tws = null; syncTrades(); }, 2000); };
+    return;
+  }
+  if (tws.readyState !== 1) return;
+  const add = [...want].filter(x => !tSubs.has(x)), del = [...tSubs].filter(x => !want.has(x));
+  if (add.length) tws.send(JSON.stringify({ op: 'subscribe', args: add.map(x => ({ channel: 'trades', instId: x })) }));
+  if (del.length) tws.send(JSON.stringify({ op: 'unsubscribe', args: del.map(x => ({ channel: 'trades', instId: x })) }));
+  add.forEach(x => tSubs.add(x)); del.forEach(x => tSubs.delete(x));
+}
+function renderEngine() {
+  $('engineSeg').querySelectorAll('button').forEach(b => {
+    b.classList.toggle('on', b.dataset.e === state.engine);
+    b.onclick = () => { if (b.dataset.e === state.engine) return; state.engine = b.dataset.e; save(); renderEngine(); buildGrid(); };
+  });
 }
 
 // ---------- 종목 정보 줄 ----------
@@ -789,7 +910,7 @@ document.getElementById('grid').addEventListener('mousedown', e => {
 
 // ---------- 시작 ----------
 fitHeight(); setTimeout(fitHeight, 400);
-renderTabs(); renderBar(); renderPanel(); renderStatus(); tickClock();
+renderTabs(); renderEngine(); renderBar(); renderPanel(); renderStatus(); tickClock();
 setInterval(tickClock, 1000);
 buildGrid();
 connectOkx(); connectUpbit(); connectLiq(); connectBinanceLiq(); connectBitgetFunding();
