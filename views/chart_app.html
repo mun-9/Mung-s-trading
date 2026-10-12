@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+:root {
+  --bg: #131722; --panel: #181C27; --panel2: #1E222D; --line: #2A2E39; --hover: #232733;
+  --text: #D1D4DC; --sub: #787B86; --dim: #5D606B;
+  --up: #089981; --down: #F23645; --accent: #2962FF; --gold: #F7A600;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); color: var(--text);
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; letter-spacing: -0.01em; overflow: hidden; }
+button { font-family: inherit; }
+.up { color: var(--up) !important; } .down { color: var(--down) !important; }
+.num { font-variant-numeric: tabular-nums; }
+
+#app { display: flex; flex-direction: column; height: 100vh; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+
+/* 상단 정보 바 */
+#top { display: flex; align-items: center; gap: 22px; height: 60px; padding: 0 14px; border-bottom: 1px solid var(--line); background: var(--bg); flex-shrink: 0; }
+#symBtn { display: flex; align-items: center; gap: 9px; height: 42px; padding: 0 12px 0 8px; background: var(--panel2); border: 1px solid var(--line);
+  border-radius: 10px; color: var(--text); cursor: pointer; flex-shrink: 0; }
+#symBtn:hover { border-color: #3A3F4B; }
+.coin { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #fff; flex-shrink: 0; }
+#symBtn .name { font-size: 16px; font-weight: 800; }
+#symBtn .kind { font-size: 12px; color: var(--sub); }
+#symBtn .caret { color: var(--sub); font-size: 11px; margin-left: 2px; }
+.price-block { display: flex; flex-direction: column; justify-content: center; min-width: 120px; }
+.price-block .p { font-size: 21px; font-weight: 800; line-height: 1.1; }
+.price-block .c { font-size: 12px; font-weight: 600; margin-top: 2px; }
+.stat { display: flex; flex-direction: column; gap: 3px; white-space: nowrap; }
+.stat .k { font-size: 11px; color: var(--sub); }
+.stat .v { font-size: 13px; font-weight: 600; }
+.range { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--sub); }
+.range .bar { position: relative; width: 90px; height: 4px; background: var(--line); border-radius: 2px; }
+.range .knob { position: absolute; top: -4px; width: 3px; height: 12px; background: var(--text); border-radius: 2px; }
+#posChips { display: flex; gap: 6px; margin-left: auto; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+#posChips::-webkit-scrollbar { display: none; }
+.chip { display: flex; align-items: center; gap: 7px; padding: 6px 10px; flex-shrink: 0; border-radius: 9px; background: var(--panel2); border: 1px solid var(--line); font-size: 12px; white-space: nowrap; }
+.tag { font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 5px; }
+.tag.long { background: rgba(8,153,129,0.16); color: var(--up); } .tag.short { background: rgba(242,54,69,0.16); color: var(--down); }
+#layouts { display: flex; gap: 2px; padding: 3px; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; flex-shrink: 0; }
+#layouts button { width: 34px; height: 30px; border: 0; border-radius: 7px; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+#layouts button:hover { background: var(--hover); }
+#layouts button.on { background: var(--accent); }
+#layouts svg { width: 18px; height: 18px; }
+#layouts button svg rect { fill: none; stroke: var(--sub); stroke-width: 1.6; }
+#layouts button.on svg rect { stroke: #fff; }
+#live { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--sub); flex-shrink: 0; }
+#live .d { width: 7px; height: 7px; border-radius: 50%; background: var(--dim); }
+#live.on .d { background: var(--up); box-shadow: 0 0 0 3px rgba(8,153,129,0.18); }
+
+/* 본문 */
+#main { flex: 1; display: flex; min-height: 0; }
+#grid { flex: 1; display: grid; gap: 1px; background: var(--line); min-width: 0; }
+#grid.l1 { grid-template: 1fr / 1fr; }
+#grid.l2 { grid-template: 1fr / 1fr 1fr; }
+#grid.l3 { grid-template: 1fr 1fr / 2fr 1fr; }
+#grid.l3 .cell:first-child { grid-row: 1 / 3; }
+#grid.l4 { grid-template: 1fr 1fr / 1fr 1fr; }
+.cell { background: var(--bg); position: relative; min-height: 0; min-width: 0; }
+.cell > div { position: absolute; inset: 0; }
+
+/* 오른쪽 관심 종목 */
+#side { width: 300px; border-left: 1px solid var(--line); background: var(--bg); display: flex; flex-direction: column; flex-shrink: 0; }
+#side .head { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px 8px; }
+#side .head b { font-size: 15px; font-weight: 800; }
+#side .head span { font-size: 12px; color: var(--sub); }
+.search { margin: 0 12px 8px; display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; background: var(--panel2); border: 1px solid var(--line); border-radius: 9px; }
+.search:focus-within { border-color: var(--accent); }
+.search input { flex: 1; background: transparent; border: 0; outline: 0; color: var(--text); font-size: 13px; font-family: inherit; }
+.search svg { width: 14px; height: 14px; stroke: var(--sub); fill: none; stroke-width: 2; }
+.cols { display: grid; grid-template-columns: 1fr 92px 70px; padding: 6px 14px; font-size: 11.5px; color: var(--sub); border-bottom: 1px solid var(--line); }
+.cols span { cursor: pointer; user-select: none; } .cols span:not(:first-child) { text-align: right; }
+.cols span.sorted { color: var(--text); }
+.list { flex: 1; overflow-y: auto; }
+.list::-webkit-scrollbar { width: 6px; } .list::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+.group { padding: 9px 14px 5px; font-size: 11.5px; font-weight: 700; color: var(--sub); }
+.row { display: grid; grid-template-columns: 1fr 92px 70px; align-items: center; padding: 8px 14px; cursor: pointer; border-left: 2px solid transparent; }
+.row:hover { background: var(--hover); }
+.row.on { background: rgba(41,98,255,0.12); border-left-color: var(--accent); }
+.row .s { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.row .s .coin { width: 22px; height: 22px; font-size: 10.5px; }
+.row .s b { font-size: 13px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .s i { font-style: normal; font-size: 9.5px; font-weight: 800; padding: 1px 5px; border-radius: 4px; }
+.row .v { text-align: right; font-size: 13px; font-weight: 600; }
+.row .pc { text-align: right; font-size: 12.5px; font-weight: 700; }
+.empty { padding: 30px 14px; text-align: center; color: var(--sub); font-size: 13px; }
+
+/* 하단 바 */
+#bottom { display: flex; align-items: center; gap: 18px; height: 32px; padding: 0 14px; border-top: 1px solid var(--line); font-size: 12px; color: var(--sub); flex-shrink: 0; white-space: nowrap; overflow: hidden; }
+#bottom b { color: var(--text); font-weight: 600; margin-left: 4px; }
+#bottom .right { margin-left: auto; display: flex; gap: 16px; }
+
+/* 종목 선택 팝업 (모바일·좁은 화면) */
+#pop { position: absolute; top: 58px; left: 12px; width: 320px; max-height: 70vh; background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.45); display: none; flex-direction: column; z-index: 20; overflow: hidden; }
+#pop.open { display: flex; }
+#pop .search { margin: 12px; }
+
+@media (max-width: 1100px) { .hide-md { display: none !important; } }
+@media (max-width: 900px) {
+  #side { display: none; }
+  #grid.l2, #grid.l3, #grid.l4 { grid-template: 1fr / 1fr; }
+  #grid .cell:not(:first-child) { display: none; }
+  #grid.l3 .cell:first-child { grid-row: auto; }
+  .hide-sm { display: none !important; }
+  #top { gap: 12px; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="top">
+    <button id="symBtn" title="종목 바꾸기"><span class="coin" id="symCoin"></span><span class="name" id="symName"></span><span class="kind">USDT 무기한</span><span class="caret">▼</span></button>
+    <div class="price-block"><span class="p num" id="px">-</span><span class="c num" id="chg">-</span></div>
+    <div class="stat hide-sm"><span class="k">24시간 범위</span><span class="range num"><span id="lo">-</span><span class="bar"><span class="knob" id="knob"></span></span><span id="hi">-</span></span></div>
+    <div class="stat hide-md"><span class="k">24시간 거래대금</span><span class="v num" id="qv">-</span></div>
+    <div class="stat hide-sm"><span class="k">펀딩비 · <span id="fcd">-</span></span><span class="v num" id="fr">-</span></div>
+    <div id="posChips" class="hide-sm"></div>
+    <div id="layouts" class="hide-sm"></div>
+    <div id="live" title="Bitget 실시간 시세 연결 상태"><span class="d"></span><span id="liveTxt">연결 중</span></div>
+  </div>
+  <div id="main">
+    <div id="grid"></div>
+    <div id="side">
+      <div class="head"><b>관심 종목</b><span id="cnt"></span></div>
+      <label class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="q" placeholder="종목 검색 (예: btc, sol)"></label>
+      <div class="cols"><span data-k="sym">종목</span><span data-k="last">현재가</span><span data-k="pct">변동%</span></div>
+      <div class="list" id="list"></div>
+    </div>
+  </div>
+  <div id="bottom">
+    <span>원화 USDT<b class="num" id="krw">-</b></span>
+    <span id="tape"></span>
+    <span class="right"><span>KST<b class="num" id="clock">-</b></span><span class="hide-sm">시세 Bitget · 차트 TradingView</span></span>
+  </div>
+  <div id="pop"><label class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="q2" placeholder="종목 검색"></label><div class="list" id="list2"></div></div>
+</div>
+
+<script src="https://s3.tradingview.com/tv.js"></script>
+<script>
+const DATA = __DATA__;
+const COIN_COLORS = { BTC: '#F7931A', ETH: '#627EEA', SOL: '#9945FF', XRP: '#23292F', DOGE: '#C2A633', BNB: '#F3BA2F', ADA: '#0033AD',
+  SUI: '#4DA2FF', LINK: '#2A5ADA', AVAX: '#E84142', TRX: '#EB0029', LTC: '#345D9D', DOT: '#E6007A', TON: '#0098EA', HYPE: '#50D2C1' };
+const DEFAULT_IV = { 1: ['5'], 2: ['3', '60'], 3: ['3', '60', '240'], 4: ['1', '5', '15', '60'] };
+const STORE_KEY = 'mung_chart_v1';
+
+let saved = {};
+try { saved = JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); } catch (e) {}
+const state = {
+  sym: DATA.symbols.includes(saved.sym) ? saved.sym : DATA.initial,
+  layout: [1, 2, 3, 4].includes(saved.layout) ? saved.layout : 3,
+  sortKey: saved.sortKey || 'none', sortDir: saved.sortDir || -1,
+  tk: Object.assign({}, DATA.tickers), q: '', q2: '',
+};
+function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify({ sym: state.sym, layout: state.layout, sortKey: state.sortKey, sortDir: state.sortDir })); } catch (e) {} }
+
+// ---------- 포맷 ----------
+const base = s => s.split('/')[0];
+function fmtPrice(v) {
+  if (v == null || isNaN(v)) return '-';
+  const a = Math.abs(v);
+  const d = a >= 1000 ? 1 : a >= 100 ? 2 : a >= 1 ? 4 : a >= 0.01 ? 5 : 7;
+  return v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+function fmtPct(v) { return v == null || isNaN(v) ? '-' : (v > 0 ? '+' : '') + v.toFixed(2) + '%'; }
+function fmtBig(v) {
+  if (v == null || isNaN(v)) return '-';
+  if (v >= 1e9) return (v / 1e9).toFixed(2) + 'B';
+  if (v >= 1e6) return (v / 1e6).toFixed(2) + 'M';
+  if (v >= 1e3) return (v / 1e3).toFixed(1) + 'K';
+  return v.toFixed(0);
+}
+function fmtUsd(v) { return (v >= 0 ? '+$' : '-$') + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+const cls = v => v > 0 ? 'up' : v < 0 ? 'down' : '';
+function coinHtml(sym, big) {
+  const b = base(sym).replace(/^1000/, '');
+  return `<span class="coin" style="background:${COIN_COLORS[b] || '#3A3F4B'}">${b.slice(0, 1)}</span>`;
+}
+
+// ---------- 차트 ----------
+function tvSymbol(sym) { return `BITGET:${sym.replace('/', '')}.P`; }
+function buildCharts() {
+  const grid = document.getElementById('grid');
+  const n = window.innerWidth <= 900 ? 1 : state.layout;
+  grid.className = 'l' + state.layout;
+  grid.innerHTML = '';
+  const ivs = DEFAULT_IV[state.layout];
+  for (let i = 0; i < state.layout; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.innerHTML = `<div id="tv_${i}"></div>`;
+    grid.appendChild(cell);
+  }
+  if (typeof TradingView === 'undefined') {
+    grid.innerHTML = '<div class="cell"><div class="empty" style="position:static">TradingView 차트를 불러오지 못했어요. 새로고침해 줘.</div></div>';
+    return;
+  }
+  for (let i = 0; i < n; i++) {
+    const main = i === 0;
+    new TradingView.widget({
+      container_id: 'tv_' + i, autosize: true, symbol: tvSymbol(state.sym), interval: ivs[i],
+      timezone: 'Asia/Seoul', theme: 'dark', style: '1', locale: 'kr', toolbar_bg: '#131722',
+      enable_publishing: false, allow_symbol_change: false, save_image: false, details: false, hotlist: false, calendar: false,
+      hide_side_toolbar: !(main && state.layout <= 3), hide_top_toolbar: false, withdateranges: main && state.layout === 1,
+      backgroundColor: '#131722', gridColor: 'rgba(42,46,57,0.35)',
+    });
+  }
+}
+
+// ---------- 상단 바 ----------
+function nextFunding(t) {
+  if (t && t.nft) return t.nft;
+  const now = Date.now(), h8 = 8 * 3600e3;
+  return Math.ceil(now / h8) * h8;
+}
+function renderTop() {
+  const s = state.sym, t = state.tk[s] || {};
+  document.getElementById('symCoin').outerHTML = coinHtml(s).replace('class="coin"', 'class="coin" id="symCoin"');
+  document.getElementById('symName').textContent = base(s);
+  const px = document.getElementById('px');
+  px.textContent = fmtPrice(t.last); px.className = 'p num ' + cls(t.pct);
+  const chg = document.getElementById('chg');
+  const abs = t.last != null && t.pct != null ? t.last - t.last / (1 + t.pct / 100) : null;
+  chg.textContent = abs == null ? '-' : `${abs > 0 ? '+' : ''}${fmtPrice(abs)}  ${fmtPct(t.pct)}`;
+  chg.className = 'c num ' + cls(t.pct);
+  document.getElementById('lo').textContent = fmtPrice(t.low);
+  document.getElementById('hi').textContent = fmtPrice(t.high);
+  const k = document.getElementById('knob');
+  if (t.high > t.low && t.last != null) k.style.left = Math.max(0, Math.min(100, (t.last - t.low) / (t.high - t.low) * 100)) + '%';
+  document.getElementById('qv').textContent = t.qv != null ? '$' + fmtBig(t.qv) : '-';
+  const fr = document.getElementById('fr');
+  fr.textContent = t.funding != null ? (t.funding * 100 >= 0 ? '+' : '') + (t.funding * 100).toFixed(4) + '%' : '-';
+  fr.className = 'v num ' + cls(t.funding);
+  document.title = `${base(s)} ${fmtPrice(t.last)}`;
+
+  const mine = DATA.positions.filter(p => p.symbol === s);
+  document.getElementById('posChips').innerHTML = mine.map(p => {
+    const last = t.last != null ? t.last : p.mark_price;
+    const pnl = (last - p.entry_price) * p.size * (p.side === 'LONG' ? 1 : -1);
+    const roe = p.margin > 0 ? pnl / p.margin * 100 : 0;
+    return `<div class="chip"><span class="tag ${p.side.toLowerCase()}">${p.side} ${p.leverage}x</span>
+      <span class="num" title="진입가 · 청산가 ${fmtPrice(p.liq_price)}" style="color:var(--text)">${fmtPrice(p.entry_price)}</span>
+      <b class="num ${cls(pnl)}">${fmtUsd(pnl)} <span style="font-weight:600">${roe >= 0 ? '+' : ''}${roe.toFixed(1)}%</span></b></div>`;
+  }).join('');
+}
+function tickClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false });
+  const t = state.tk[state.sym] || {};
+  const left = Math.max(0, nextFunding(t) - now.getTime());
+  const h = Math.floor(left / 3600e3), m = Math.floor(left % 3600e3 / 60e3), s = Math.floor(left % 60e3 / 1e3);
+  document.getElementById('fcd').textContent = `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')} 뒤`;
+}
+
+// ---------- 레이아웃 버튼 ----------
+const LAYOUT_ICONS = {
+  1: '<rect x="2" y="3" width="20" height="18" rx="2"/>',
+  2: '<rect x="2" y="3" width="9" height="18" rx="2"/><rect x="13" y="3" width="9" height="18" rx="2"/>',
+  3: '<rect x="2" y="3" width="12" height="18" rx="2"/><rect x="16" y="3" width="6" height="8" rx="1.5"/><rect x="16" y="13" width="6" height="8" rx="1.5"/>',
+  4: '<rect x="2" y="3" width="9" height="8" rx="1.5"/><rect x="13" y="3" width="9" height="8" rx="1.5"/><rect x="2" y="13" width="9" height="8" rx="1.5"/><rect x="13" y="13" width="9" height="8" rx="1.5"/>',
+};
+function renderLayouts() {
+  const box = document.getElementById('layouts');
+  box.innerHTML = [1, 2, 3, 4].map(n => `<button data-n="${n}" class="${n === state.layout ? 'on' : ''}" title="${n === 1 ? '단일 차트' : n + '분할'}"><svg viewBox="0 0 24 24">${LAYOUT_ICONS[n]}</svg></button>`).join('');
+  box.querySelectorAll('button').forEach(b => b.onclick = () => {
+    const n = +b.dataset.n;
+    if (n === state.layout) return;
+    state.layout = n; save(); renderLayouts(); buildCharts();
+  });
+}
+
+// ---------- 관심 종목 ----------
+const held = new Set(DATA.positions.map(p => p.symbol));
+function heldTag(sym) {
+  const sides = DATA.positions.filter(p => p.symbol === sym).map(p => p.side);
+  return sides.map(sd => `<i class="tag ${sd.toLowerCase()}">${sd === 'LONG' ? 'L' : 'S'}</i>`).join('');
+}
+function rowHtml(sym) {
+  const t = state.tk[sym] || {};
+  return `<div class="row ${sym === state.sym ? 'on' : ''}" data-s="${sym}"><span class="s">${coinHtml(sym)}<b>${base(sym)}</b>${heldTag(sym)}</span>
+    <span class="v num ${cls(t.pct)}">${fmtPrice(t.last)}</span><span class="pc num ${cls(t.pct)}">${fmtPct(t.pct)}</span></div>`;
+}
+function filtered(q) {
+  q = q.trim().toUpperCase();
+  let syms = DATA.symbols.filter(s => !q || base(s).includes(q));
+  if (state.sortKey !== 'none') {
+    const key = state.sortKey;
+    syms = syms.slice().sort((a, b) => {
+      if (key === 'sym') return a.localeCompare(b) * -state.sortDir;
+      const va = (state.tk[a] || {})[key], vb = (state.tk[b] || {})[key];
+      return ((vb ?? -Infinity) - (va ?? -Infinity)) * (state.sortDir === -1 ? 1 : -1);
+    });
+  }
+  return syms;
+}
+function renderList(id, q) {
+  const syms = filtered(q);
+  const mine = syms.filter(s => held.has(s)), rest = syms.filter(s => !held.has(s));
+  let h = '';
+  if (mine.length) h += `<div class="group">보유 중 ${mine.length}</div>` + mine.map(rowHtml).join('');
+  if (rest.length) h += (mine.length ? `<div class="group">관심 종목 ${rest.length}</div>` : '') + rest.map(rowHtml).join('');
+  const el = document.getElementById(id);
+  el.innerHTML = h || '<div class="empty">찾는 종목이 없어요</div>';
+  el.querySelectorAll('.row').forEach(r => r.onclick = () => selectSym(r.dataset.s));
+}
+function renderSort() {
+  document.querySelectorAll('.cols span').forEach(sp => {
+    const k = sp.dataset.k;
+    const on = state.sortKey === k;
+    sp.classList.toggle('sorted', on);
+    const label = { sym: '종목', last: '현재가', pct: '변동%' }[k];
+    sp.textContent = on ? `${label} ${state.sortDir === -1 ? '▼' : '▲'}` : label;
+  });
+}
+function renderAllLists() {
+  renderList('list', state.q);
+  if (document.getElementById('pop').classList.contains('open')) renderList('list2', state.q2);
+  document.getElementById('cnt').textContent = DATA.symbols.length + '개';
+}
+function selectSym(sym) {
+  document.getElementById('pop').classList.remove('open');
+  if (sym === state.sym) return;
+  state.sym = sym; save();
+  renderTop(); renderAllLists(); buildCharts();
+}
+document.querySelectorAll('.cols span').forEach(sp => sp.onclick = () => {
+  const k = sp.dataset.k;
+  if (state.sortKey === k) {
+    if (state.sortDir === -1) state.sortDir = 1; else { state.sortKey = 'none'; state.sortDir = -1; }
+  } else { state.sortKey = k; state.sortDir = -1; }
+  save(); renderSort(); renderAllLists();
+});
+document.getElementById('q').oninput = e => { state.q = e.target.value; renderList('list', state.q); };
+document.getElementById('q2').oninput = e => { state.q2 = e.target.value; renderList('list2', state.q2); };
+document.getElementById('symBtn').onclick = e => {
+  e.stopPropagation();
+  if (window.innerWidth > 900) { const q = document.getElementById('q'); q.focus(); q.select(); return; }
+  const pop = document.getElementById('pop');
+  pop.classList.toggle('open');
+  if (pop.classList.contains('open')) { renderList('list2', state.q2); document.getElementById('q2').focus(); }
+};
+document.addEventListener('click', e => { const pop = document.getElementById('pop'); if (!pop.contains(e.target)) pop.classList.remove('open'); });
+
+// ---------- 하단 시세 띠 ----------
+const TAPE = ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'XRP/USDT'];
+function renderTape() {
+  document.getElementById('krw').textContent = DATA.krw ? '₩' + Math.round(DATA.krw).toLocaleString('ko-KR') : '-';
+  document.getElementById('tape').innerHTML = TAPE.map(s => {
+    const t = state.tk[s] || {};
+    return `<span class="hide-sm" style="margin-right:16px">${base(s)}<b class="num">${fmtPrice(t.last)}</b> <span class="num ${cls(t.pct)}">${fmtPct(t.pct)}</span></span>`;
+  }).join('');
+}
+
+// ---------- 실시간 시세 (Bitget WebSocket) ----------
+let ws, wsTimer, dirty = false, retry = 0;
+function setLive(on, txt) { const el = document.getElementById('live'); el.classList.toggle('on', on); document.getElementById('liveTxt').textContent = txt; }
+function connect() {
+  try { ws = new WebSocket('wss://ws.bitget.com/v2/ws/public'); } catch (e) { setLive(false, '시세 지연'); return; }
+  ws.onopen = () => {
+    retry = 0; setLive(true, '실시간');
+    const args = DATA.symbols.map(s => ({ instType: 'USDT-FUTURES', channel: 'ticker', instId: s.replace('/', '') }));
+    for (let i = 0; i < args.length; i += 40) ws.send(JSON.stringify({ op: 'subscribe', args: args.slice(i, i + 40) }));
+    clearInterval(wsTimer); wsTimer = setInterval(() => { try { ws.send('ping'); } catch (e) {} }, 25000);
+  };
+  ws.onmessage = ev => {
+    if (ev.data === 'pong') return;
+    let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+    if (!m.data || !m.arg || m.arg.channel !== 'ticker') return;
+    for (const d of m.data) {
+      const id = d.instId || m.arg.instId;
+      const sym = DATA.byId[id]; if (!sym) continue;
+      const num = x => (x === undefined || x === null || x === '') ? null : +x;
+      const prev = state.tk[sym] || {};
+      state.tk[sym] = {
+        last: num(d.lastPr) ?? prev.last, pct: d.change24h != null ? num(d.change24h) * 100 : prev.pct,
+        high: num(d.high24h) ?? prev.high, low: num(d.low24h) ?? prev.low,
+        qv: num(d.quoteVolume) ?? num(d.usdtVolume) ?? prev.qv, funding: num(d.fundingRate) ?? prev.funding,
+        nft: num(d.nextFundingTime) ?? prev.nft,
+      };
+    }
+    dirty = true;
+  };
+  ws.onclose = () => {
+    clearInterval(wsTimer); setLive(false, '재연결 중');
+    retry = Math.min(retry + 1, 6); setTimeout(connect, 1000 * 2 ** retry);
+  };
+  ws.onerror = () => { try { ws.close(); } catch (e) {} };
+}
+setInterval(() => { if (!dirty) return; dirty = false; renderTop(); renderList('list', state.q); renderTape();
+  if (document.getElementById('pop').classList.contains('open')) renderList('list2', state.q2); }, 700);
+
+// ---------- 높이: 브라우저 화면에 맞추기 ----------
+function fitHeight() {
+  try {
+    const fe = window.frameElement; if (!fe) return;
+    const top = fe.getBoundingClientRect().top;
+    const h = Math.max(560, window.parent.innerHeight - top - 12);
+    fe.style.height = h + 'px'; fe.height = h;
+  } catch (e) {}
+}
+let lastW = window.innerWidth;
+window.addEventListener('resize', () => {
+  const w = window.innerWidth;
+  if ((lastW <= 900) !== (w <= 900)) buildCharts();
+  lastW = w;
+});
+try { window.parent.addEventListener('resize', fitHeight); } catch (e) {}
+
+// ---------- 시작 ----------
+fitHeight(); setTimeout(fitHeight, 400);
+renderLayouts(); renderSort(); renderTop(); renderAllLists(); renderTape(); tickClock();
+setInterval(tickClock, 1000);
+buildCharts();
+connect();
+</script>
+</body>
+</html>

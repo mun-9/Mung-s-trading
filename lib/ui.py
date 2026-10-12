@@ -43,8 +43,25 @@ def inject_css():
 
 html, body, .stApp { background-color: #F2F4F6 !important; }
 .stApp, .stApp p, .stApp div, .stApp label, .stApp button, .stApp span:not([class*='material']):not([data-testid='stIconMaterial']) { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif; letter-spacing:-0.01em; }
-.block-container { padding-top: 4.2rem; max-width: 1240px; }
-[data-testid="stHeader"] { background-color: rgba(242,244,246,0.92) !important; backdrop-filter: blur(8px); }
+.block-container { padding-top: 1.2rem; max-width: 1240px; }
+[data-testid="stHeader"] { display: none !important; }
+
+/* 상단 메뉴 바 */
+div[class*="st-key-topnav_"] { gap: 6px !important; padding: 6px 0 14px; margin-bottom: 10px; border-bottom: 1px solid #E5E8EB; }
+div[class*="st-key-topnav_dark"] { border-bottom-color: #2A2E39; margin-bottom: 6px; padding: 2px 0 10px; }
+.nav-logo { font-size: 17px; font-weight: 800; color: #191F28; letter-spacing: -0.02em; white-space: nowrap; line-height: 42px; margin: 0; }
+div[class*="st-key-topnav_"] [data-testid="stMarkdownContainer"] { margin: 0 !important; }
+div[class*="st-key-topnav_"] > div:has(div[class*="st-key-navlink_history"]) { margin-left: auto !important; }
+div[class*="st-key-topnav_dark"] .nav-logo { color: #D1D4DC; }
+div[class*="st-key-navlink_"] a { padding: 9px 20px !important; border-radius: 999px !important; min-height: 0 !important; }
+div[class*="st-key-navlink_"] a p, div[class*="st-key-navlink_"] a span { font-size: 15px !important; font-weight: 700 !important; color: #6B7684 !important; }
+div[class*="st-key-navlink_"] a:hover { background: rgba(49,130,246,0.08) !important; }
+div[class*="st-key-navlink_"][class*="_on"] a { background: #191F28 !important; }
+div[class*="st-key-navlink_"][class*="_on"] a p, div[class*="st-key-navlink_"][class*="_on"] a span { color: #FFFFFF !important; }
+div[class*="st-key-topnav_dark"] div[class*="st-key-navlink_"] a p, div[class*="st-key-topnav_dark"] div[class*="st-key-navlink_"] a span { color: #787B86 !important; }
+div[class*="st-key-topnav_dark"] div[class*="st-key-navlink_"][class*="_on"] a { background: #2962FF !important; }
+div[class*="st-key-topnav_dark"] div[class*="st-key-navlink_"][class*="_on"] a p { color: #FFFFFF !important; }
+div[class*="st-key-topnav_dark"] div[class*="st-key-navlink_"] a:hover { background: #2A2E39 !important; }
 [data-testid="stToolbarActions"], [data-testid="stMainMenu"], [data-testid="stAppDeployButton"] { display: none !important; }
 
 /* 상단 메뉴 */
@@ -73,7 +90,7 @@ html, body, .stApp { background-color: #F2F4F6 !important; }
 .bd-total b { font-size: 26px; font-weight: 800; letter-spacing:-0.02em; }
 .bd-note { font-size: 11.5px; color:#8B95A1; margin-top: 10px; line-height: 1.6; }
 
-.badge { background:#ffffff; padding:6px 12px; border-radius:999px; box-shadow:0 2px 10px rgba(15,23,42,0.04); display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+.badge { line-height: normal; background:#ffffff; padding:6px 12px; border-radius:999px; box-shadow:0 2px 10px rgba(15,23,42,0.04); display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
 .dot { width:7px; height:7px; border-radius:50%; display:inline-block; }
 
 div[class*="st-key-pos_header_row"] { position: relative !important; min-height: 36px; margin: 6px 0 12px; }
@@ -128,7 +145,9 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
 .chip { display:inline-block; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:999px; margin-left:4px; }
 
 @media (max-width: 768px) {
-    .block-container { padding-top: 3.6rem; }
+    .block-container { padding-top: 0.8rem; }
+    .nav-logo { font-size: 15px; }
+    div[class*="st-key-navlink_"] a { padding: 8px 14px !important; }
     .pos-divider { border-left: none !important; border-top: 1px solid rgba(15,23,42,0.06) !important; padding-top: 14px !important; margin-top: 6px !important; }
     .hide-on-mobile { display: none !important; }
     .kpi-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
@@ -136,3 +155,16 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
 }
 </style>
 """)
+
+
+NAV_PAGES = [("history", "views/history.py", "매매 히스토리"), ("chart", "views/chart.py", "차트")]
+
+
+def nav(current, dark=False):
+    """페이지 상단 메뉴 바 (로고 + 큰 탭 버튼)."""
+    mode = "dark" if dark else "light"
+    with st.container(key=f"topnav_{mode}", horizontal=True, vertical_alignment="center"):
+        html(f"<div class='nav-logo'>📈 Mung's Trading</div>")
+        for key, path, label in NAV_PAGES:
+            with st.container(key=f"navlink_{key}_{'on' if key == current else 'off'}", width="content"):
+                st.page_link(path, label=label)

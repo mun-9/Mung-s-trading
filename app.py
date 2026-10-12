@@ -10,4 +10,4 @@ pages = [
     st.Page("views/history.py", title="매매 히스토리", default=True),
     st.Page("views/chart.py", title="차트"),
 ]
-st.navigation(pages, position="top").run()
+st.navigation(pages, position="hidden").run()

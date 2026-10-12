@@ -6,8 +6,9 @@ import streamlit as st
 
 from lib import data as D
 from lib.ui import (BLUE, DIVIDER, GRAY, GRAY_SOFT, GREEN, GREEN_SOFT, LINE_COLOR, RED, RED_SOFT, SUB, TEXT,
-                    html, kpi, money, pnl_color, section)
+                    html, kpi, money, nav, pnl_color, section)
 
+nav("history")
 KST = D.KST
 keys = D.get_keys()
 hist = D.fetch_history(keys)
@@ -21,11 +22,6 @@ if hist["demo"]:
 else:
     badge = (f"<span class='dot' style='background:{GREEN};'></span><span style='font-size:12.5px;font-weight:700;color:{TEXT};'>Bitget</span>"
              f"<span class='hide-on-mobile' style='font-size:11.5px;color:{SUB};'>{hist['loaded_at'].strftime('%H:%M')} 기준</span>")
-html(f"""<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:22px;">📈</span>
-<span style="font-size:21px;font-weight:800;color:{TEXT};letter-spacing:-0.02em;white-space:nowrap;">매매 히스토리</span></div>
-<div class="badge">{badge}</div></div>""")
-
 if hist["errors"]:
     shown = "<br>".join(hist["errors"][:5])
     more = f"<br>외 {len(hist['errors']) - 5}건" if len(hist["errors"]) > 5 else ""
@@ -40,7 +36,8 @@ def clear_all():
 # 보유 포지션 (10초 갱신)
 # -----------------------------------------------------------------------------
 with st.container(key="pos_header_row"):
-    html(f"<div style='font-size:19px;font-weight:800;color:{TEXT};line-height:36px;'>보유 포지션</div>")
+    html(f"<div style='display:flex;align-items:center;gap:10px;line-height:36px;'><span style='font-size:19px;font-weight:800;color:{TEXT};'>보유 포지션</span>"
+         f"<span class='badge' style='margin-right:46px;margin-left:auto;'>{badge}</span></div>")
     if st.button("🔄", key="manual_refresh_main", help="모든 데이터 새로고침"):
         clear_all(); st.rerun()
 

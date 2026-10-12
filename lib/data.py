@@ -536,3 +536,36 @@ def performance(trades):
         "expectancy": float(c["net"].mean()), "max_loss_streak": worst, "mdd": mdd,
         "best": float(c["net"].max()), "worst": float(c["net"].min()),
     }
+
+
+# -----------------------------------------------------------------------------
+# 관심 종목 시세 (차트 페이지 초기값, 15초 캐시)
+# -----------------------------------------------------------------------------
+WATCH_SYMBOLS = BASE_SYMBOLS + [
+    "LINK/USDT", "AVAX/USDT", "TRX/USDT", "LTC/USDT", "DOT/USDT", "TON/USDT",
+    "HYPE/USDT", "ENA/USDT", "TAO/USDT", "APT/USDT", "NEAR/USDT", "ARB/USDT",
+]
+
+
+@st.cache_data(ttl=15, show_spinner=False)
+def fetch_tickers():
+    try:
+        raw = _exchange().fetch_tickers(params={"productType": PRODUCT_TYPE})
+    except Exception:
+        return {}
+    out = {}
+    for k, v in raw.items():
+        if not k.endswith(":USDT"):
+            continue
+        info = v.get("info") or {}
+
+        def f(x):
+            try:
+                return float(x)
+            except (TypeError, ValueError):
+                return None
+        out[_plain_symbol(k)] = {
+            "last": f(v.get("last")), "pct": f(v.get("percentage")), "high": f(v.get("high")),
+            "low": f(v.get("low")), "qv": f(v.get("quoteVolume")), "funding": f(info.get("fundingRate")),
+        }
+    return out
