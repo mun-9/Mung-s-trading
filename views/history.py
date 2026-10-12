@@ -321,13 +321,14 @@ with st.container(key="pnl_card"):
     last_v = daily["pnl"].iloc[-1] if not daily.empty else 0.0
     win_days = int((daily["pnl"] > 0).sum()) if not daily.empty else 0
     loss_days = int((daily["pnl"] < 0).sum()) if not daily.empty else 0
-    with st.container(key="pnl_head", horizontal=True, vertical_alignment="top"):
-        html(f"""<div><div style='font-size:17px;color:{TEXT};font-weight:800;letter-spacing:-0.02em;'>기간 PNL</div>
-<div style='display:flex;align-items:baseline;gap:8px;margin-top:6px;flex-wrap:wrap;'><span style='font-size:30px;font-weight:800;color:{pnl_color(bd["net"])};letter-spacing:-0.02em;'>{money(bd["net"])}</span>
-<span style='font-size:14px;color:{SUB};font-weight:600;'>USDT</span></div>
-<div style='font-size:13px;color:{SUB};margin-top:4px;'>수익 <b style='color:{GREEN};'>{win_days}일</b> · 손실 <b style='color:{RED};'>{loss_days}일</b> · 마지막 날 <b style='color:{pnl_color(last_v)};'>{money(last_v)}</b></div></div>""")
+    with st.container(key="pnl_head", horizontal=True, vertical_alignment="center"):
+        html(f"<div style='font-size:17px;color:{TEXT};font-weight:800;letter-spacing:-0.02em;line-height:40px;'>기간 PNL</div>")
         with st.container(key="pnl_view_box", width="content"):
             view = st.segmented_control("보기", ["일별", "누적"], default="일별", key="pnl_view", label_visibility="collapsed") or "일별"
+    html(f"""<div style='display:flex;align-items:baseline;gap:8px;margin-top:-4px;flex-wrap:wrap;'><span style='font-size:30px;font-weight:800;color:{pnl_color(bd["net"])};letter-spacing:-0.02em;'>{money(bd["net"])}</span>
+<span style='font-size:14px;color:{SUB};font-weight:600;'>USDT</span></div>
+<div style='font-size:13px;color:{SUB};margin-top:4px;'>Win <b style='color:{GREEN};'>{win_days} days</b> · Loss <b style='color:{RED};'>{loss_days} days</b></div>
+<div style='border-top:1px solid #E5E8EB;margin:16px 0 0;'></div>""")
     n = len(daily)
     ticks = list(daily["date"]) if n <= 10 else [daily["date"].iloc[i] for i in sorted(set(range(0, n, max(1, n // 6))) | {n - 1})]
     if view == "일별":
@@ -340,7 +341,7 @@ with st.container(key="pnl_card"):
     st.plotly_chart(no_zoom(style_fig(fig, ticks=ticks)), width="stretch", config=PLOT_CFG)
 ledger_net = float(f_ledger["net"].sum()) if not f_ledger.empty else None
 if ledger_net is not None:
-    html(f"<div class='note-text'>검증용 · 거래소 장부 합계 {money(ledger_net)} (페이백 제외, 진입 수수료를 진입 시점에 바로 뺀 값)</div>")
+    html(f"<div class='note-text' style='margin-top:-8px;'>검증용 · 거래소 장부 합계 {money(ledger_net)} (페이백 제외, 진입 수수료를 진입 시점에 바로 뺀 값)</div>")
 
 # -----------------------------------------------------------------------------
 # 성과 지표

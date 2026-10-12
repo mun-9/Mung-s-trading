@@ -93,10 +93,11 @@ div[class*="st-key-topnav_dark"] div[class*="st-key-navlink_"] a:hover p { color
 /* 섹션 제목 줄 (보유 포지션 + 배지 + 새로고침) */
 div[class*="st-key-page_head"] { margin: -4px 0 2px; min-height: 40px; }
 div[class*="st-key-page_head"] [data-testid="stElementContainer"], div[class*="st-key-page_head"] [data-testid="stMarkdownContainer"] { margin: 0 !important; }
-div[class*="st-key-page_head"] .ph-title { line-height: 36px; }
+div[class*="st-key-page_head"] .ph-title { line-height: 36px; font-size: 26px; padding-left: 0.3em; }
 div[class*="st-key-page_head"] p { margin: 0 !important; line-height: 0; }
 div[class*="st-key-page_head"] [data-testid="stMarkdown"] { display: flex; align-items: center; }
 div[class*="st-key-pnl_head"] { justify-content: space-between !important; }
+div[class*="st-key-pnl_head"] [data-testid="stMarkdownContainer"] { margin: 0 !important; }
 div[class*="st-key-pnl_view_box"] { margin-left: auto !important; }
 div[class*="st-key-page_head"] > div:last-child { gap: 8px !important; align-items: center !important; }
 div[class*="st-key-page_head"] > div:last-child { margin-left: auto !important; }

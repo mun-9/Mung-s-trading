@@ -24,9 +24,9 @@ with st.container(key="hidden_nav_market"):
 
 keys = D.get_keys()
 positions, _, _ = D.fetch_positions(keys)
-# 차트·시세 모두 Bybit 기준 (Bybit 조회가 막히면 Bitget 시세를 초기값으로만 사용, 브라우저가 Bybit 실시간으로 덮어씀)
+# 차트·시세 모두 OKX 기준 (OKX 조회가 막히면 Bitget 시세를 초기값으로만 사용, 브라우저가 OKX 실시간으로 덮어씀)
 bitget = D.fetch_tickers()
-tickers = D.fetch_bybit_tickers() or bitget
+tickers = (D.fetch_okx_tickers() if hasattr(D, "fetch_okx_tickers") else {}) or bitget
 upbit = D.fetch_upbit_krw()
 
 pos_syms = list(dict.fromkeys(p["symbol"] for p in positions))

@@ -224,8 +224,8 @@ svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-widt
     <div class="ms hide-lg" id="kpBox"><span class="lb">김프</span><span class="v num" id="kp">-</span></div>
     <div id="posChips" class="hide-sm"></div>
     <div class="bar-right">
-      <span class="tbtn hide-md" style="cursor:default" title="차트와 시세 모두 Bybit 기준">Bybit 기준</span>
-      <span class="tbtn" title="Bybit 실시간 시세 연결 상태"><span class="livedot" id="live"></span></span>
+      <span class="tbtn hide-md" style="cursor:default" title="차트와 시세 모두 OKX 기준 · 펀딩비만 Bitget">OKX 기준</span>
+      <span class="tbtn" title="OKX 실시간 시세 연결 상태"><span class="livedot" id="live"></span></span>
     </div>
   </div>
 
@@ -319,7 +319,14 @@ function renderTabs() {
 }
 
 // ---------- 차트 ----------
-const tvSymbol = sym => `BYBIT:${sym.replace('/', '')}.P`;
+const tvSymbol = sym => `OKX:${sym.replace('/', '')}.P`;
+// OKX 무기한 종목 이름: BTC/USDT → BTC-USDT-SWAP
+const okxId = sym => sym.replace('/', '-') + '-SWAP';
+const OKX_ID2SYM = Object.fromEntries(DATA.symbols.map(s => [okxId(s), s]));
+// OKX 계약 1개가 코인 몇 개인지 (호가·체결 수량을 코인 단위로 바꾸는 데 사용)
+let CTVAL = {};
+fetch('https://www.okx.com/api/v5/public/instruments?instType=SWAP').then(r => r.json())
+  .then(j => { for (const x of j.data || []) CTVAL[x.instId] = +x.ctVal || 1; }).catch(() => {});
 function paneHead(i) {
   const s = panes[i].sym, t = state.tk[s] || {};
   return `${coin(s)}<b>${base(s)}</b><span>무기한</span><span class="num ${cls(t.pct)}">${fmtPrice(t.last)}</span><span class="num ${cls(t.pct)}">${fmtPct(t.pct)}</span>
@@ -497,7 +504,7 @@ function renderPanel() {
     });
   } else if (state.view === 'book') {
     rowEls = {};
-    pnl.innerHTML = `<div class="ph"><b>호가 · 체결</b><span>${base(s)} · Bybit</span><button class="x" id="pclose" title="접기">${ICON.close}</button></div>
+    pnl.innerHTML = `<div class="ph"><b>호가 · 체결</b><span>${base(s)} · OKX</span><button class="x" id="pclose" title="접기">${ICON.close}</button></div>
       <div class="obh"><span>가격(USDT)</span><span>수량(${plain(s)})</span><span>누적</span></div>
       <div id="obAsks" class="ob"></div><div id="obMid" class="obmid num">-</div><div id="obBids" class="ob"></div>
       <div class="sec" style="position:static;cursor:default">최근 체결</div>
@@ -539,32 +546,34 @@ function updateRows() {
   if (state.panel && state.view === 'pos') renderPanel();
 }
 
-// ---------- 호가 · 체결 (Bybit, 선택한 종목만) ----------
+// ---------- 호가 · 체결 (OKX, 선택한 종목만) ----------
 const book = {
   sym: null, bids: new Map(), asks: new Map(), trades: [], ws: null, dirty: false,
+  args(sym) { return [{ channel: 'books', instId: okxId(sym) }, { channel: 'trades', instId: okxId(sym) }]; },
   need(sym) {
     if (this.sym === sym && this.ws && this.ws.readyState <= 1) return;
     const old = this.sym; this.sym = sym; this.bids.clear(); this.asks.clear(); this.trades = [];
-    const id = sym.replace('/', '');
-    const sub = () => this.ws.send(JSON.stringify({ op: 'subscribe', args: ['orderbook.50.' + id, 'publicTrade.' + id] }));
+    const sub = () => this.ws.send(JSON.stringify({ op: 'subscribe', args: this.args(sym) }));
     if (this.ws && this.ws.readyState === 1) {
-      if (old) this.ws.send(JSON.stringify({ op: 'unsubscribe', args: ['orderbook.50.' + old.replace('/', ''), 'publicTrade.' + old.replace('/', '')] }));
+      if (old) this.ws.send(JSON.stringify({ op: 'unsubscribe', args: this.args(old) }));
       sub(); return;
     }
-    try { this.ws = new WebSocket('wss://stream.bybit.com/v5/public/linear'); } catch (e) { return; }
-    this.ws.onopen = () => { sub(); this.ping = setInterval(() => { try { this.ws.send(JSON.stringify({ op: 'ping' })); } catch (e) {} }, 20000); };
+    try { this.ws = new WebSocket('wss://ws.okx.com:8443/ws/v5/public'); } catch (e) { return; }
+    this.ws.onopen = () => { sub(); this.ping = setInterval(() => { try { this.ws.send('ping'); } catch (e) {} }, 25000); };
     this.ws.onclose = () => { clearInterval(this.ping); const s0 = this.sym; this.ws = null; if (state.panel && state.view === 'book') setTimeout(() => this.need(s0), 2000); };
     this.ws.onmessage = ev => {
+      if (ev.data === 'pong') return;
       let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
-      if (!m.topic) return;
-      const id2 = this.sym.replace('/', '');
-      if (m.topic === 'orderbook.50.' + id2) {
-        if (m.type === 'snapshot') { this.bids.clear(); this.asks.clear(); }
-        for (const [p, q] of m.data.b || []) { if (+q === 0) this.bids.delete(p); else this.bids.set(p, +q); }
-        for (const [p, q] of m.data.a || []) { if (+q === 0) this.asks.delete(p); else this.asks.set(p, +q); }
+      if (!m.arg || !m.data || m.arg.instId !== okxId(this.sym)) return;
+      const ct = CTVAL[m.arg.instId] || 1;
+      if (m.arg.channel === 'books') {
+        const d = m.data[0];
+        if (m.action === 'snapshot') { this.bids.clear(); this.asks.clear(); }
+        for (const [p, q] of d.bids || []) { if (+q === 0) this.bids.delete(p); else this.bids.set(p, +q * ct); }
+        for (const [p, q] of d.asks || []) { if (+q === 0) this.asks.delete(p); else this.asks.set(p, +q * ct); }
         this.dirty = true;
-      } else if (m.topic === 'publicTrade.' + id2) {
-        for (const t of m.data) this.trades.unshift({ t: t.T, p: +t.p, v: +t.v, buy: t.S === 'Buy' });
+      } else if (m.arg.channel === 'trades') {
+        for (const t of m.data) this.trades.unshift({ t: +t.ts, p: +t.px, v: +t.sz * ct, buy: t.side === 'buy' });
         this.trades.length = Math.min(this.trades.length, 40); this.dirty = true;
       }
     };
@@ -669,29 +678,29 @@ function renderStatus() {
 
 // ---------- 실시간 시세 ----------
 let dirty = false;
-// Bybit 무기한 시세 (차트와 같은 거래소)
+// OKX 무기한 시세 (차트와 같은 거래소)
 let ws, wsPing, retry = 0;
-function connectBybit() {
-  try { ws = new WebSocket('wss://stream.bybit.com/v5/public/linear'); } catch (e) { return; }
+function connectOkx() {
+  try { ws = new WebSocket('wss://ws.okx.com:8443/ws/v5/public'); } catch (e) { return; }
   ws.onopen = async () => {
     retry = 0; $('live').classList.add('on');
-    const args = DATA.symbols.map(s => 'tickers.' + s.replace('/', ''));
-    for (let i = 0; i < args.length; i += 10) { try { ws.send(JSON.stringify({ op: 'subscribe', args: args.slice(i, i + 10) })); } catch (e) {} await new Promise(r => setTimeout(r, 40)); }
-    clearInterval(wsPing); wsPing = setInterval(() => { try { ws.send(JSON.stringify({ op: 'ping' })); } catch (e) {} }, 20000);
+    const args = DATA.symbols.map(s => ({ channel: 'tickers', instId: okxId(s) }));
+    for (let i = 0; i < args.length; i += 50) { try { ws.send(JSON.stringify({ op: 'subscribe', args: args.slice(i, i + 50) })); } catch (e) {} await new Promise(r => setTimeout(r, 60)); }
+    clearInterval(wsPing); wsPing = setInterval(() => { try { ws.send('ping'); } catch (e) {} }, 25000);
   };
   ws.onmessage = ev => {
+    if (ev.data === 'pong') return;
     let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
-    if (!m.topic || !m.topic.startsWith('tickers.') || !m.data) return;
-    const d = m.data, s = DATA.byId[d.symbol || m.topic.slice(8)]; if (!s) return;
-    const num = x => (x === undefined || x === null || x === '') ? undefined : +x;
-    const p = state.tk[s] || {}, pc = num(d.price24hPcnt);
-    // delta 메시지는 바뀐 값만 오므로 없는 값은 이전 값 유지
-    state.tk[s] = { last: num(d.lastPrice) ?? p.last, pct: pc !== undefined ? pc * 100 : p.pct,
-      high: num(d.highPrice24h) ?? p.high, low: num(d.lowPrice24h) ?? p.low, qv: num(d.turnover24h) ?? p.qv,
-      funding: num(d.fundingRate) ?? p.funding, nft: num(d.nextFundingTime) ?? p.nft };
+    if (!m.arg || m.arg.channel !== 'tickers' || !m.data) return;
+    for (const d of m.data) {
+      const s = OKX_ID2SYM[d.instId]; if (!s) continue;
+      const last = +d.last, open = +d.open24h, p = state.tk[s] || {};
+      state.tk[s] = { last, pct: open ? (last / open - 1) * 100 : p.pct, high: +d.high24h || p.high, low: +d.low24h || p.low,
+        qv: d.volCcy24h ? +d.volCcy24h * last : p.qv, funding: p.funding, nft: p.nft };
+    }
     dirty = true;
   };
-  ws.onclose = () => { clearInterval(wsPing); $('live').classList.remove('on'); retry = Math.min(retry + 1, 6); setTimeout(connectBybit, 1000 * 2 ** retry); };
+  ws.onclose = () => { clearInterval(wsPing); $('live').classList.remove('on'); retry = Math.min(retry + 1, 6); setTimeout(connectOkx, 1000 * 2 ** retry); };
   ws.onerror = () => { try { ws.close(); } catch (e) {} };
 }
 // Bitget 펀딩비 (펀딩비만 Bitget 기준: 실제 거래하는 거래소)
@@ -783,7 +792,7 @@ fitHeight(); setTimeout(fitHeight, 400);
 renderTabs(); renderBar(); renderPanel(); renderStatus(); tickClock();
 setInterval(tickClock, 1000);
 buildGrid();
-connectBybit(); connectUpbit(); connectLiq(); connectBinanceLiq(); connectBitgetFunding();
+connectOkx(); connectUpbit(); connectLiq(); connectBinanceLiq(); connectBitgetFunding();
 </script>
 </body>
 </html>

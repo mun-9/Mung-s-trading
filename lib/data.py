@@ -768,3 +768,27 @@ def fetch_equity(keys):
         return fut, spot, None
     except Exception as e:
         return None, None, f"{type(e).__name__}: {e}"
+
+
+@st.cache_data(ttl=15, show_spinner=False)
+def fetch_okx_tickers():
+    """OKX USDT 무기한 시세 (차트 페이지 기준 거래소). 실패하면 {}."""
+    try:
+        raw = _get_json("https://www.okx.com/api/v5/market/tickers?instType=SWAP", timeout=6)["data"]
+    except Exception:
+        return {}
+    out = {}
+    for t in raw:
+        iid = t.get("instId", "")
+        if not iid.endswith("-USDT-SWAP"):
+            continue
+        try:
+            last, open24 = float(t["last"]), float(t["open24h"])
+            out[iid.replace("-USDT-SWAP", "/USDT")] = {
+                "last": last, "pct": (last / open24 - 1) * 100 if open24 else None,
+                "high": float(t["high24h"]), "low": float(t["low24h"]),
+                "qv": float(t.get("volCcy24h") or 0) * last, "funding": None,
+            }
+        except (KeyError, ValueError, TypeError):
+            continue
+    return out
