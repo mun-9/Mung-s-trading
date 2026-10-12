@@ -30,9 +30,9 @@ svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-widt
 .wtab svg rect { fill: none; stroke: currentColor; stroke-width: 1.6; }
 .wtab svg { width: 14px; height: 14px; }
 .upper-right { margin-left: auto; display: flex; align-items: center; gap: 6px; }
-.linkbtn { display: flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 5px; border: 1px solid rgba(255,255,255,0.1); color: var(--text); font-size: 12px; white-space: nowrap; }
-.linkbtn:hover { border-color: rgba(255,255,255,0.25); color: var(--strong); }
-.linkbtn svg.i { width: 13px; height: 13px; }
+.linkbtn { display: flex; align-items: center; gap: 7px; height: 27px; padding: 0 14px; border-radius: 7px; border: 0; background: var(--accent); color: #fff; font-size: 13.5px; font-weight: 700; white-space: nowrap; cursor: pointer; }
+.linkbtn:hover { background: #3D74FF; }
+.linkbtn svg.i { width: 15px; height: 15px; stroke-width: 2; }
 
 /* ② 종목 정보 줄 */
 #bar { display: flex; align-items: center; height: 48px; padding: 0 8px; background: var(--bar); flex-shrink: 0; gap: 20px; color: var(--mid); font-size: 13px; }
@@ -172,7 +172,7 @@ svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-widt
     <div class="logo"><svg viewBox="0 0 24 24"><rect x="3" y="12" width="4" height="9" rx="1.5" fill="#2962FF" opacity=".5"/><rect x="10" y="7" width="4" height="14" rx="1.5" fill="#2962FF" opacity=".75"/><rect x="17" y="3" width="4" height="18" rx="1.5" fill="#2962FF"/></svg>Mungge</div>
     <div id="tabs" style="display:flex;align-self:stretch;"></div>
     <div class="upper-right">
-      <a class="linkbtn" href="/" target="_top"><svg class="i" viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 15l3-4 3 2 5-6"/></svg>매매 히스토리</a>
+      <button class="linkbtn" id="goHistory"><svg class="i" viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 15l3-4 3 2 5-6"/></svg>매매 히스토리</button>
     </div>
   </div>
 
@@ -284,7 +284,7 @@ const tvSymbol = sym => `${state.src}:${sym.replace('/', '')}.P`;
 function paneHead(i) {
   const s = panes[i].sym, t = state.tk[s] || {};
   return `${coin(s)}<b>${base(s)}</b><span>무기한</span><span class="num ${cls(t.pct)}">${fmtPrice(t.last)}</span><span class="num ${cls(t.pct)}">${fmtPct(t.pct)}</span>
-    <span class="hint">${i === state.active ? '선택됨' : '눌러서 선택'}</span>`;
+    <span class="hint">${i === state.active ? '선택됨 · 오른쪽 목록에서 종목 변경' : '차트를 누르면 선택'}</span>`;
 }
 function buildPane(i) {
   const body = $('pb_' + i); if (!body) return;
@@ -573,6 +573,30 @@ function fitHeight() {
   } catch (e) {}
 }
 try { window.parent.addEventListener('resize', fitHeight); } catch (e) {}
+
+// ---------- 매매 히스토리로 이동 (부모 페이지의 숨은 메뉴 링크를 대신 눌러줌) ----------
+$('goHistory').onclick = () => {
+  try {
+    const link = window.parent.document.querySelector('div[class*="st-key-hidden_nav_history"] a');
+    if (link) { link.click(); return; }
+  } catch (e) {}
+  try { window.top.location.href = '/'; } catch (e) { window.open('/', '_blank'); }
+};
+
+// ---------- 차트를 클릭하면 그 차트가 선택됨 ----------
+// TradingView 차트는 별도 iframe이라 클릭이 전달되지 않아서, 포커스가 어느 차트 iframe으로 갔는지 확인
+function checkFocus() {
+  const el = document.activeElement;
+  if (!el || el.tagName !== 'IFRAME') return;
+  const cell = el.closest('.cell'); if (!cell) return;
+  const i = +cell.id.replace('cell_', '');
+  if (!isNaN(i) && i !== state.active && i < state.layout) setActive(i);
+}
+window.addEventListener('blur', () => setTimeout(checkFocus, 0));
+setInterval(checkFocus, 250);
+document.getElementById('grid').addEventListener('mousedown', e => {
+  const cell = e.target.closest('.cell'); if (cell) setActive(+cell.id.replace('cell_', ''));
+});
 
 // ---------- 시작 ----------
 fitHeight(); setTimeout(fitHeight, 400);

@@ -13,7 +13,12 @@ html, body, .stApp { background-color: #0F1219 !important; }
 .block-container { max-width: 100% !important; padding: 0 !important; }
 .block-container div[data-testid="stVerticalBlock"] { gap: 0 !important; }
 iframe { display: block; border: 0; }
+div[class*="st-key-hidden_nav_history"] { display: none !important; }
 </style>""")
+
+# 차트 화면의 '매매 히스토리' 버튼이 대신 눌러주는 숨은 링크 (페이지 이동은 Streamlit 링크로만 가능)
+with st.container(key="hidden_nav_history"):
+    st.page_link("views/history.py", label="매매 히스토리")
 
 keys = D.get_keys()
 positions, _, _ = D.fetch_positions(keys)
