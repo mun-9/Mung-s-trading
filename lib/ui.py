@@ -268,7 +268,7 @@ def nav(current, dark=False):
     with st.container(key=f"topnav_{mode}", horizontal=True, vertical_alignment="center"):
         html("<div class='nav-logo'><svg viewBox='0 0 24 24' width='22' height='22'><rect x='3' y='12' width='4' height='9' rx='1.5' fill='#2459ED' opacity='.45'/>"
              "<rect x='10' y='7' width='4' height='14' rx='1.5' fill='#2459ED' opacity='.7'/><rect x='17' y='3' width='4' height='18' rx='1.5' fill='#2459ED'/></svg>"
-             "<span class='word'>Mungge</span><span class='tag'>Trading</span></div>")
+             "<span class='word'>Mung9_</span><span class='tag'>Trading</span></div>")
         for key, path, label in NAV_PAGES:
             with st.container(key=f"navlink_{key}_{'on' if key == current else 'off'}", width="content"):
                 st.page_link(path, label=label)
