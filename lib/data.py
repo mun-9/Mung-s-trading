@@ -329,7 +329,7 @@ def _finish(fills, events, ledger, errors, demo):
 
 
 @st.cache_data(ttl=1800, show_spinner=False)
-def fetch_history(keys):
+def fetch_history(keys, _format=2):
     if is_demo(keys):
         return _demo_history()
 
@@ -676,12 +676,15 @@ def fetch_ls_external(symbols):
 
 def pending_fee_for(pending, symbol, side, size):
     """현재 보유 수량만큼의 진입 수수료 (기록상 수량이 더 크면 비율로 줄임)."""
-    v = (pending or {}).get(f"{symbol}|{side}")
-    if not v:
+    try:
+        v = (pending or {}).get(f"{symbol}|{side}")
+        if not v:
+            return 0.0
+        if isinstance(v, (int, float)):
+            return float(v)
+        qty, fee = float(v[0]), float(v[1])
+        if qty <= 0:
+            return 0.0
+        return fee * min(1.0, float(size or 0) / qty)
+    except Exception:
         return 0.0
-    if isinstance(v, (int, float)):
-        return float(v)
-    qty, fee = v
-    if qty <= 0:
-        return 0.0
-    return fee * min(1.0, float(size) / qty)
