@@ -56,9 +56,23 @@ else:
 title_row("보유 포지션", f"<span class='badge'>{badge}</span>", clear_all)
 
 
+_pending_skel = []  # 아직 떠 있는 로딩 카드 (포지션을 받는 즉시 지움)
+
+
+def _drop_skeletons():
+    for ph in _pending_skel:
+        try:
+            ph.empty()
+        except Exception:
+            pass
+    _pending_skel.clear()
+
+
 @st.fragment(run_every=10)
 def live_positions():
     positions, wallet, err = D.fetch_positions(keys)
+    # 포지션을 받자마자 위의 로딩 카드를 지움 (차트까지 다 그려질 때까지 기다리지 않음)
+    _drop_skeletons()
     if err:
         html(f"<div class='err-box'><b>포지션을 불러오지 못했어요</b> — API 키·권한 또는 거래소 응답을 확인해줘.<br>{err}</div>")
         return
@@ -146,6 +160,7 @@ with pos_slot:
         live_positions()
     else:
         pos_skel.markdown(_ui.POS_SKELETON, unsafe_allow_html=True)
+        _pending_skel.append(pos_skel)
 
 # -----------------------------------------------------------------------------
 # 상단 손익 카드
