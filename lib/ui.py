@@ -667,7 +667,7 @@ _LOADER_CSS = """
 def loader_html():
     return (_LOADER_CSS + '<div class="mg-load"><div class="mg-media">' + _loader_media() + '</div>'
             '<div class="mg-t">거래 내역을 불러오고 있어요</div>'
-            '<div class="mg-s">Bitget 체결 · 펀딩비 · 입금 내역 확인 중<br>처음엔 조금 걸리고, 다음부터는 금방 떠요</div>'
+            '<div class="mg-s">Bitget 체결 · 펀딩비 · 입금 내역 확인 중</div>'
             '<div class="mg-prog"></div></div>')
 
 
