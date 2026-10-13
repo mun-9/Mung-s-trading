@@ -61,6 +61,8 @@ _JS = r"""
     const docs = [d]; try { if (window.top !== window && window.top.document) docs.push(window.top.document); } catch (e) {}
     for (const doc of docs) {
       if (doc.getElementById('mg-pwa')) continue;
+      // Streamlit Cloud가 넣어둔 기본 앱 정보(이름 'Streamlit')는 빼고 우리 것으로
+      doc.querySelectorAll('link[rel="manifest"], link[rel="apple-touch-icon"]').forEach(el => el.remove());
       const add = (tag, attrs) => { const el = doc.createElement(tag); for (const k in attrs) el.setAttribute(k, attrs[k]); doc.head.appendChild(el); return el; };
       add('link', { id: 'mg-pwa', rel: 'manifest', href: st + 'manifest.json' });
       add('link', { rel: 'apple-touch-icon', href: st + 'apple-touch-icon.png' });
