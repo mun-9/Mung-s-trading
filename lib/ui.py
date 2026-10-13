@@ -39,17 +39,17 @@ def kpi(label, value, color=TEXT, sub=""):
 
 THEME_CSS = r"""
 :root { --mg-bg:#F2F4F6; --mg-card:#FFFFFF; --mg-raise:#FFFFFF; --mg-text:#191F28; --mg-sub:#8B95A1; --mg-mid:#4E5968; --mg-mid2:#6B7684;
-  --mg-line:#E5E8EB; --mg-line2:#D1D6DB; --mg-soft:#F2F4F6; --mg-tile:#F7F8FA; --mg-border:rgba(15,23,42,0.08); --mg-nav:rgba(255,255,255,0.92);
+  --mg-line:#E5E8EB; --mg-line2:#D1D6DB; --mg-soft:#F2F4F6; --mg-tile:#F7F8FA; --mg-border:rgba(15,23,42,0.08); --mg-nav:rgba(255,255,255,0.72);
   --mg-navline:#E7EBF1; --mg-hover:rgba(255,255,255,0.75); --mg-sk1:#EEF1F5; --mg-sk2:#F8F9FB; --mg-faint:#B0B8C1; --mg-sel:#EEF3FF;
-  --mg-errbg:#FFF4F4; --mg-accent:#2459ED; --mg-shadow:0 2px 14px rgba(15,23,42,0.05); }
+  --mg-errbg:#FFF4F4; --mg-accent:#2459ED; --mg-glow1:rgba(49,130,246,0.15); --mg-glow2:rgba(124,92,255,0.11); --mg-glow3:rgba(8,153,129,0.07); --mg-shadow:0 2px 14px rgba(15,23,42,0.05); }
 html[data-mg-theme="dark"] { --mg-bg:#0D1015; --mg-card:#171B22; --mg-raise:#2A303A; --mg-text:#ECEEF2; --mg-sub:#8A93A2; --mg-mid:#B4BBC6; --mg-mid2:#9AA3B0;
-  --mg-line:#272C35; --mg-line2:#353B46; --mg-soft:#20252D; --mg-tile:#1E232B; --mg-border:rgba(255,255,255,0.07); --mg-nav:rgba(13,16,21,0.88);
+  --mg-line:#272C35; --mg-line2:#353B46; --mg-soft:#20252D; --mg-tile:#1E232B; --mg-border:rgba(255,255,255,0.07); --mg-nav:rgba(13,16,21,0.70);
   --mg-navline:#1E232B; --mg-hover:rgba(255,255,255,0.06); --mg-sk1:#20252D; --mg-sk2:#2A303A; --mg-faint:#5F6774; --mg-sel:rgba(76,141,255,0.16);
-  --mg-errbg:rgba(240,68,82,0.12); --mg-accent:#5B8DFF; --mg-shadow:0 2px 14px rgba(0,0,0,0.35); }
+  --mg-errbg:rgba(240,68,82,0.12); --mg-accent:#5B8DFF; --mg-glow1:rgba(49,110,246,0.20); --mg-glow2:rgba(124,92,255,0.14); --mg-glow3:rgba(8,153,129,0.08); --mg-shadow:0 2px 14px rgba(0,0,0,0.35); }
 @media (prefers-color-scheme: dark) { html:not([data-mg-theme="light"]) { --mg-bg:#0D1015; --mg-card:#171B22; --mg-raise:#2A303A; --mg-text:#ECEEF2; --mg-sub:#8A93A2; --mg-mid:#B4BBC6; --mg-mid2:#9AA3B0;
-  --mg-line:#272C35; --mg-line2:#353B46; --mg-soft:#20252D; --mg-tile:#1E232B; --mg-border:rgba(255,255,255,0.07); --mg-nav:rgba(13,16,21,0.88);
+  --mg-line:#272C35; --mg-line2:#353B46; --mg-soft:#20252D; --mg-tile:#1E232B; --mg-border:rgba(255,255,255,0.07); --mg-nav:rgba(13,16,21,0.70);
   --mg-navline:#1E232B; --mg-hover:rgba(255,255,255,0.06); --mg-sk1:#20252D; --mg-sk2:#2A303A; --mg-faint:#5F6774; --mg-sel:rgba(76,141,255,0.16);
-  --mg-errbg:rgba(240,68,82,0.12); --mg-accent:#5B8DFF; --mg-shadow:0 2px 14px rgba(0,0,0,0.35); } }
+  --mg-errbg:rgba(240,68,82,0.12); --mg-accent:#5B8DFF; --mg-glow1:rgba(49,110,246,0.20); --mg-glow2:rgba(124,92,255,0.14); --mg-glow3:rgba(8,153,129,0.08); --mg-shadow:0 2px 14px rgba(0,0,0,0.35); } }
 html[data-mg-theme="dark"] .stApp, html[data-mg-theme="dark"] .stApp p, html[data-mg-theme="dark"] .stMarkdown { color: var(--mg-text); }
 html[data-mg-theme="dark"] [data-testid="stCaptionContainer"], html[data-mg-theme="dark"] .stCaption { color: var(--mg-sub) !important; }
 html[data-mg-theme="dark"] .card, html[data-mg-theme="dark"] div[class*="st-key-pnl_card"], html[data-mg-theme="dark"] div[class*="st-key-chart_card_"], html[data-mg-theme="dark"] div[class*="st-key-pos_container_"], html[data-mg-theme="dark"] .mg-load, html[data-mg-theme="dark"] .psk { box-shadow: var(--mg-shadow) !important; }
@@ -155,6 +155,13 @@ def inject_css():
 __THEME_VARS__
 
 html, body, .stApp { background-color: var(--mg-bg) !important; }
+/* 은은한 배경: 양쪽 위 구석에 아주 옅은 빛 (스크롤해도 제자리) */
+.stApp { background-image:
+    radial-gradient(1100px 700px at -8% -12%, var(--mg-glow1), transparent 62%),
+    radial-gradient(900px 650px at 108% 4%, var(--mg-glow2), transparent 60%),
+    radial-gradient(1000px 600px at 50% 118%, var(--mg-glow3), transparent 65%) !important;
+  background-attachment: fixed !important; }
+[data-testid="stAppViewContainer"], [data-testid="stMain"], [data-testid="stBottom"] { background: transparent !important; }
 .stApp, .stApp p, .stApp div, .stApp label, .stApp button, .stApp span:not([class*='material']):not([data-testid='stIconMaterial']) { font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif; letter-spacing:-0.01em; }
 .block-container { padding-top: 0 !important; max-width: 1240px; }
 [data-testid="stHeader"] { display: none !important; }
