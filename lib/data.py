@@ -721,6 +721,17 @@ def fetch_macro():
         return list(ex.map(one, MACRO))
 
 
+def fetch_usdkrw_live():
+    """달러/원 환율: 시장 화면 시세 줄과 같은 값(1분마다)을 우선, 안 되면 하루 단위 환율."""
+    try:
+        for m in fetch_macro():
+            if m["k"] == "usdkrw" and m["p"]:
+                return m["p"]
+    except Exception:
+        pass
+    return fetch_usdkrw()
+
+
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_usdkrw():
     """달러-원 환율 (김프 계산용). 실패하면 None."""

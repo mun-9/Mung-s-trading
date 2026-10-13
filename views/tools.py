@@ -18,7 +18,7 @@ page = (Path(__file__).parent / "tools_app.html").read_text(encoding="utf-8")
 
 def _fx():
     try:
-        return {"usdt": D.fetch_usdt_live(), "usdkrw": D.fetch_usdkrw()}
+        return {"usdt": D.fetch_usdt_live(), "usdkrw": D.fetch_usdkrw_live()}
     except Exception:
         return {"usdt": None, "usdkrw": None}
 
