@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+:root { --text: #191F28; --sub: #8B95A1; --mid: #4E5968; --line: #F2F4F6; --soft: #F2F4F6; --tile: #F7F8FA; --up: #089981; --down: #F04452; --blue: #3182F6;
+  --card: #fff; --raise: #fff; --faint: #B0B8C1; --shadow: 0 2px 14px rgba(15,23,42,0.05); --sel: #EEF3FF; --border: rgba(15,23,42,0.08); }
+:root[data-theme="dark"] { --text: #ECEEF2; --sub: #8A93A2; --mid: #B4BBC6; --line: #232831; --soft: #20252D; --tile: #1E232B; --blue: #5B8DFF;
+  --card: #171B22; --raise: #2A303A; --faint: #5F6774; --shadow: 0 2px 14px rgba(0,0,0,0.35); --sel: rgba(91,141,255,0.16); --border: rgba(255,255,255,0.07); }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: transparent; color: var(--text); font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; letter-spacing: -0.01em; }
+.num { font-variant-numeric: tabular-nums; }
+.up { color: var(--up) !important; } .down { color: var(--down) !important; }
+.wrap { display: flex; flex-direction: column; gap: 18px; padding: 2px 2px 30px; }
+.top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--card); border-radius: 18px; box-shadow: var(--shadow); padding: 14px 18px; }
+.top b { font-size: 14px; font-weight: 800; }
+.top .hint { font-size: 12.5px; color: var(--sub); margin-left: auto; }
+.symin { display: flex; align-items: center; gap: 6px; height: 38px; padding: 0 6px 0 12px; border-radius: 11px; background: var(--soft); }
+.symin input { width: 90px; border: 0; outline: 0; background: transparent; font-family: inherit; font-size: 14px; font-weight: 700; color: var(--text); text-transform: uppercase; }
+.symin span { font-size: 12px; color: var(--sub); }
+.live { font-size: 15px; font-weight: 800; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+.card { background: var(--card); border-radius: 20px; box-shadow: var(--shadow); padding: 22px 24px; min-width: 0; }
+.ct { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+.ct b { font-size: 17px; font-weight: 800; letter-spacing: -0.02em; }
+.desc { font-size: 12.5px; color: var(--sub); margin-bottom: 16px; line-height: 1.55; }
+.f { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.fld { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.fld.full { grid-column: 1 / -1; }
+.fld label { font-size: 12px; font-weight: 650; color: var(--mid); display: flex; justify-content: space-between; align-items: center; }
+.fld label button { border: 0; background: var(--sel); color: var(--blue); font-family: inherit; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 6px; cursor: pointer; }
+.inp { display: flex; align-items: center; height: 42px; padding: 0 12px; border-radius: 11px; background: var(--tile); border: 1px solid transparent; transition: border-color .15s; }
+.inp:focus-within { border-color: var(--blue); }
+.inp input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-family: inherit; font-size: 15px; font-weight: 650; color: var(--text); font-variant-numeric: tabular-nums; }
+.inp input::placeholder { color: var(--faint); font-weight: 500; }
+.inp span { font-size: 12px; color: var(--sub); margin-left: 6px; white-space: nowrap; }
+.seg { display: inline-flex; gap: 2px; padding: 3px; background: var(--soft); border-radius: 11px; height: 42px; width: 100%; }
+.seg button { flex: 1; border: 0; background: transparent; border-radius: 9px; font-family: inherit; font-size: 13.5px; font-weight: 700; color: var(--sub); cursor: pointer; }
+.seg button.on.l { background: var(--up); color: #fff; } .seg button.on.s { background: var(--down); color: #fff; } .seg button.on.n { background: var(--raise); color: var(--text); box-shadow: 0 1px 4px rgba(15,23,42,.08); }
+.res { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.r { background: var(--tile); border-radius: 12px; padding: 11px 13px; min-width: 0; }
+.r span { display: block; font-size: 11.5px; color: var(--sub); font-weight: 600; margin-bottom: 4px; }
+.r b { font-size: 17px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; word-break: break-all; }
+.r small { display: block; font-size: 11.5px; color: var(--sub); margin-top: 2px; }
+.r.hero { grid-column: 1 / -1; background: var(--sel); }
+.r.hero b { font-size: 24px; color: var(--blue); }
+.warn { grid-column: 1 / -1; font-size: 12px; color: var(--down); background: rgba(240,68,82,.08); border-radius: 10px; padding: 9px 12px; }
+.ok { grid-column: 1 / -1; font-size: 12px; color: var(--sub); line-height: 1.55; }
+.rows { display: flex; flex-direction: column; gap: 8px; }
+.er { display: grid; grid-template-columns: 22px 1fr 1fr 30px; gap: 8px; align-items: center; }
+.er .inp { min-width: 0; } .er .inp input { width: 100%; }
+.er .k { font-size: 12px; color: var(--sub); text-align: center; font-weight: 700; }
+.x { width: 30px; height: 30px; border: 0; border-radius: 9px; background: var(--soft); color: var(--sub); cursor: pointer; font-size: 14px; }
+.add { margin-top: 8px; width: 100%; height: 38px; border: 1px dashed var(--border); border-radius: 11px; background: transparent; color: var(--mid); font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.add:hover { border-color: var(--blue); color: var(--blue); }
+@media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .card { padding: 18px 16px; } .top .hint { display: none; } .r b { font-size: 16px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <b>기준 종목</b>
+    <div class="symin"><input id="sym" value="BTC" maxlength="12"><span>USDT</span></div>
+    <span class="live num" id="livePx">-</span><span class="num" id="livePc" style="font-size:13px;font-weight:700"></span>
+    <span class="hint">‘현재가’ 버튼을 누르면 Bitget 실시간 가격이 들어가요 · 입력값은 이 브라우저에 저장돼요</span>
+  </div>
+
+  <div class="grid">
+    <!-- 1. 포지션 크기 -->
+    <div class="card" id="c1">
+      <div class="ct"><b>📐 포지션 크기 계산기</b></div>
+      <div class="desc">손절했을 때 잃어도 되는 금액을 정하면, 들어가야 할 수량과 증거금을 알려줘요.</div>
+      <div class="f">
+        <div class="fld"><label>시드</label><div class="inp"><input data-k="seed" inputmode="decimal" placeholder="1000"><span>USDT</span></div></div>
+        <div class="fld"><label>리스크 (손절 시 손실)</label><div class="inp"><input data-k="risk" inputmode="decimal" placeholder="1"><span>% 시드</span></div></div>
+        <div class="fld"><label>진입가 <button data-px="entry">현재가</button></label><div class="inp"><input data-k="entry" inputmode="decimal" placeholder="0"></div></div>
+        <div class="fld"><label>손절가</label><div class="inp"><input data-k="stop" inputmode="decimal" placeholder="0"></div></div>
+        <div class="fld"><label>목표가 (선택)</label><div class="inp"><input data-k="tp" inputmode="decimal" placeholder="0"></div></div>
+        <div class="fld"><label>레버리지</label><div class="inp"><input data-k="lev" inputmode="decimal" placeholder="10"><span>x</span></div></div>
+      </div>
+      <div class="res" id="r1"></div>
+    </div>
+
+    <!-- 2. 청산가 -->
+    <div class="card" id="c2">
+      <div class="ct"><b>⚠️ 청산가 계산기</b></div>
+      <div class="desc">격리 마진 기준 예상 청산가예요. 실제 청산가는 거래소 유지증거금률·수수료에 따라 조금 달라요.</div>
+      <div class="f">
+        <div class="fld full"><label>방향</label><div class="seg" data-seg="side"><button class="l" data-v="long">롱</button><button class="s" data-v="short">숏</button></div></div>
+        <div class="fld"><label>진입가 <button data-px="entry">현재가</button></label><div class="inp"><input data-k="entry" inputmode="decimal" placeholder="0"></div></div>
+        <div class="fld"><label>레버리지</label><div class="inp"><input data-k="lev" inputmode="decimal" placeholder="10"><span>x</span></div></div>
+        <div class="fld full"><label>유지증거금률</label><div class="inp"><input data-k="mmr" inputmode="decimal" placeholder="0.5"><span>% (BTC 보통 0.4~0.5)</span></div></div>
+      </div>
+      <div class="res" id="r2"></div>
+    </div>
+
+    <!-- 3. 목표가 · ROE -->
+    <div class="card" id="c3">
+      <div class="ct"><b>🎯 목표가 · 수익률 계산기</b></div>
+      <div class="desc">원하는 수익률(ROE)이 나오려면 가격이 어디까지 가야 하는지, 반대로 이 가격이면 몇 %인지 계산해요.</div>
+      <div class="f">
+        <div class="fld full"><label>방향</label><div class="seg" data-seg="side"><button class="l" data-v="long">롱</button><button class="s" data-v="short">숏</button></div></div>
+        <div class="fld"><label>진입가 <button data-px="entry">현재가</button></label><div class="inp"><input data-k="entry" inputmode="decimal" placeholder="0"></div></div>
+        <div class="fld"><label>레버리지</label><div class="inp"><input data-k="lev" inputmode="decimal" placeholder="10"><span>x</span></div></div>
+        <div class="fld"><label>목표 수익률</label><div class="inp"><input data-k="roe" inputmode="decimal" placeholder="50"><span>% ROE</span></div></div>
+        <div class="fld"><label>또는 청산할 가격</label><div class="inp"><input data-k="exit" inputmode="decimal" placeholder="0"></div></div>
+        <div class="fld full"><label>증거금 (선택 · 수익 금액 계산용)</label><div class="inp"><input data-k="margin" inputmode="decimal" placeholder="100"><span>USDT</span></div></div>
+      </div>
+      <div class="res" id="r3"></div>
+    </div>
+
+    <!-- 4. 물타기 평단 -->
+    <div class="card" id="c4">
+      <div class="ct"><b>💧 물타기 · 평단가 계산기</b></div>
+      <div class="desc">나눠서 들어간 가격과 수량을 넣으면 평균 진입가와 지금 손익을 계산해요.</div>
+      <div class="f" style="margin-bottom:10px">
+        <div class="fld full"><label>방향</label><div class="seg" data-seg="side"><button class="l" data-v="long">롱</button><button class="s" data-v="short">숏</button></div></div>
+      </div>
+      <div class="er" style="margin-bottom:4px"><span></span><span style="font-size:12px;color:var(--mid);font-weight:650">진입가</span><span style="font-size:12px;color:var(--mid);font-weight:650">수량 (코인)</span><span></span></div>
+      <div class="rows" id="dca"></div>
+      <button class="add" id="dcaAdd">+ 진입 추가</button>
+      <div class="f" style="margin-top:10px"><div class="fld full"><label>현재가 <button data-px="now">현재가</button></label><div class="inp"><input data-k="now" inputmode="decimal" placeholder="0"></div></div></div>
+      <div class="res" id="r4"></div>
+    </div>
+
+    <!-- 5. 수수료 -->
+    <div class="card" id="c5">
+      <div class="ct"><b>🧾 수수료 · 페이백 계산기</b></div>
+      <div class="desc">한 번 진입하고 청산할 때 나가는 수수료와, 페이백을 받으면 실제로 얼마인지 보여줘요. (Bitget 기본 메이커 0.02% · 테이커 0.06%)</div>
+      <div class="f">
+        <div class="fld full"><label>포지션 크기 (진입 금액 × 레버리지)</label><div class="inp"><input data-k="size" inputmode="decimal" placeholder="10000"><span>USDT</span></div></div>
+        <div class="fld"><label>진입 주문</label><div class="seg" data-seg="in"><button class="n" data-v="taker">시장가</button><button class="n" data-v="maker">지정가</button></div></div>
+        <div class="fld"><label>청산 주문</label><div class="seg" data-seg="out"><button class="n" data-v="taker">시장가</button><button class="n" data-v="maker">지정가</button></div></div>
+        <div class="fld"><label>메이커 / 테이커 수수료율</label><div class="inp"><input data-k="mk" inputmode="decimal" placeholder="0.02" style="width:50%"><span>/</span><input data-k="tk" inputmode="decimal" placeholder="0.06" style="width:50%;margin-left:6px"><span>%</span></div></div>
+        <div class="fld"><label>페이백</label><div class="inp"><input data-k="pb" inputmode="decimal" placeholder="50"><span>%</span></div></div>
+        <div class="fld full"><label>하루 매매 횟수 (선택 · 한 달 추정용)</label><div class="inp"><input data-k="per" inputmode="decimal" placeholder="5"><span>회</span></div></div>
+      </div>
+      <div class="res" id="r5"></div>
+    </div>
+
+    <!-- 6. 손익분기 · 연속 손절 -->
+    <div class="card" id="c6">
+      <div class="ct"><b>🧮 승률 · 손익비 시뮬레이터</b></div>
+      <div class="desc">내 승률과 손익비로 매매를 계속하면 기대값이 플러스인지, 연속 손절이 얼마나 나올 수 있는지 봐요.</div>
+      <div class="f">
+        <div class="fld"><label>승률</label><div class="inp"><input data-k="wr" inputmode="decimal" placeholder="50"><span>%</span></div></div>
+        <div class="fld"><label>손익비 (평균 익절 ÷ 평균 손절)</label><div class="inp"><input data-k="rr" inputmode="decimal" placeholder="1.5"></div></div>
+        <div class="fld"><label>한 번에 거는 리스크</label><div class="inp"><input data-k="risk" inputmode="decimal" placeholder="1"><span>% 시드</span></div></div>
+        <div class="fld"><label>매매 횟수</label><div class="inp"><input data-k="n" inputmode="decimal" placeholder="100"><span>회</span></div></div>
+      </div>
+      <div class="res" id="r6"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA = __DATA__;
+const $ = id => document.getElementById(id);
+const PD = window.parent.document;
+// ---------- 라이트/다크 ----------
+const MQ = matchMedia('(prefers-color-scheme: dark)');
+function siteDark() { let t = null; try { t = PD.documentElement.getAttribute('data-mg-theme'); } catch (e) {} return t ? t === 'dark' : MQ.matches; }
+function syncTheme() { document.documentElement.setAttribute('data-theme', siteDark() ? 'dark' : 'light'); }
+syncTheme();
+try { new MutationObserver(syncTheme).observe(PD.documentElement, { attributes: true, attributeFilter: ['data-mg-theme'] }); } catch (e) {}
+MQ.addEventListener && MQ.addEventListener('change', syncTheme);
+function fit() { try { const h = document.documentElement.scrollHeight; if (window.frameElement && Math.abs(window.frameElement.offsetHeight - h) > 2) window.frameElement.style.height = h + 'px'; } catch (e) {} }
+new ResizeObserver(fit).observe(document.body);
+
+// ---------- 숫자 ----------
+const n = v => { const x = parseFloat(String(v || '').replace(/,/g, '')); return isFinite(x) ? x : null; };
+const usd = (v, d = 2) => v == null || !isFinite(v) ? '-' : (v < 0 ? '-' : '') + '$' + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+const sgn = (v, d = 2) => v == null || !isFinite(v) ? '-' : (v > 0 ? '+' : v < 0 ? '-' : '') + '$' + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+function px(v) { if (v == null || !isFinite(v)) return '-'; const a = Math.abs(v), d = a >= 1000 ? 2 : a >= 1 ? 4 : a >= 0.01 ? 6 : 8; return v.toLocaleString('en-US', { maximumFractionDigits: d }); }
+const qty = v => v == null || !isFinite(v) ? '-' : v.toLocaleString('en-US', { maximumFractionDigits: v >= 100 ? 2 : v >= 1 ? 4 : 6 });
+const pct = (v, d = 2) => v == null || !isFinite(v) ? '-' : (v > 0 ? '+' : '') + v.toFixed(d) + '%';
+const cl = v => v > 0 ? 'up' : v < 0 ? 'down' : '';
+const R = (label, val, sub = '', c = '', hero = false) => `<div class="r${hero ? ' hero' : ''}"><span>${label}</span><b class="${c}">${val}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
+
+// ---------- 입력값 저장 ----------
+const SKEY = 'mung_tools_v1';
+let S = {}; try { S = JSON.parse(localStorage.getItem(SKEY) || '{}'); } catch (e) {}
+const save = () => { try { localStorage.setItem(SKEY, JSON.stringify(S)); } catch (e) {} };
+function card(id) {
+  const el = $(id), st = S[id] = S[id] || {};
+  el.querySelectorAll('input[data-k]').forEach(i => { if (st[i.dataset.k] != null) i.value = st[i.dataset.k]; i.oninput = () => { st[i.dataset.k] = i.value; save(); calc(); }; });
+  el.querySelectorAll('[data-seg]').forEach(sg => {
+    const k = sg.dataset.seg, btns = sg.querySelectorAll('button');
+    if (st[k] == null) st[k] = btns[0].dataset.v;
+    const paint = () => btns.forEach(b => b.classList.toggle('on', b.dataset.v === st[k]));
+    btns.forEach(b => b.onclick = () => { st[k] = b.dataset.v; save(); paint(); calc(); }); paint();
+  });
+  el.querySelectorAll('button[data-px]').forEach(b => b.onclick = () => {
+    if (!LIVE) return; const i = el.querySelector(`input[data-k="${b.dataset.px}"]`); i.value = String(LIVE); st[b.dataset.px] = i.value; save(); calc();
+  });
+  return k => n(st[k]);
+}
+const g1 = card('c1'), g2 = card('c2'), g3 = card('c3'), g4 = card('c4'), g5 = card('c5'), g6 = card('c6');
+
+// ---------- 물타기 행 ----------
+S.c4.rows = Array.isArray(S.c4.rows) && S.c4.rows.length ? S.c4.rows : [['', ''], ['', '']];
+function drawDca() {
+  $('dca').innerHTML = S.c4.rows.map((r, i) => `<div class="er"><span class="k">${i + 1}</span>
+    <div class="inp"><input data-r="${i}" data-c="0" inputmode="decimal" placeholder="가격" value="${r[0] || ''}"></div>
+    <div class="inp"><input data-r="${i}" data-c="1" inputmode="decimal" placeholder="수량" value="${r[1] || ''}"></div>
+    <button class="x" data-del="${i}" title="삭제">✕</button></div>`).join('');
+  $('dca').querySelectorAll('input').forEach(inp => inp.oninput = () => { S.c4.rows[+inp.dataset.r][+inp.dataset.c] = inp.value; save(); calc(); });
+  $('dca').querySelectorAll('[data-del]').forEach(b => b.onclick = () => { if (S.c4.rows.length > 1) { S.c4.rows.splice(+b.dataset.del, 1); save(); drawDca(); calc(); } });
+}
+$('dcaAdd').onclick = () => { S.c4.rows.push(['', '']); save(); drawDca(); calc(); fit(); };
+drawDca();
+
+// ---------- 계산 ----------
+function calc() {
+  // 1. 포지션 크기
+  { const seed = g1('seed'), risk = g1('risk'), e = g1('entry'), s = g1('stop'), tp = g1('tp'), lev = g1('lev') || 1; let h = '';
+    if (seed && risk && e && s && e !== s) {
+      const long = s < e, loss = seed * risk / 100, dist = Math.abs(e - s) / e, q = loss / Math.abs(e - s), val = q * e, mg = val / lev;
+      const liqDist = 1 / lev, fee = val * 0.0006 * 2;
+      h += R(`${long ? '롱' : '숏'} 포지션 수량`, `${qty(q)} <span style="font-size:13px">${(S.sym || 'BTC')}</span>`, `포지션 가치 ${usd(val)}`, '', true);
+      h += R('필요 증거금', usd(mg), `시드의 ${(mg / seed * 100).toFixed(1)}% · ${lev}x`);
+      h += R('손절 시 손실', sgn(-loss), `손절폭 ${(dist * 100).toFixed(2)}%`, 'down');
+      if (tp && (long ? tp > e : tp < e)) { const prof = q * Math.abs(tp - e); h += R('목표 도달 시 수익', sgn(prof), `손익비 1 : ${(prof / loss).toFixed(2)}`, 'up'); }
+      else h += R('왕복 수수료 (시장가)', usd(fee), '진입 + 청산 0.06%씩');
+      if (mg > seed) h += `<div class="warn">필요 증거금이 시드보다 커요 → 레버리지를 올리거나 손절폭을 넓혀야 해요.</div>`;
+      else if (dist >= liqDist * 0.9) h += `<div class="warn">손절가가 청산가(약 ${(liqDist * 100).toFixed(1)}% 거리)보다 멀거나 가까워요 → 손절 전에 청산될 수 있어요. 레버리지를 낮춰요.</div>`;
+    } else h = '<div class="ok">시드 · 리스크 · 진입가 · 손절가를 넣으면 계산돼요. 손절가가 진입가보다 낮으면 롱, 높으면 숏으로 계산해요.</div>';
+    $('r1').innerHTML = h; }
+  // 2. 청산가
+  { const e = g2('entry'), lev = g2('lev'), mmr = (g2('mmr') ?? 0.5) / 100, long = S.c2.side === 'long'; let h = '';
+    if (e && lev) {
+      const liq = long ? e * (1 - 1 / lev + mmr) : e * (1 + 1 / lev - mmr), d = (liq / e - 1) * 100;
+      h += R('예상 청산가', px(Math.max(liq, 0)), `진입가에서 ${pct(d)} 움직이면 청산`, long ? 'down' : 'up', true);
+      h += R('버틸 수 있는 폭', Math.abs(d).toFixed(2) + '%', long ? '하락 기준' : '상승 기준');
+      h += R('증거금 대비', '-100%', `${lev}x 기준 1% 움직임 = ROE ${lev}%`);
+    } else h = '<div class="ok">진입가와 레버리지를 넣으면 계산돼요.</div>';
+    $('r2').innerHTML = h; }
+  // 3. 목표가 · ROE
+  { const e = g3('entry'), lev = g3('lev') || 1, roe = g3('roe'), ex = g3('exit'), mg = g3('margin'), long = S.c3.side === 'long'; let h = '';
+    if (e && roe != null) { const mv = roe / lev / 100, tp = long ? e * (1 + mv) : e * (1 - mv);
+      h += R(`ROE ${roe}% 목표가`, px(tp), `가격이 ${pct(mv * 100 * (long ? 1 : -1))} 움직여야 해요`, '', true);
+      if (mg) h += R('그때 수익', sgn(mg * roe / 100), `증거금 ${usd(mg)} 기준`, cl(roe)); }
+    if (e && ex) { const r = (long ? ex / e - 1 : 1 - ex / e) * lev * 100;
+      h += R(`${px(ex)}에 청산하면`, pct(r), mg ? sgn(mg * r / 100) + ' · 가격 ' + pct((ex / e - 1) * 100) : '가격 ' + pct((ex / e - 1) * 100), cl(r)); }
+    if (!h) h = '<div class="ok">진입가와 목표 수익률(또는 청산할 가격)을 넣으면 계산돼요.</div>';
+    $('r3').innerHTML = h; }
+  // 4. 물타기
+  { const rows = S.c4.rows.map(r => [n(r[0]), n(r[1])]).filter(r => r[0] && r[1]), now = g4('now'), long = S.c4.side === 'long'; let h = '';
+    if (rows.length) { const q = rows.reduce((s, r) => s + r[1], 0), cost = rows.reduce((s, r) => s + r[0] * r[1], 0), avg = cost / q;
+      h += R('평균 진입가', px(avg), `${rows.length}번 나눠 진입`, '', true);
+      h += R('총 수량', qty(q), `포지션 가치 ${usd(cost)}`);
+      if (now) { const pnl = (long ? now - avg : avg - now) * q, r = (long ? now / avg - 1 : 1 - now / avg) * 100;
+        h += R('지금 손익', sgn(pnl), `평단 대비 ${pct(r)}`, cl(pnl)); }
+      else h += R('본전 가격', px(avg), '수수료 제외');
+    } else h = '<div class="ok">진입한 가격과 수량을 줄마다 넣어요.</div>';
+    $('r4').innerHTML = h; }
+  // 5. 수수료
+  { const size = g5('size'), mk = (g5('mk') ?? 0.02) / 100, tk = (g5('tk') ?? 0.06) / 100, pb = (g5('pb') ?? 0) / 100, per = g5('per'); let h = '';
+    if (size) { const fin = size * (S.c5.in === 'maker' ? mk : tk), fout = size * (S.c5.out === 'maker' ? mk : tk), tot = fin + fout, real = tot * (1 - pb);
+      h += R('왕복 수수료', usd(tot), `진입 ${usd(fin)} + 청산 ${usd(fout)}`, 'down', true);
+      h += R('페이백 받으면', usd(real), `${usd(tot * pb)} 돌려받음`);
+      h += R('본전 움직임', (tot / size * 100).toFixed(3) + '%', `페이백 후 ${(real / size * 100).toFixed(3)}%`);
+      if (per) h += R('한 달 추정 (30일)', usd(real * per * 30), `하루 ${per}회 · 페이백 반영`, 'down');
+    } else h = '<div class="ok">포지션 크기를 넣으면 계산돼요.</div>';
+    $('r5').innerHTML = h; }
+  // 6. 승률 · 손익비
+  { const wr = g6('wr'), rr = g6('rr'), risk = g6('risk') || 1, N = Math.min(g6('n') || 100, 10000); let h = '';
+    if (wr != null && rr) { const p = wr / 100, ev = p * rr - (1 - p), be = 1 / (1 + rr) * 100;
+      // 연속 손절: N번 중 가장 길게 연속 손절할 확률이 50%인 길이 ≈ log(N·(1-p)) / log(1/(1-p))
+      const streak = p < 1 ? Math.max(1, Math.round(Math.log(N * p) / Math.log(1 / (1 - p)))) : 0;
+      const grow = Math.pow(1 + risk / 100 * rr, N * p) * Math.pow(1 - risk / 100, N * (1 - p));
+      h += R('1회 기대값', (ev > 0 ? '+' : '') + ev.toFixed(2) + 'R', ev > 0 ? '계속하면 수익이 나는 구조예요' : '계속하면 손실이 나는 구조예요', cl(ev), true);
+      h += R('본전 승률', be.toFixed(1) + '%', `손익비 ${rr} 기준 이보다 높아야 함`);
+      h += R(`${N}회 중 예상 최대 연속 손절`, `약 ${streak}회`, `리스크 ${risk}%면 약 ${(streak * risk).toFixed(0)}% 손실 구간`, 'down');
+      h += R(`${N}회 후 시드 (평균)`, pct((grow - 1) * 100, 1), '복리 · 수수료 제외', cl(grow - 1));
+    } else h = '<div class="ok">승률과 손익비를 넣으면 계산돼요. 히스토리 화면의 성과 지표 숫자를 넣어보세요.</div>';
+    $('r6').innerHTML = h; }
+  fit();
+}
+
+// ---------- 실시간 가격 (Bitget) ----------
+let LIVE = null, ws = null;
+S.sym = S.sym || 'BTC'; $('sym').value = S.sym;
+function sub() {
+  LIVE = null; $('livePx').textContent = '-'; $('livePc').textContent = '';
+  if (ws) { try { ws.close(); } catch (e) {} }
+  const inst = S.sym + 'USDT';
+  ws = new WebSocket('wss://ws.bitget.com/v2/ws/public');
+  ws.onopen = () => { ws.send(JSON.stringify({ op: 'subscribe', args: [{ instType: 'USDT-FUTURES', channel: 'ticker', instId: inst }] })); ws._p = setInterval(() => { try { ws.send('ping'); } catch (e) {} }, 25000); };
+  ws.onmessage = ev => {
+    if (ev.data === 'pong') return; let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+    if (m.event === 'error') { $('livePx').textContent = 'Bitget에 없는 종목'; return; }
+    if (!m.data || !m.data[0]) return; const d = m.data[0]; LIVE = +d.lastPr;
+    $('livePx').textContent = '$' + px(LIVE);
+    const c = d.change24h != null ? +d.change24h * 100 : null; $('livePc').innerHTML = c == null ? '' : `<span class="${cl(c)}">${pct(c)}</span>`;
+  };
+  const me = ws; ws.onclose = () => { clearInterval(me._p); };
+}
+let st; $('sym').oninput = e => { clearTimeout(st); st = setTimeout(() => { S.sym = e.target.value.trim().toUpperCase() || 'BTC'; save(); sub(); calc(); }, 500); };
+sub(); calc();
+</script>
+</body>
+</html>

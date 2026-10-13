@@ -21,6 +21,10 @@ with st.container(key="hidden_nav_history"):
     st.page_link("views/history.py", label="매매 히스토리")
 with st.container(key="hidden_nav_market"):
     st.page_link("views/market.py", label="시장")
+with st.container(key="hidden_nav_coins"):
+    st.page_link("views/coins.py", label="코인")
+with st.container(key="hidden_nav_tools"):
+    st.page_link("views/tools.py", label="도구")
 
 # 서버가 시세를 준비하는 동안: 차트 화면 안의 로딩 화면과 똑같은 것을 먼저 띄움 (넘어갈 때 로고가 두 번 보이지 않게)
 page = (Path(__file__).parent / "chart_app.html").read_text(encoding="utf-8")

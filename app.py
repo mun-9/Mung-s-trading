@@ -30,5 +30,7 @@ pages = [
     st.Page("views/history.py", title="매매 히스토리", default=True),
     st.Page("views/chart.py", title="차트"),
     st.Page("views/market.py", title="시장", url_path="market"),
+    st.Page("views/coins.py", title="코인", url_path="coins"),
+    st.Page("views/tools.py", title="도구", url_path="tools"),
 ]
 st.navigation(pages, position="hidden").run()

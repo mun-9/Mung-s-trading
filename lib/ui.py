@@ -197,8 +197,8 @@ div[class*="st-key-topnav_dark"] .nav-logo .tag { background: rgba(41,98,255,0.1
 div[class*="st-key-topnav_dark"] .nav-logo .word { color: #D1D4DC; }
 /* 메뉴: 회색 바 안에 탭 버튼 3개 (지금 있는 페이지는 흰 버튼으로 떠 있음) → 눌러서 이동하는 메뉴인 게 한눈에 보이게 */
 div[class*="st-key-topnav_"] { justify-content: space-between !important; flex-wrap: nowrap !important; }
-div[class*="st-key-navright"] { margin-left: auto !important; flex-wrap: nowrap !important; gap: 10px !important; flex-shrink: 0; }
-div[class*="st-key-navright"] [data-testid="stElementContainer"]:has(.mg-theme-slot) { width: auto !important; }
+div[class*="st-key-topnav_"] > [data-testid="stLayoutWrapper"]:has(div[class*="st-key-navtabs"]) { margin-left: auto !important; flex: none !important; width: auto !important; }
+div[class*="st-key-topnav_"] > [data-testid="stElementContainer"]:has(.mg-theme-slot) { width: auto !important; flex: none !important; }
 div[class*="st-key-navtabs"] { background: var(--mg-soft); padding: 4px !important; border-radius: 13px; gap: 2px !important; flex-wrap: nowrap !important; border: 1px solid var(--mg-border); }
 div[class*="st-key-navlink_"] a { padding: 7px 14px !important; min-height: 0 !important; background: transparent !important; border-radius: 9px !important;
     display: flex !important; align-items: center; gap: 6px; transition: background .15s ease, box-shadow .15s ease; }
@@ -210,6 +210,7 @@ div[class*="st-key-navlink_"][class*="_on"] a { background: var(--mg-raise) !imp
 div[class*="st-key-navlink_"][class*="_on"] a p, div[class*="st-key-navlink_"][class*="_on"] a span { color: var(--mg-accent) !important; font-weight: 750 !important; }
 
 /* 섹션 제목 줄 (보유 포지션 + 배지 + 새로고침) */
+div[class*="st-key-hidden_nav_"] { display: none !important; }
 div[class*="st-key-page_head"] { margin: 10px 0 4px; min-height: 40px; }
 div[class*="st-key-page_head"] [data-testid="stElementContainer"], div[class*="st-key-page_head"] [data-testid="stMarkdownContainer"] { margin: 0 !important; }
 div[class*="st-key-page_head"] .ph-title { line-height: 36px; font-size: 26px; padding-left: 0.3em; }
@@ -367,9 +368,15 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
     div[class*="st-key-navlink_"] a { padding: 6px 8px !important; gap: 4px; }
     div[class*="st-key-navlink_"] a p { font-size: 13px !important; }
     div[class*="st-key-navlink_"] a > span:has([data-testid="stIconMaterial"]) { display: none !important; }
-    div[class*="st-key-topnav_"] { gap: 10px !important; flex-wrap: nowrap !important; justify-content: space-between; padding: 0 14px !important; }
-    div[class*="st-key-navtabs"] { flex-shrink: 0; padding: 3px !important; }
-    div[class*="st-key-navright"] { gap: 6px !important; }
+    /* 휴대폰 메뉴: 윗줄 로고 + 다크 모드, 아랫줄 메뉴 5개를 꽉 차게 */
+    div[class*="st-key-topnav_"] { height: auto !important; flex-wrap: wrap !important; row-gap: 10px !important; column-gap: 10px !important; justify-content: space-between; padding: 10px 14px 12px !important; }
+    div[class*="st-key-topnav_"] > [data-testid="stElementContainer"]:has(.mg-theme-slot) { order: 2; margin-left: auto; }
+    div[class*="st-key-topnav_"] > [data-testid="stLayoutWrapper"]:has(div[class*="st-key-navtabs"]) { order: 3; margin-left: 0 !important; width: 100% !important; flex: 1 1 100% !important; }
+    div[class*="st-key-navtabs"] { width: 100% !important; padding: 3px !important; }
+    div[class*="st-key-navtabs"] > div[class*="st-key-navlink_"], div[class*="st-key-navtabs"] > [data-testid="stLayoutWrapper"] { flex: 1 1 0 !important; width: auto !important; min-width: 0; }
+    div[class*="st-key-navtabs"] > [data-testid="stLayoutWrapper"] > div[class*="st-key-navlink_"] { width: 100% !important; }
+    div[class*="st-key-navlink_"] a { width: 100%; }
+    div[class*="st-key-navlink_"] a { justify-content: center; }
     .nav-logo .word { font-size: 16.5px !important; }
     .nav-logo svg { width: 18px; height: 18px; }
     .mg-theme-btn { width: 34px; height: 34px; border-radius: 10px; }
@@ -402,9 +409,11 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
 """).replace("__THEME_VARS__", THEME_CSS))
 
 
-NAV_PAGES = [("history", "views/history.py", "매매 히스토리", ":material/receipt_long:"),
+NAV_PAGES = [("history", "views/history.py", "히스토리", ":material/receipt_long:"),
              ("chart", "views/chart.py", "차트", ":material/candlestick_chart:"),
-             ("market", "views/market.py", "시장", ":material/public:")]
+             ("market", "views/market.py", "시장", ":material/public:"),
+             ("coins", "views/coins.py", "코인", ":material/currency_bitcoin:"),
+             ("tools", "views/tools.py", "도구", ":material/calculate:")]
 
 
 def nav(current, dark=False):
@@ -414,13 +423,13 @@ def nav(current, dark=False):
         html("<div class='nav-logo'><svg viewBox='0 0 24 24' width='22' height='22'><rect x='3' y='12' width='4' height='9' rx='1.5' fill='#2459ED' opacity='.45'/>"
              "<rect x='10' y='7' width='4' height='14' rx='1.5' fill='#2459ED' opacity='.7'/><rect x='17' y='3' width='4' height='18' rx='1.5' fill='#2459ED'/></svg>"
              "<span class='word'>Mung9_</span><span class='tag'>Trading</span></div>")
-        # 오른쪽: 메뉴 탭 + 다크 모드 버튼 (버튼은 lib/theme.py 스크립트가 빈 자리에 채워 넣음)
-        with st.container(key="navright", horizontal=True, vertical_alignment="center", width="content", gap="small"):
-            with st.container(key="navtabs", horizontal=True, vertical_alignment="center", width="content"):
-                for key, path, label, icon in NAV_PAGES:
-                    with st.container(key=f"navlink_{key}_{'on' if key == current else 'off'}", width="content"):
-                        st.page_link(path, label=label, icon=icon)
-            html("<div class='mg-theme-slot'></div>")
+        # 컴퓨터: [로고] ...... [메뉴 탭][다크 모드]  /  휴대폰: 윗줄 [로고 ... 다크 모드], 아랫줄 메뉴 탭 (CSS order)
+        # 다크 모드 버튼은 lib/theme.py 스크립트가 빈 자리에 채워 넣음
+        with st.container(key="navtabs", horizontal=True, vertical_alignment="center", width="content"):
+            for key, path, label, icon in NAV_PAGES:
+                with st.container(key=f"navlink_{key}_{'on' if key == current else 'off'}", width="content"):
+                    st.page_link(path, label=label, icon=icon)
+        html("<div class='mg-theme-slot'></div>")
 
 
 def title_row(title, right_html, on_refresh):

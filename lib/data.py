@@ -792,3 +792,81 @@ def fetch_okx_tickers():
         except (KeyError, ValueError, TypeError):
             continue
     return out
+
+
+# -----------------------------------------------------------------------------
+# 코인 페이지: 시가총액 순위 · 트렌딩 · 뉴스
+# -----------------------------------------------------------------------------
+@st.cache_data(ttl=180, show_spinner=False)
+def fetch_cg_markets(n=200):
+    """CoinGecko 시가총액 상위 코인 (7일 미니차트 포함). 실패하면 [] → 브라우저가 직접 다시 시도."""
+    try:
+        rows = _get_json("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc"
+                         f"&per_page={n}&page=1&sparkline=true&price_change_percentage=1h,24h,7d", timeout=8)
+    except Exception:
+        return []
+    out = []
+    for c in rows:
+        sp = ((c.get("sparkline_in_7d") or {}).get("price") or [])
+        step = max(1, len(sp) // 42)
+        out.append({
+            "id": c.get("id"), "sym": (c.get("symbol") or "").upper(), "name": c.get("name"), "img": c.get("image"),
+            "rank": c.get("market_cap_rank"), "price": c.get("current_price"), "mcap": c.get("market_cap"),
+            "fdv": c.get("fully_diluted_valuation"), "vol": c.get("total_volume"),
+            "h1": c.get("price_change_percentage_1h_in_currency"), "h24": c.get("price_change_percentage_24h_in_currency"),
+            "d7": c.get("price_change_percentage_7d_in_currency"), "high24": c.get("high_24h"), "low24": c.get("low_24h"),
+            "ath": c.get("ath"), "athc": c.get("ath_change_percentage"), "athd": (c.get("ath_date") or "")[:10],
+            "circ": c.get("circulating_supply"), "total": c.get("total_supply"), "max": c.get("max_supply"),
+            "spark": [round(v, 8) for v in sp[::step]][-42:],
+        })
+    return out
+
+
+@st.cache_data(ttl=600, show_spinner=False)
+def fetch_cg_trending():
+    """CoinGecko 검색 트렌딩 코인 (지금 사람들이 많이 찾는 코인)."""
+    try:
+        j = _get_json("https://api.coingecko.com/api/v3/search/trending", timeout=6)
+    except Exception:
+        return []
+    out = []
+    for it in (j.get("coins") or [])[:10]:
+        c = it.get("item") or {}
+        d = c.get("data") or {}
+        pc = (d.get("price_change_percentage_24h") or {}).get("usd")
+        out.append({"id": c.get("id"), "sym": (c.get("symbol") or "").upper(), "name": c.get("name"),
+                    "img": c.get("small") or c.get("thumb"), "rank": c.get("market_cap_rank"), "h24": pc})
+    return out
+
+
+NEWS_FEEDS = [("블록미디어", "https://www.blockmedia.co.kr/feed"), ("토큰포스트", "https://www.tokenpost.kr/rss")]
+
+
+@st.cache_data(ttl=600, show_spinner=False)
+def fetch_news(limit=24):
+    """국내 코인 뉴스 RSS (최신순)."""
+    import re as _re
+    import urllib.request
+    import xml.etree.ElementTree as ET
+    from email.utils import parsedate_to_datetime
+    items = []
+    for src, url in NEWS_FEEDS:
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=6) as r:
+                root = ET.fromstring(r.read())
+            for it in root.iter("item"):
+                title = (it.findtext("title") or "").strip()
+                link = (it.findtext("link") or "").strip()
+                try:
+                    ts = parsedate_to_datetime(it.findtext("pubDate") or "").timestamp()
+                except Exception:
+                    ts = 0
+                desc = _re.sub(r"<[^>]+>", "", it.findtext("description") or "")
+                desc = _re.sub(r"\s+", " ", desc).strip()[:140]
+                if title and link.startswith("http"):
+                    items.append({"src": src, "title": title, "link": link, "ts": ts, "desc": desc})
+        except Exception:
+            continue
+    items.sort(key=lambda x: x["ts"], reverse=True)
+    return items[:limit]
