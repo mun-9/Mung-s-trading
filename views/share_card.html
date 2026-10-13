@@ -52,7 +52,7 @@ const PD = window.parent.document, MQ = matchMedia('(prefers-color-scheme: dark)
 function siteDark() { let t = null; try { t = PD.documentElement.getAttribute('data-mg-theme'); } catch (e) {} return t ? t === 'dark' : MQ.matches; }
 function syncTheme() { document.documentElement.setAttribute('data-theme', siteDark() ? 'dark' : 'light'); }
 syncTheme(); try { new MutationObserver(syncTheme).observe(PD.documentElement, { attributes: true, attributeFilter: ['data-mg-theme'] }); } catch (e) {}
-function _fitFrame(fe, h) { fe.style.height = h + 'px'; fe.height = h; let n = fe.parentElement; for (let i = 0; i < 4 && n; i++, n = n.parentElement) { n.style.height = h + 'px'; n.style.minHeight = h + 'px'; if (n.getAttribute && n.getAttribute('data-testid') === 'stElementContainer') break; } }
+function _fitFrame(fe, h) { fe.style.height = h + 'px'; fe.height = h; let n = fe.parentElement; for (let i = 0; i < 4 && n; i++, n = n.parentElement) { n.style.height = h + 'px'; n.style.minHeight = h + 'px'; n.style.flex = '0 0 ' + h + 'px'; if (n.getAttribute && n.getAttribute('data-testid') === 'stElementContainer') break; } }
 function fit() { try { const h = Math.ceil(document.body.getBoundingClientRect().height) + 4, fe = window.frameElement; if (fe && (Math.abs(fe.offsetHeight - h) > 2 || (fe.parentElement && Math.abs(fe.parentElement.offsetHeight - h) > 2))) _fitFrame(fe, h); } catch (e) {} }
 new ResizeObserver(fit).observe(document.body); setInterval(fit, 1500);
 

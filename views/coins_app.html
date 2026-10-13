@@ -156,7 +156,7 @@ try { new MutationObserver(syncTheme).observe(PD.documentElement, { attributes: 
 MQ.addEventListener && MQ.addEventListener('change', syncTheme);
 
 // ---------- 내용 길이에 맞춰 칸 높이 자동 조절 ----------
-function _fitFrame(fe, h) { fe.style.height = h + 'px'; fe.height = h; let n = fe.parentElement; for (let i = 0; i < 4 && n; i++, n = n.parentElement) { n.style.height = h + 'px'; n.style.minHeight = h + 'px'; if (n.getAttribute && n.getAttribute('data-testid') === 'stElementContainer') break; } }
+function _fitFrame(fe, h) { fe.style.height = h + 'px'; fe.height = h; let n = fe.parentElement; for (let i = 0; i < 4 && n; i++, n = n.parentElement) { n.style.height = h + 'px'; n.style.minHeight = h + 'px'; n.style.flex = '0 0 ' + h + 'px'; if (n.getAttribute && n.getAttribute('data-testid') === 'stElementContainer') break; } }
 function fit() { try { const h = Math.ceil(document.body.getBoundingClientRect().height) + 4, fe = window.frameElement; if (fe && (Math.abs(fe.offsetHeight - h) > 2 || (fe.parentElement && Math.abs(fe.parentElement.offsetHeight - h) > 2))) _fitFrame(fe, h); } catch (e) {} }
 new ResizeObserver(fit).observe(document.body); setInterval(fit, 1500);
 

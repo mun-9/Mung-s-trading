@@ -215,7 +215,7 @@ function price(v) { if (v == null || isNaN(v)) return '-'; const a = Math.abs(v)
 const hms = t => new Date(t + 9 * 3600e3).toISOString().slice(11, 19);
 const name = s => s.replace(/USDT$/, '');
 async function get(u) { const r = await fetch(u); if (!r.ok) throw new Error(r.status); return r.json(); }
-function _fitFrame(fe, h) { fe.style.height = h + 'px'; fe.height = h; let n = fe.parentElement; for (let i = 0; i < 4 && n; i++, n = n.parentElement) { n.style.height = h + 'px'; n.style.minHeight = h + 'px'; if (n.getAttribute && n.getAttribute('data-testid') === 'stElementContainer') break; } }
+function _fitFrame(fe, h) { fe.style.height = h + 'px'; fe.height = h; let n = fe.parentElement; for (let i = 0; i < 4 && n; i++, n = n.parentElement) { n.style.height = h + 'px'; n.style.minHeight = h + 'px'; n.style.flex = '0 0 ' + h + 'px'; if (n.getAttribute && n.getAttribute('data-testid') === 'stElementContainer') break; } }
 function fit() { try { const fe = window.frameElement; if (fe) { const h = Math.ceil(document.body.getBoundingClientRect().height) + 4; if (Math.abs(fe.offsetHeight - h) > 2 || (fe.parentElement && Math.abs(fe.parentElement.offsetHeight - h) > 2)) _fitFrame(fe, h); } } catch (e) {} }
 function fail(id, msg) { $(id).innerHTML = `<div class="loading">${msg || '데이터를 불러오지 못했어요'}</div>`; }
 

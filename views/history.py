@@ -489,6 +489,83 @@ else:
 st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
+# 매매 습관 리포트 (숫자를 보고 자동으로 짚어주는 코멘트)
+# -----------------------------------------------------------------------------
+def habit_insights():
+    c = f_trades[(f_trades["bucket"] == "축소") & f_trades["has_pnl"]].sort_values("datetime") if not f_trades.empty else f_trades
+    if c.empty or len(c) < 3:
+        return []
+    out = []
+    pf = perf or {}
+    aw, al = pf.get("avg_win", 0.0), pf.get("avg_loss", 0.0)
+    wr = (c["net"] > 0).mean() * 100
+    # 1) 손익비 · 본전 승률
+    if aw > 0 and al > 0:
+        rr_ = aw / al
+        be = 100 / (1 + rr_)
+        if rr_ < 1:
+            out.append(("bad", "⚖️", f"평균 손절이 평균 익절의 {al / aw:.1f}배예요",
+                        f"평균 익절 {money(aw)} · 평균 손절 {money(-al)}. 이 손익비면 승률이 {be:.0f}% 이상이어야 본전인데, 지금 승률은 {wr:.0f}%예요. "
+                        + ("손절을 더 짧게 잡거나 익절을 조금 더 길게 가져가 보세요." if wr < be else "승률로 버티고 있지만, 손절 한 번이 크니 손절 폭부터 줄여보세요.")))
+        else:
+            out.append(("good", "⚖️", f"손익비 {rr_:.2f} — 이기면 크게, 지면 작게 하고 있어요",
+                        f"이 손익비면 승률 {be:.0f}%만 넘어도 수익이에요. 지금 승률은 {wr:.0f}%" + ("라 수익 구조예요." if wr >= be else "로 조금 모자라요. 진입을 더 골라서 해보세요.")))
+    # 2) 수수료 부담
+    gp = float(c.loc[c["net"] > 0, "gross"].sum()) if "gross" in c else 0.0
+    if bd["fee"] > 0:
+        share = bd["fee"] / gp * 100 if gp > 0 else None
+        tone = "bad" if (share or 0) >= 30 else "info"
+        out.append((tone, "🧾", f"수수료로 {money(bd['fee'], sign=False)}를 냈어요",
+                    (f"수익 난 거래에서 번 돈의 {share:.0f}%가 수수료로 나갔어요. " if share else "")
+                    + (f"페이백으로 {money(bd['payback'], sign=False)}를 돌려받았어요. " if bd["payback"] > 0 else "")
+                    + ("지정가(메이커) 진입을 늘리면 수수료를 크게 줄일 수 있어요." if tone == "bad" else "")))
+    # 3) 롱 vs 숏
+    ln = float(c.loc[c["side"] == "LONG", "net"].sum()); sn = float(c.loc[c["side"] == "SHORT", "net"].sum())
+    lc_, sc_ = int((c["side"] == "LONG").sum()), int((c["side"] == "SHORT").sum())
+    if lc_ and sc_ and abs(ln - sn) > 1:
+        better, worse = ("롱", "숏") if ln > sn else ("숏", "롱")
+        out.append(("info", "🧭", f"{better}이 {worse}보다 {money(abs(ln - sn), sign=False)} 더 벌었어요",
+                    f"롱 {lc_}번 {money(ln)} · 숏 {sc_}번 {money(sn)}. " + (f"{worse} 쪽은 진입 기준을 다시 점검해보세요." if min(ln, sn) < 0 else "")))
+    # 4) 손절 직후 다시 들어간 매매
+    t = c.reset_index(drop=True)
+    after_loss = []
+    for i in range(1, len(t)):
+        prev = t.iloc[i - 1]
+        if prev["net"] < 0 and (pd.Timestamp(t.iloc[i]["datetime"]) - pd.Timestamp(prev["datetime"])).total_seconds() <= 1800:
+            after_loss.append(t.iloc[i]["net"])
+    if len(after_loss) >= 3:
+        w2 = sum(1 for v in after_loss if v > 0) / len(after_loss) * 100
+        tot = sum(after_loss)
+        if w2 < wr - 5 or tot < 0:
+            out.append(("bad", "😤", f"손절 후 30분 안에 다시 들어간 매매 승률 {w2:.0f}%",
+                        f"{len(after_loss)}번, 합계 {money(tot)}. 평소 승률({wr:.0f}%)보다 낮아요 — 손절 직후엔 잠깐 쉬어가는 게 좋아요."))
+        else:
+            out.append(("good", "🧊", f"손절 후에도 침착해요 (재진입 승률 {w2:.0f}%)", f"손절 30분 안에 다시 들어간 {len(after_loss)}번, 합계 {money(tot)}."))
+    # 5) 하루 매매 횟수와 손익
+    per_day = c.groupby("date").agg(n=("net", "size"), pnl=("net", "sum"))
+    if len(per_day) >= 4:
+        med = per_day["n"].median()
+        busy, calm = per_day[per_day["n"] > med], per_day[per_day["n"] <= med]
+        if len(busy) and len(calm) and busy["pnl"].mean() < calm["pnl"].mean() - 1:
+            out.append(("bad", "🔁", "많이 매매한 날일수록 손익이 나빠요",
+                        f"하루 {med:.0f}번 넘게 청산한 날 평균 {money(busy['pnl'].mean())} · 그 이하인 날 평균 {money(calm['pnl'].mean())}. 과매매를 조심하세요."))
+    # 6) 가장 잘 버는 시간대
+    hrs = c.assign(h=pd.to_datetime(c["datetime"]).dt.hour // 4 * 4).groupby("h")["net"].sum()
+    if len(hrs) >= 2:
+        hb, hw = hrs.idxmax(), hrs.idxmin()
+        if hrs[hb] > 0 and hrs[hw] < 0:
+            out.append(("info", "🕐", f"{hb}~{hb + 4}시에 가장 잘 벌고, {hw}~{hw + 4}시에 가장 많이 잃어요",
+                        f"{hb}~{hb + 4}시 {money(hrs[hb])} · {hw}~{hw + 4}시 {money(hrs[hw])}. 약한 시간대엔 매매를 줄여보는 것도 방법이에요."))
+    return out[:5]
+
+
+_ins = habit_insights()
+if _ins:
+    items = "".join(f"<div class='ins {tone}'><div class='ins-ic'>{ic}</div><div><b>{tt}</b><p>{body}</p></div></div>" for tone, ic, tt, body in _ins)
+    html(f"<div class='card'><div class='card-title'><span>매매 습관 리포트</span><span>선택 기간 · 자동 분석</span></div><div class='ins-list'>{items}</div></div>")
+    st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
+
+# -----------------------------------------------------------------------------
 # 수익 인증 카드 (이미지로 저장 · 공유)
 # -----------------------------------------------------------------------------
 _principal = sum(D.principal_list()) or 1.0

@@ -332,6 +332,14 @@ div[data-testid="stButtonGroup"] button[data-variant="segmented_control"] { bord
 div[data-testid="stButtonGroup"] button[data-variant="segmented_control"] p { font-size: 13.5px !important; font-weight: 600 !important; color: var(--mg-mid2) !important; }
 div[data-testid="stButtonGroup"] button[data-variant="segmented_control"][aria-checked="true"] { background: var(--mg-raise) !important; box-shadow: 0 1px 4px rgba(15,23,42,0.08) !important; }
 div[data-testid="stButtonGroup"] button[data-variant="segmented_control"][aria-checked="true"] p { color: var(--mg-text) !important; font-weight: 800 !important; }
+/* 매매 습관 리포트 */
+.ins-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+.ins { display: flex; gap: 12px; padding: 14px 16px; border-radius: 14px; background: var(--mg-tile); border-left: 3px solid transparent; }
+.ins.bad { border-left-color: #F04452; } .ins.good { border-left-color: #089981; } .ins.info { border-left-color: var(--mg-accent); }
+.ins-ic { font-size: 20px; line-height: 1.2; }
+.ins b { display: block; font-size: 14.5px; font-weight: 800; color: var(--mg-text); letter-spacing: -0.02em; line-height: 1.4; }
+.ins p { margin: 5px 0 0; font-size: 12.5px; color: var(--mg-mid2); line-height: 1.6; }
+@media (max-width: 768px) { .ins-list { grid-template-columns: 1fr; } .ins { padding: 12px 13px; } .ins b { font-size: 14px; } }
 /* PNL 캘린더 */
 div[class*="st-key-cal_card"] { background-color: var(--mg-card) !important; border-radius: 20px !important; box-shadow: var(--mg-shadow) !important; padding: 20px 24px 22px !important; }
 div[class*="st-key-cal_head"] { justify-content: space-between !important; }
