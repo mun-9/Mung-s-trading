@@ -28,7 +28,10 @@ keys = D.get_keys()
 _full_load = st.session_state.pop("_full_reload", False) or "hist_seen" not in st.session_state
 _loader = st.empty()
 if _full_load:
-    _loader.markdown("<style>[data-stale='true']{display:none !important;}</style>" + (_ui.loader_html() if hasattr(_ui, "loader_html") else getattr(_ui, "LOADER_HTML", "")),
+    _loader.markdown("<style>[data-stale='true']{display:none !important;}"
+                     # 예전 화면의 카드 틀(내용은 숨겨졌는데 테두리만 남는 빈 상자)도 같이 숨김
+                     "[data-testid='stMain'] [class*='st-key-']:not(:has([data-stale='false'])),"
+                     "[data-testid='stMain'] [data-testid='stLayoutWrapper']:not(:has([data-stale='false'])){display:none !important;}</style>" + (_ui.loader_html() if hasattr(_ui, "loader_html") else getattr(_ui, "LOADER_HTML", "")),
                      unsafe_allow_html=True)
 hist = D.fetch_history(keys)
 st.session_state["hist_seen"] = True
