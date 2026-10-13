@@ -15,7 +15,9 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 .wrap { display: flex; flex-direction: column; gap: 18px; padding: 2px 2px 30px; }
 .card { background: var(--card); border-radius: 20px; box-shadow: var(--shadow); padding: 22px 24px; min-width: 0; }
 .ct { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 12px; }
-.ct b { font-size: 17px; font-weight: 800; letter-spacing: -0.02em; }
+.ct b { font-size: 17px; font-weight: 800; letter-spacing: -0.02em; white-space: nowrap; }
+.ct span { text-align: right; }
+.trisel { display: none; }
 .ct span { font-size: 12.5px; color: var(--sub); }
 .empty { color: var(--sub); font-size: 13px; text-align: center; padding: 24px 0; }
 
@@ -91,7 +93,10 @@ td.st { width: 30px; padding-right: 0; }
 .nw .nd { font-size: 12.5px; color: var(--sub); margin-top: 4px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
 
 .hide-sm { }
-@media (max-width: 1000px) { .pulse { grid-template-columns: repeat(2, minmax(0, 1fr)); } .tri { grid-template-columns: 1fr; } .news { grid-template-columns: 1fr; } .hide-md { display: none; } }
+@media (max-width: 1000px) { .pulse { grid-template-columns: repeat(2, minmax(0, 1fr)); } .tri { grid-template-columns: 1fr; }
+  /* 뜨는 코인 · 상승 · 하락: 휴대폰에서는 탭으로 하나씩 */
+  .trisel { display: flex; width: 100%; margin-bottom: -8px; } .trisel button { flex: 1; }
+  .tri .mini { display: none; } .tri .mini.act { display: flex; } .news { grid-template-columns: 1fr; } .hide-md { display: none; } }
 @media (max-width: 640px) {
   .card { padding: 18px 16px; border-radius: 18px; }
   .hide-sm { display: none; }
@@ -107,8 +112,9 @@ td.st { width: 30px; padding-right: 0; }
 <div class="wrap">
   <div class="pulse" id="pulse"></div>
 
+  <div class="seg trisel" id="triSel"><button data-i="0" class="on">🔥 뜨는 코인</button><button data-i="1">🚀 상승</button><button data-i="2">📉 하락</button></div>
   <div class="tri">
-    <div class="card mini"><div class="ct"><b>🔥 지금 뜨는 코인</b><span>CoinGecko 검색 순위</span></div><div id="trend"></div></div>
+    <div class="card mini act"><div class="ct"><b>🔥 지금 뜨는 코인</b><span>CoinGecko 검색 순위</span></div><div id="trend"></div></div>
     <div class="card mini"><div class="ct"><b>🚀 24시간 상승</b><span>시총 상위 200개 중</span></div><div id="gain"></div></div>
     <div class="card mini"><div class="ct"><b>📉 24시간 하락</b><span>시총 상위 200개 중</span></div><div id="lose"></div></div>
   </div>
@@ -133,7 +139,7 @@ td.st { width: 30px; padding-right: 0; }
     <button class="more" id="more">더 보기</button>
   </div>
 
-  <div class="card"><div class="ct"><b>📰 코인 뉴스</b><span>블록미디어 · 토큰포스트 · 10분마다 갱신</span></div><div class="news" id="news"></div></div>
+  <div class="card"><div class="ct"><b>📰 코인 뉴스</b><span>블록미디어 · 토큰포스트</span></div><div class="news" id="news"></div></div>
 </div>
 
 <script>
@@ -231,6 +237,11 @@ function renderTri() {
   $('lose').innerHTML = l.map((c, i) => miniRow(c, i, `${pc(c.h24)}<small>${fmtP(c.price)}</small>`)).join('') || '<div class="empty">-</div>';
   document.querySelectorAll('.mr').forEach(el => el.onclick = () => openCoin(el.dataset.id));
 }
+
+$('triSel').querySelectorAll('button').forEach(b => b.onclick = () => {
+  $('triSel').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('.tri .mini').forEach((m, i) => m.classList.toggle('act', i === +b.dataset.i));
+});
 
 // ---------- 표 ----------
 let tab = 'all', q = '', sortK = 'rank', sortD = 1, shown = 50;
