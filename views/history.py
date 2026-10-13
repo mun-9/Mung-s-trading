@@ -255,7 +255,7 @@ f_trades, f_events, f_ledger = D.period_slice(hist, start_str, end_str)
 bd = D.breakdown(f_trades, f_events)
 perf = D.performance(f_trades)
 
-html("""<div class='jumps'><button class='jump' data-mg-jump='div[class*="st-key-pnl_card"]'>손익 그래프</button><button class='jump' data-mg-jump='div[class*="st-key-cal_card"]'>캘린더</button><button class='jump' data-mg-jump='.pt-grid'>성과 지표</button><button class='jump' data-mg-jump='.ins-list'>습관 리포트</button><button class='jump' data-mg-jump='div[class*="st-key-share_box"]'>수익 카드</button><button class='jump' data-mg-jump='div[class*="st-key-chart_card_hour"]'>시간대</button><button class='jump' data-mg-jump='.log-card'>상세 내역</button></div>""")
+html("""<div class='jumps'><button class='jump' data-mg-jump='div[class*="st-key-pnl_card"]'>손익 그래프</button><button class='jump' data-mg-jump='div[class*="st-key-cal_card"]'>캘린더</button><button class='jump' data-mg-jump='.pt-grid'>성과 지표</button><button class='jump' data-mg-jump='.ins-list'>습관 리포트</button><button class='jump' data-mg-jump='.log-card'>상세 내역</button></div>""")
 
 # -----------------------------------------------------------------------------
 # 주문 횟수 · 롱숏 · 승률 추이
@@ -577,58 +577,6 @@ if _ins:
     items = "".join(f"<div class='ins {tone}'><div class='ins-ic'>{ic}</div><div><b>{tt}</b><p>{body}</p></div></div>" for tone, ic, tt, body in _ins)
     html(f"<div class='card'><div class='card-title'><span>매매 습관 리포트</span><span>선택 기간 · 자동 분석</span></div><div class='ins-list'>{items}</div></div>")
     st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
-
-# -----------------------------------------------------------------------------
-# 수익 인증 카드 (이미지로 저장 · 공유)
-# -----------------------------------------------------------------------------
-_principal = sum(D.principal_list()) or 1.0
-_share = {
-    "period": f"{start_str.replace('-', '.')} ~ {end_str.replace('-', '.')}", "start": start_str, "end": end_str,
-    "net": round(bd["net"], 2), "roi": bd["net"] / _principal * 100,
-    "wins": wins, "losses": losses, "wr": win_rate if (wins + losses) else None, "count": decr,
-    "pf": perf["profit_factor"] if perf else None, "best": perf["best"] if perf else None,
-    "bestPct": (perf["best"] / _principal * 100) if perf else None,
-    "wd": win_days, "ld": loss_days, "cum": [round(v, 2) for v in daily["cum"].tolist()] if not daily.empty else [],
-}
-from pathlib import Path as _Path
-import json as _json
-import streamlit.components.v1 as _components
-with st.container(key="share_box"):
-    _components.html((_Path(__file__).parent / "share_card.html").read_text(encoding="utf-8").replace("__DATA__", _json.dumps(_share)), height=560)
-st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
-
-# -----------------------------------------------------------------------------
-# 시간대별 손익
-# -----------------------------------------------------------------------------
-with st.container(key="chart_card_hour"):
-    with st.container(key="hour_head", horizontal=True, vertical_alignment="center"):
-        html(f"<div style='font-size:17px;color:{TEXT};font-weight:800;letter-spacing:-0.02em;line-height:40px;'>언제 잘 벌까?</div>")
-        with st.container(key="hour_view_box", width="content"):
-            hview = st.segmented_control("기준", ["시간대별", "요일별"], default="시간대별", key="hour_view", label_visibility="collapsed") or "시간대별"
-    if decr:
-        dtc = pd.to_datetime(closes["datetime"])
-        if hview == "시간대별":
-            grp = closes.assign(k=dtc.dt.hour).groupby("k")["net"].agg(["sum", "size"]).reindex(range(24), fill_value=0)
-            xs = [f"{h}시" for h in grp.index]
-            ticks_h = [f"{h}시" for h in range(0, 24, 3)]
-        else:
-            grp = closes.assign(k=dtc.dt.weekday).groupby("k")["net"].agg(["sum", "size"]).reindex(range(7), fill_value=0)
-            xs = list("월화수목금토일")
-            ticks_h = xs
-        best = grp["sum"].idxmax() if grp["sum"].max() > 0 else None
-        worst = grp["sum"].idxmin() if grp["sum"].min() < 0 else None
-        lab = (lambda k: f"{k}시" if hview == "시간대별" else "월화수목금토일"[k] + "요일")
-        html("<div class='hour-sum'>" + (f"<span>가장 잘 번 {'시간' if hview == '시간대별' else '요일'} <b class='up'>{lab(best)} {money(grp['sum'][best])}</b></span>" if best is not None else "")
-             + (f"<span>가장 많이 잃은 {'시간' if hview == '시간대별' else '요일'} <b class='down'>{lab(worst)} {money(grp['sum'][worst])}</b></span>" if worst is not None else "")
-             + "<span>청산 시각 · KST</span></div>")
-        fig = go.Figure(go.Bar(x=xs, y=grp["sum"],
-                               marker=dict(color=[GREEN if v >= 0 else RED for v in grp["sum"]], line_width=0, cornerradius=4 if hview == "시간대별" else 8),
-                               customdata=grp["size"], hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT · %{customdata}건<extra></extra>"))
-        fig = style_fig(fig, height=260, ticks=ticks_h)
-        fig.update_layout(hovermode="closest")
-        st.plotly_chart(no_zoom(fig), width="stretch", config=PLOT_CFG)
-    else:
-        st.caption("청산 거래가 없습니다")
 
 # -----------------------------------------------------------------------------
 # 상세 매매 내역
