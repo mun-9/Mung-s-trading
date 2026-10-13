@@ -496,6 +496,9 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
     .topc-t { font-size: 13.5px; }
     .topc-chip { background: none !important; padding: 0 !important; border-radius: 0; font-size: 11.5px; font-weight: 600; color: var(--mg-sub); }
     .topc-v { font-size: 22px !important; margin-top: 10px; } .topc-k { font-size: 12px; }
+    /* 미실현 PNL(아래 넓은 카드)은 예전처럼 제목 오른쪽에 알약 배지 */
+    div[data-testid="stHorizontalBlock"]:has(.topc) > div[data-testid="stColumn"]:nth-child(3) .topc-h { flex-direction: row; align-items: center; justify-content: space-between; }
+    div[data-testid="stHorizontalBlock"]:has(.topc) > div[data-testid="stColumn"]:nth-child(3) .topc-chip { background: var(--mg-soft) !important; padding: 4px 10px !important; border-radius: 999px; color: var(--mg-mid2); }
     .card-title { flex-direction: column; align-items: flex-start; gap: 3px; font-size: 16px; }
     .card-title span:last-child { font-size: 11.5px; font-weight: 600; }
     /* 주문 횟수 · 롱숏 · 승률 카드: 높이 자동 */
