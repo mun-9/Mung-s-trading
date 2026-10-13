@@ -146,7 +146,7 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
   <div class="row r4">
     <div class="card"><div class="ct"><b>공포·탐욕 지수</b><span>alternative.me</span></div><div class="fng" id="fng"><div class="loading">불러오는 중</div></div></div>
     <div class="card"><div class="ct"><b>시장 규모</b><span>CoinGecko</span></div><div id="global"><div class="loading">불러오는 중</div></div></div>
-    <div class="card"><div class="ct"><b>김치 프리미엄</b><span>업비트 vs Bybit</span></div><div id="kimp"><div class="loading">불러오는 중</div></div></div>
+    <div class="card"><div class="ct"><b>김치 프리미엄</b><span>업비트 vs Bitget</span></div><div id="kimp"><div class="loading">불러오는 중</div></div></div>
     <div class="card"><div class="ct"><b>펀딩비</b><span>Bitget · 8시간</span></div><div id="fund"><div class="loading">불러오는 중</div></div></div>
   </div>
 
@@ -272,13 +272,19 @@ async function loadTickers() {
   try { bitget = (await get('https://api.bitget.com/api/v2/mix/market/tickers?productType=USDT-FUTURES')).data || []; } catch (e) {}
   renderKimp(); renderFund(); fit();
 }
-async function renderKimp() {
+setInterval(loadTickers, 60000); // 김프 · 펀딩비 1분마다 갱신
+async function renderKimp(retry = 0) {
   const coins = ['BTC', 'ETH', 'XRP', 'SOL', 'DOGE'];
   let up = {};
   try { (await get('https://api.upbit.com/v1/ticker?markets=' + coins.concat(['USDT']).map(c => 'KRW-' + c).join(','))).forEach(t => { up[t.market.slice(4)] = t.trade_price; }); } catch (e) {}
   const fx = DATA.usdkrw;
-  if (!fx || !Object.keys(up).length) { fail('kimp', '업비트 또는 환율 정보를 불러오지 못했어요'); return; }
-  const rows = coins.map(c => { const b = bybit[c + 'USDT']; if (!b || !up[c]) return null; const k = (up[c] / (+b.lastPrice * fx) - 1) * 100; return [c, k]; }).filter(Boolean);
+  if (!fx || !Object.keys(up).length) {
+    if (retry < 3) { setTimeout(() => renderKimp(retry + 1), 3000 * (retry + 1)); return; }  // 업비트가 잠깐 막히면 다시 시도
+    fail('kimp', '업비트 또는 환율 정보를 불러오지 못했어요'); return;
+  }
+  // 해외 가격: Bitget(실제 거래소) → 없으면 Bybit
+  const usd = c => { const g = bitget.find(x => x.symbol === c + 'USDT'); if (g && +g.lastPr) return +g.lastPr; const b = bybit[c + 'USDT']; return b ? +b.lastPrice : null; };
+  const rows = coins.map(c => { const p = usd(c); if (!p || !up[c]) return null; const k = (up[c] / (p * fx) - 1) * 100; return [c, k]; }).filter(Boolean);
   const avg = rows.reduce((a, r) => a + r[1], 0) / (rows.length || 1);
   const tether = up.USDT ? (up.USDT / fx - 1) * 100 : null;
   $('kimp').innerHTML = `<div class="lbl">BTC 김프</div><div class="big num ${cls(rows[0] && rows[0][1])}">${pct(rows[0] && rows[0][1])}</div>
