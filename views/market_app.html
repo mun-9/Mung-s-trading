@@ -103,6 +103,7 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 .lr .t { font-size: 12px; color: var(--sub); }
 
 .tv { height: 520px; border-radius: 14px; overflow: hidden; }
+.tape { height: 46px; border-radius: 14px; overflow: hidden; background: var(--card); box-shadow: var(--shadow); }
 
 @media (max-width: 1000px) { .col .grow .lqex { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--sub); margin: -2px 0 10px; }
 .lqex b { color: var(--mid); font-weight: 700; }
@@ -141,6 +142,7 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 </head>
 <body>
 <div class="wrap">
+  <div class="tape" id="tvTape"></div>
   <div class="row r4">
     <div class="card"><div class="ct"><b>공포·탐욕 지수</b><span>alternative.me</span></div><div class="fng" id="fng"><div class="loading">불러오는 중</div></div></div>
     <div class="card"><div class="ct"><b>시장 규모</b><span>CoinGecko</span></div><div id="global"><div class="loading">불러오는 중</div></div></div>
@@ -184,6 +186,11 @@ function siteDark() {
 const TV = {
   tvHeat: ['embed-widget-crypto-coins-heatmap.js', { dataSource: 'Crypto', blockSize: 'market_cap_calc', blockColor: '24h_close_change|5', locale: 'kr', symbolUrl: '',
     hasTopBar: false, isDataSetEnabled: false, isZoomEnabled: true, hasSymbolTooltip: true, isMonoSize: false, width: '100%', height: '100%' }],
+  tvTape: ['embed-widget-ticker-tape.js', { symbols: [
+      { proName: 'BITGET:BTCUSDT.P', title: 'BTC' }, { proName: 'BITGET:ETHUSDT.P', title: 'ETH' }, { proName: 'FOREXCOM:NSXUSD', title: '나스닥100' },
+      { proName: 'FOREXCOM:SPXUSD', title: 'S&P500' }, { proName: 'TVC:DXY', title: '달러지수' }, { proName: 'OANDA:XAUUSD', title: '금' },
+      { proName: 'FX_IDC:USDKRW', title: '달러/원' }, { proName: 'TVC:US10Y', title: '미국10년물' }],
+    showSymbolLogo: true, isTransparent: true, displayMode: 'compact', locale: 'kr' }],
   tvCal: ['embed-widget-events.js', { isTransparent: true, width: '100%', height: '100%', locale: 'kr', importanceFilter: '1', countryFilter: 'us,eu,cn,jp,gb,kr' }],
 };
 function mountTV(dark) {
