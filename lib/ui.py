@@ -273,6 +273,17 @@ div[class*="st-key-refresh_btn"] button span { color: var(--mg-text) !important;
 .bar > div { height: 100%; border-radius: 4px; }
 .streak { display: flex; gap: 5px; flex-wrap: wrap; margin-top: auto; }
 .streak .sd { width: 14px; height: 14px; border-radius: 4px; }
+/* 계좌 점검 */
+.acc-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-top: 16px; }
+.acc-t { background: var(--mg-tile); border-radius: 14px; padding: 14px 16px; min-width: 0; }
+.acc-t > span { display: block; font-size: 12.5px; font-weight: 700; color: var(--mg-mid); }
+.acc-t b { display: block; font-size: 21px; font-weight: 800; letter-spacing: -.02em; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.acc-t small { display: block; font-size: 11.5px; color: var(--mg-sub); margin-top: 4px; line-height: 1.45; }
+.acc-t.hl { background: var(--mg-sel, rgba(49,130,246,.08)); box-shadow: inset 0 0 0 1.5px rgba(49,130,246,.35); }
+.acc-diff { display: flex; align-items: flex-start; gap: 10px; margin-top: 12px; padding: 12px 14px; border-radius: 12px; background: var(--mg-tile); font-size: 13px; line-height: 1.6; color: var(--mg-mid); }
+.acc-diff b { color: var(--mg-text); }
+.acc-v { margin-top: 10px; font-size: 12.5px; color: var(--mg-sub); line-height: 1.6; }
+.acc-v b { color: var(--mg-mid); }
 .m-only { display: none; }
 .bd-chips { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 12.5px; color: var(--mg-sub); }
 .bd-chips b { font-weight: 700; margin-left: 2px; }
@@ -530,6 +541,7 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
     div[data-testid="stButtonGroup"] button p { font-size: 13px !important; }
     .pt { padding: 14px; min-height: 150px; }
     .pt-value { font-size: 22px; }
+    .acc-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; } .acc-t { padding: 12px 13px; } .acc-t b { font-size: 17px; } .acc-t > span { font-size: 11.5px; }
     /* 성과 지표 칸: 글자 줄바꿈 없이 깔끔하게 */
     .d-only { display: none !important; } .m-only { display: inline !important; }
     .pt-label { font-size: 13px; }

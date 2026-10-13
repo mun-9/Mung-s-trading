@@ -6,6 +6,10 @@
   해당 포지션을 청산할 때 청산 수량 비율만큼 그 거래 손익에서 함께 뺀다 (FIFO).
 - 펀딩비: 거래소 장부(account bill)의 contract_settle_fee, 발생한 날짜에 반영
 - 페이백: USDT 입금 중 조건에 맞는 것, 입금된 날짜에 반영
+- 바우처: 선물 장부의 cash_gift_* / bonus_* 항목.
+    · 회수되지 않는 바우처(수수료 할인 캐시백 등) = 페이백으로 반영
+    · 포지션용 바우처(지급 → 포지션 종료 시 회수) = 지급액과 회수액이 상쇄되므로 수익 아님.
+      아직 회수 전인 지급분은 '사용 중'으로 따로 보관하고 손익에 넣지 않음.
 - 순손익 = 청산 손익 - 수수료(청산 + 배분된 진입) + 펀딩비 + 페이백
 """
 import random
@@ -44,6 +48,9 @@ TRADE_BILL_TYPES = {
     "delivery_long", "delivery_short",
 }
 FUNDING_BILL_TYPE = "contract_settle_fee"
+VOUCHER_PREFIXES = ("cash_gift", "bonus")   # 선물 장부의 바우처·보너스 항목 (지급 issue / 회수 recycle·expired)
+TRANSFER_PREFIXES = ("trans_", "transfer_")
+MARGIN_BILL_TYPES = {"append_margin", "adjust_down_lever_append_margin", "reduce_margin", "auto_append_margin"}
 
 TRADE_COLS = [
     "order_id", "datetime", "date", "symbol", "side", "bucket", "has_pnl",
@@ -318,8 +325,8 @@ def fetch_bills(ex, since_ms, now_ms):
 
 
 def parse_bills(ex, bills):
-    """→ (펀딩비 이벤트, 장부 일별 순손익 DataFrame, 거래한 종목 set)"""
-    events, ledger, symbols = [], [], set()
+    """→ (펀딩비 이벤트, 장부 일별 순손익 DataFrame, 거래한 종목 set, 바우처 항목 list, 기타 항목 요약 dict)"""
+    events, ledger, symbols, vouchers, others = [], [], set(), [], {}
     for b in bills:
         bt = str(b.get("businessType", ""))
         if str(b.get("coin", "USDT")).upper() != "USDT":
@@ -336,9 +343,53 @@ def parse_bills(ex, bills):
             if sym:
                 symbols.add(sym)
             ledger.append({"date": dt.strftime("%Y-%m-%d"), "net": amount + fee})
+        elif bt.startswith(VOUCHER_PREFIXES):
+            vouchers.append({"datetime": dt.replace(tzinfo=None), "date": dt.strftime("%Y-%m-%d"),
+                             "type": bt, "family": "bonus" if bt.startswith("bonus") else "cash_gift",
+                             "symbol": sym, "amount": amount + fee})
+        elif not bt.startswith(TRANSFER_PREFIXES) and bt not in MARGIN_BILL_TYPES:
+            o = others.setdefault(bt or "unknown", {"count": 0, "sum": 0.0})
+            o["count"] += 1
+            o["sum"] += amount + fee
     ledger_df = (pd.DataFrame(ledger).groupby("date", as_index=False)["net"].sum()
                  if ledger else pd.DataFrame(columns=["date", "net"]))
-    return events, ledger_df, symbols
+    return events, ledger_df, symbols, vouchers, others
+
+
+def settle_vouchers(vouchers):
+    """바우처 장부 → (손익에 넣을 이벤트 list, 아직 회수 전인 지급 list).
+
+    - cash_gift 중 회수(−)가 한 번도 없는 지급 = 캐시백(수수료 할인 등) → 지급 날짜에 페이백으로 반영.
+    - bonus(체험금·포지션 바우처)는 항상 지급 → 회수 방식으로 봄.
+    - 회수가 있는 종류(포지션 바우처): 회수 시점에 '그 전 지급 합계 + 회수액'을 반영.
+        · 바우처 포지션이 수익이면 지급=회수 → 0 (수익은 거래 손익에 이미 들어 있음)
+        · 손실이면 손실만큼 바우처가 대신 냈으므로 그만큼 +로 되돌려 → 내 돈 기준 0
+    - 마지막 회수 이후의 지급 = 지금 사용 중인 포지션 바우처 → 손익 제외, 따로 표시.
+    """
+    out, pending = [], []
+    for fam in ("cash_gift", "bonus"):
+        rows = sorted([v for v in vouchers if v["family"] == fam], key=lambda v: v["datetime"])
+        if not rows:
+            continue
+        # bonus(체험금·포지션 바우처)는 항상 '지급 → 회수' 방식으로 봄. cash_gift는 회수가 없으면 캐시백.
+        if fam == "cash_gift" and not any(v["amount"] < 0 for v in rows):
+            for v in rows:
+                if v["amount"] > 0:
+                    out.append({"datetime": v["datetime"], "date": v["date"], "symbol": "바우처", "kind": "payback", "amount": v["amount"]})
+            continue
+        acc, since = 0.0, []
+        for v in rows:
+            if v["amount"] > 0:
+                acc += v["amount"]
+                since.append(v)
+                continue
+            if acc > 0:
+                net = acc + v["amount"]
+                if abs(net) > 0.005:
+                    out.append({"datetime": v["datetime"], "date": v["date"], "symbol": "바우처", "kind": "payback", "amount": net})
+            acc, since = 0.0, []
+        pending.extend({"datetime": v["datetime"], "date": v["date"], "type": v["type"], "amount": v["amount"]} for v in since)
+    return out, pending
 
 
 # -----------------------------------------------------------------------------
@@ -376,9 +427,9 @@ def fetch_history(keys, _format=3):
     now_ms = int(datetime.now(UTC).timestamp() * 1000)
 
     # 1) 장부: 펀딩비 + 실제로 거래한 종목 찾기
-    events, ledger, traded = [], pd.DataFrame(columns=["date", "net"]), set()
+    events, ledger, traded, vouchers, others = [], pd.DataFrame(columns=["date", "net"]), set(), [], {}
     try:
-        events, ledger, traded = parse_bills(ex, fetch_bills(ex, since_ms, now_ms))
+        events, ledger, traded, vouchers, others = parse_bills(ex, fetch_bills(ex, since_ms, now_ms))
     except Exception as e:
         errors.append(f"장부(펀딩비) 조회 실패 — 펀딩비 미반영: {type(e).__name__}: {e}")
 
@@ -470,8 +521,15 @@ def fetch_history(keys, _format=3):
     except Exception as e:
         errors.append(f"입금(페이백) 조회 실패: {type(e).__name__}: {e}")
 
+    # 4) 바우처: 회수 안 되는 바우처만 페이백, 포지션 바우처는 상쇄 (사용 중인 건 제외)
+    v_events, v_pending = settle_vouchers(vouchers)
+    events.extend(v_events)
+
     out = _finish(fills, events, ledger, errors, demo=False)
     out["transfers"] = sorted(transfers, key=lambda x: x["datetime"], reverse=True)
+    out["vouchers"] = sorted(vouchers, key=lambda x: x["datetime"], reverse=True)
+    out["voucher_pending"] = v_pending
+    out["bill_others"] = others
     return out
 
 
@@ -830,6 +888,7 @@ def pending_fee_for(pending, symbol, side, size):
 
 
 @st.cache_data(ttl=30, show_spinner=False)
+@st.cache_data(ttl=60, show_spinner=False)
 def fetch_equity(keys):
     """(선물 계정 자산(미실현 포함), 현물 USDT, 오류) — 계좌 기준 손익 계산용."""
     if is_demo(keys):

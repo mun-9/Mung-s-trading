@@ -579,6 +579,61 @@ if _ins:
     st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
+# 계좌 점검: 넣은 원금 vs 지금 자산 vs 사이트 PNL
+# -----------------------------------------------------------------------------
+def account_check():
+    if hist.get("demo"):
+        return
+    fut, spot, err = D.fetch_equity(keys)
+    if fut is None:
+        return
+    principal = sum(D.principal_list())
+    withdrawn = sum(t["amount"] for t in transfers if t["kind"] == "withdraw")
+    pending = sum(v["amount"] for v in hist.get("voucher_pending", []))
+    equity = fut + (spot or 0)
+    real = equity + withdrawn - principal - pending
+    pos, _, _ = D.fetch_positions(keys)
+    upnl = sum(p["unrealized_pnl"] for p in pos) if pos else 0.0
+    all_bd = D.breakdown(hist["trades"], hist["events"])
+    site = all_bd["net"] + upnl
+    diff = real - site
+    start_lbl = f"{dash_start.month}/{dash_start.day}"
+    tiles = [
+        ("넣은 원금", money(principal, sign=False), f"입금 {len(D.principal_list())}번 합계", ""),
+        ("지금 총자산", money(equity, sign=False), f"선물 {money(fut, sign=False)} · 현물 {money(spot or 0, sign=False)}"
+         + (f"<br>사용 중 바우처 {money(pending, sign=False)} 포함" if pending > 0.005 else ""), ""),
+        ("실제로 늘어난 돈", f"<span style='color:{pnl_color(real)}'>{money(real)}</span>",
+         "총자산" + (" + 출금" if withdrawn else "") + " − 원금" + (" − 사용 중 바우처" if pending > 0.005 else ""), "hl"),
+        (f"사이트 PNL 합계", f"<span style='color:{pnl_color(site)}'>{money(site)}</span>",
+         f"{start_lbl}부터 실현 {money(all_bd['net'])} + 미실현 {money(upnl)}", "hl"),
+    ]
+    grid = "".join(f"<div class='acc-t {c}'><span>{t}</span><b>{v}</b><small>{sub}</small></div>" for t, v, sub, c in tiles)
+    if abs(diff) < max(2.0, principal * 0.0005):
+        note = f"✅ <span><b>거의 정확히 맞아요.</b> 차이 {money(diff)}는 반올림·시세 차이 수준이에요.</span>"
+    else:
+        note = (f"🔎 <span>차이 <b style='color:{pnl_color(diff)}'>{money(diff)}</b> — 사이트는 <b>{start_lbl}부터</b> 집계라서, "
+                f"그 전에 낸 손익{'(+)' if diff > 0 else '(−)'}이나 시작일 이전 페이백이 여기서 차이로 보여요.</span>")
+    vinfo = ""
+    vs = hist.get("vouchers") or []
+    if vs:
+        got = sum(e for e in hist["events"].loc[hist["events"]["symbol"] == "바우처", "amount"]) if not hist["events"].empty else 0.0
+        vinfo = (f"<div class='acc-v'>🎟 바우처 · 페이백으로 반영 <b>{money(got)}</b>"
+                 + (f" · 사용 중(포지션 바우처, 손익 제외) <b>{money(pending, sign=False)}</b>" if pending > 0.005 else "")
+                 + f" · 장부 {len(vs)}건</div>")
+    oth = hist.get("bill_others") or {}
+    if oth:
+        vinfo += "<div class='acc-v'>기타 장부 항목 · " + " · ".join(f"{k} {v['count']}건 {money(v['sum'])}" for k, v in oth.items()) + "</div>"
+    html(f"<div class='card'><div class='card-title'><span>계좌 점검</span><span>원금 · 총자산 · 사이트 PNL 비교 · 1분마다 갱신</span></div>"
+         f"<div class='acc-grid'>{grid}</div><div class='acc-diff'>{note}</div>{vinfo}</div>")
+    st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
+
+
+try:
+    account_check()
+except Exception:
+    pass
+
+# -----------------------------------------------------------------------------
 # 상세 매매 내역
 # -----------------------------------------------------------------------------
 section("상세 매매 내역")
@@ -647,8 +702,9 @@ else:
             continue
         if typ == "event":
             is_pay = r.kind == "payback"
-            name = "수수료 페이백" if is_pay else f"펀딩비 · {r.symbol}"
-            badge, tag = ("💰", "입금") if is_pay else ("⏱", "펀딩")
+            is_v = is_pay and r.symbol == "바우처"
+            name = "바우처 페이백" if is_v else "수수료 페이백" if is_pay else f"펀딩비 · {r.symbol}"
+            badge, tag = ("🎟", "바우처") if is_v else ("💰", "입금") if is_pay else ("⏱", "펀딩")
             c = pnl_color(r.amount)
             out.append(f"<div class='log-row'><div class='log-left'><div class='sym-badge' style='background:{GREEN_SOFT if r.amount >= 0 else RED_SOFT};color:{c};'>{badge}</div>"
                        f"<div><div class='row-title'>{name} <span class='pill' style='background:{GRAY_SOFT};color:{SUB};'>{tag}</span></div>"
