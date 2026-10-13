@@ -104,8 +104,8 @@ _CSS = r"""
   height: 86px; padding: 0; border-radius: 20px; background: var(--mp-bg); color: #fff; border: 1px solid var(--mp-line);
   backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4); box-shadow: 0 10px 30px rgba(0,0,0,.28);
   transition: width .45s cubic-bezier(.2,1,.3,1), opacity .3s ease, padding .45s ease; }
-#mg-music.open .np { width: 300px; opacity: 1; padding: 0 10px 0 16px; }
-#mg-music .np-top, #mg-music .np-ctl { display: flex; align-items: center; gap: 4px; width: 274px; }
+#mg-music.open .np { width: 340px; opacity: 1; padding: 0 12px 0 16px; }
+#mg-music .np-top, #mg-music .np-ctl { display: flex; align-items: center; gap: 4px; width: 312px; }
 #mg-music .np-ctl { gap: 2px; }
 #mg-music .np-ctl .cur, #mg-music .np-ctl .dur { font-size: 10.5px; color: var(--mp-sub); font-variant-numeric: tabular-nums; width: 30px; text-align: center; flex-shrink: 0; }
 #mg-music .np-ctl .cur { margin-left: 4px; }
@@ -126,29 +126,29 @@ _CSS = r"""
 #mg-music button.on { color: var(--mp-acc); }
 
 /* 플레이리스트 */
-#mg-music .pl { position: absolute; left: 0; bottom: 98px; width: 360px; max-height: 0; opacity: 0; overflow: hidden; border-radius: 20px;
+#mg-music .pl { position: absolute; left: 0; bottom: 98px; width: 410px; max-height: 0; opacity: 0; overflow: hidden; border-radius: 20px;
   background: var(--mp-bg); border: 1px solid var(--mp-line); color: #fff; box-shadow: 0 16px 40px rgba(0,0,0,.35);
   backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4);
   transform: translateY(8px); transition: max-height .4s ease, opacity .25s ease, transform .3s ease; pointer-events: none;
   display: flex; flex-direction: column; }
-#mg-music.list .pl { max-height: min(600px, calc(100vh - 140px)); opacity: 1; transform: none; pointer-events: auto; }
+#mg-music.list .pl { max-height: min(660px, calc(100vh - 140px)); opacity: 1; transform: none; pointer-events: auto; }
 /* 맨 위: 지금 곡 (앨범 사진을 흐리게 깐 배경) */
-#mg-music .pl-hero { position: relative; display: flex; align-items: center; gap: 14px; padding: 18px 18px 16px; overflow: hidden; flex-shrink: 0; }
+#mg-music .pl-hero { position: relative; display: flex; align-items: center; gap: 14px; padding: 18px 16px 16px; overflow: hidden; flex-shrink: 0; }
 #mg-music .pl-hero .bg { position: absolute; inset: -30px; background: center/cover; filter: blur(28px) saturate(1.5); opacity: .55; transition: background-image .4s; }
 #mg-music .pl-hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,12,18,.15), rgba(10,12,18,.65)); }
 #mg-music .pl-hero > *:not(.bg) { position: relative; z-index: 1; }
-#mg-music .pl-cover { width: 64px; height: 64px; border-radius: 12px; background: #222 center/cover; flex-shrink: 0; box-shadow: 0 8px 20px rgba(0,0,0,.4); }
+#mg-music .pl-cover { width: 76px; height: 76px; border-radius: 12px; background: #222 center/cover; flex-shrink: 0; box-shadow: 0 8px 20px rgba(0,0,0,.4); }
 #mg-music .pl-now { flex: 1; min-width: 0; }
 #mg-music .pl-now small { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 800; letter-spacing: .14em; color: rgba(255,255,255,.7); }
 #mg-music .pl-now small em { font-style: normal; }
 #mg-music .pl-now small i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.4); }
 #mg-music.playing .pl-now small i { background: #4ADE80; box-shadow: 0 0 8px #4ADE80; }
-#mg-music .pl-now b { display: block; font-size: 16px; font-weight: 800; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.02em; }
+#mg-music .pl-now b { display: block; font-size: 17px; font-weight: 800; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.02em; }
 #mg-music .pl-now span { display: block; font-size: 12px; color: rgba(255,255,255,.7); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #mg-music .pl-next { font-size: 11px !important; color: rgba(255,255,255,.55) !important; margin-top: 6px !important; }
 #mg-music .pl-next em { font-style: normal; color: #C9D7FF; font-weight: 600; }
 /* 도구 줄: 검색 · 셔플 · 반복 · 좋아요만 */
-#mg-music .pl-tools { display: flex; align-items: center; gap: 4px; padding: 10px 12px 8px; border-top: 1px solid var(--mp-line); flex-shrink: 0; }
+#mg-music .pl-tools { display: flex; align-items: center; gap: 4px; padding: 12px 16px 8px; border-top: 1px solid var(--mp-line); flex-shrink: 0; }
 #mg-music .pl-q { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border-radius: 10px; background: rgba(255,255,255,.07); }
 #mg-music .pl-q svg { width: 14px; height: 14px; color: var(--mp-sub); flex-shrink: 0; }
 #mg-music .pl-q input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: #fff; font-family: inherit; font-size: 12.5px; }
@@ -156,12 +156,12 @@ _CSS = r"""
 #mg-music .pl-tools button { width: 32px; height: 32px; border-radius: 10px; color: rgba(255,255,255,.6); position: relative; }
 #mg-music .pl-tools button.on { color: var(--mp-acc); background: rgba(91,141,255,.14); }
 #mg-music .pl-tools button .one { position: absolute; right: 4px; top: 3px; font-size: 8px; font-weight: 900; }
-#mg-music .pl-cnt { font-size: 11px; color: var(--mp-sub); padding: 0 18px 6px; flex-shrink: 0; }
+#mg-music .pl-cnt { font-size: 11px; color: var(--mp-sub); padding: 2px 16px 6px; flex-shrink: 0; }
 #mg-music .pl-ul { flex: 1; min-height: 0; overflow-y: auto; padding: 0 8px 8px; scrollbar-width: none; }
 #mg-music .pl-ul::-webkit-scrollbar { display: none; }
 #mg-music .pl-empty { padding: 26px 10px; text-align: center; font-size: 12.5px; color: var(--mp-sub); }
-#mg-music .pl-li { position: relative; display: flex; align-items: center; gap: 12px; padding: 9px 6px 9px 12px; border-radius: 12px; cursor: pointer; transition: background .15s; }
-#mg-music .pl-li + .pl-li::before { content: ''; position: absolute; left: 46px; right: 12px; top: 0; height: 1px; background: rgba(255,255,255,.05); }
+#mg-music .pl-li { position: relative; display: flex; align-items: center; gap: 12px; padding: 10px 4px 10px 8px; border-radius: 12px; cursor: pointer; transition: background .15s; }
+#mg-music .pl-li + .pl-li::before { content: ''; position: absolute; left: 42px; right: 8px; top: 0; height: 1px; background: rgba(255,255,255,.05); }
 #mg-music .pl-li:hover { background: rgba(255,255,255,.06); }
 #mg-music .pl-li.cur { background: linear-gradient(90deg, rgba(91,141,255,.22), rgba(91,141,255,.06)); }
 #mg-music .pl-li.cur::before, #mg-music .pl-li.cur + .pl-li::before { display: none; }
@@ -170,8 +170,25 @@ _CSS = r"""
 #mg-music .pl-li:hover .pl-fav, #mg-music .pl-fav.on { opacity: 1; }
 #mg-music .pl-fav.on { color: #FF5C7A !important; }
 #mg-music .pl-fav svg { width: 15px !important; height: 15px !important; }
+/* 유튜브 검색 결과 · 내가 담은 곡 */
+#mg-music .pl-sec { display: flex; align-items: center; justify-content: space-between; padding: 14px 8px 6px; font-size: 10.5px; font-weight: 800; letter-spacing: .12em; color: var(--mp-sub); }
+#mg-music .pl-sec button { width: auto !important; height: auto !important; border-radius: 6px !important; padding: 2px 6px !important; font-size: 11px; font-weight: 700; letter-spacing: 0; color: var(--mp-sub) !important; font-family: inherit; }
+#mg-music .yt-go { display: flex; align-items: center; gap: 10px; margin: 6px 0 2px; padding: 11px 12px; border-radius: 12px; cursor: pointer;
+  background: rgba(255,0,51,.10); border: 1px solid rgba(255,0,51,.22); color: #fff; font-size: 13px; font-weight: 700; }
+#mg-music .yt-go:hover { background: rgba(255,0,51,.16); }
+#mg-music .yt-go svg { width: 18px; height: 18px; color: #FF3355; flex-shrink: 0; }
+#mg-music .yt-go small { display: block; font-size: 11px; font-weight: 500; color: var(--mp-sub); margin-top: 1px; }
+#mg-music .yt-li .pl-k { width: 44px; height: 30px; }
+#mg-music .yt-th { width: 44px; height: 30px; border-radius: 6px; background: #222 center/cover; }
+#mg-music .yt-add, #mg-music .pl-del { width: 30px !important; height: 30px !important; color: rgba(255,255,255,.55) !important; }
+#mg-music .yt-add:hover { color: #fff !important; background: rgba(91,141,255,.25) !important; }
+#mg-music .yt-add.done { color: #4ADE80 !important; }
+#mg-music .yt-add svg, #mg-music .pl-del svg { width: 15px !important; height: 15px !important; }
+#mg-music .pl-del { opacity: 0; } #mg-music .pl-li:hover .pl-del { opacity: 1; }
+#mg-music .pl-msg { padding: 14px 10px; text-align: center; font-size: 12px; color: var(--mp-sub); line-height: 1.6; }
+#mg-music .pl-li.tmp::after { background: #FF3355; }
 /* 맨 아래: 볼륨 */
-#mg-music .pl-ft { display: flex; align-items: center; gap: 10px; padding: 10px 18px 14px; border-top: 1px solid var(--mp-line); flex-shrink: 0; }
+#mg-music .pl-ft { display: flex; align-items: center; gap: 10px; padding: 12px 16px 14px; border-top: 1px solid var(--mp-line); flex-shrink: 0; }
 #mg-music .pl-ft svg { width: 16px; height: 16px; color: var(--mp-sub); flex-shrink: 0; cursor: pointer; }
 #mg-music .pl-ft input { flex: 1; -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px; outline: 0; cursor: pointer;
   background: linear-gradient(90deg, #5B8DFF var(--v, 60%), rgba(255,255,255,.15) var(--v, 60%)); }
@@ -189,7 +206,7 @@ _CSS = r"""
 #mg-music.playing .pl-li.cur .eq i { animation: mg-eq .9s ease-in-out infinite; }
 #mg-music .eq i:nth-child(2) { animation-delay: .25s !important; } #mg-music .eq i:nth-child(3) { animation-delay: .5s !important; }
 #mg-music .pl-tx { flex: 1; min-width: 0; }
-#mg-music .pl-t { font-size: 13.5px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.01em; }
+#mg-music .pl-t { font-size: 14px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.01em; }
 #mg-music .pl-li.cur .pl-t { color: #fff; font-weight: 750; }
 #mg-music .pl-a { font-size: 11.5px; color: var(--mp-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
 #mg-music .pl-li.cur .pl-a { color: #9DB8FF; }
@@ -213,8 +230,9 @@ _CSS = r"""
   #mg-music.open .np { width: min(290px, calc(100vw - 84px)); padding: 0 8px 0 14px; }
   #mg-music .np-top, #mg-music .np-ctl { width: min(268px, calc(100vw - 106px)); }
   #mg-music .pl { bottom: 96px; width: calc(100vw - 20px); }
+  #mg-music .pl-cover { width: 64px; height: 64px; } #mg-music .pl-now b { font-size: 16px; } #mg-music .pl-t { font-size: 13.5px; }
   #mg-music.list .pl { max-height: min(560px, calc(100vh - 180px)); }
-  #mg-music .pl-fav { opacity: 1; }
+  #mg-music .pl-fav, #mg-music .pl-del { opacity: 1; }
   #mg-music .pl-ft { display: none; }  /* 휴대폰은 기기 볼륨 버튼으로 */
   #mg-music.inapp .yt { width: 52px; height: 52px; margin-top: -26px; } #mg-music.inapp .yt iframe { transform: scale(.26); }
 }
@@ -222,7 +240,8 @@ _CSS = r"""
 
 _JS = r"""
 (function () {
-  const TRACKS = __TRACKS__;
+  const BASE = __TRACKS__;          // 사이트에 박아둔 곡 (코드에서 관리)
+  const YTKEY = __YTKEY__;          // 유튜브 검색용 키 (없으면 검색 기능 숨김)
   const I = {
     play: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>',
     pause: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6.5" y="5" width="4" height="14" rx="1.2"/><rect x="13.5" y="5" width="4" height="14" rx="1.2"/></svg>',
@@ -236,14 +255,29 @@ _JS = r"""
     search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>',
     vol: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8.5a5 5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
     mute: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9l5 6M22 9l-5 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    yt: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 0 0 1 7.2 31 31 0 0 0 .5 12 31 31 0 0 0 1 16.8a3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5a3 3 0 0 0 2.1-2.1 31 31 0 0 0 .5-4.8 31 31 0 0 0-.5-4.8zM9.7 15.1V8.9l5.8 3.1-5.8 3.1z"/></svg>',
+    plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+    del: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
   };
-  // 셔플·반복·좋아요·볼륨·마지막 곡은 브라우저에 기억
+  // 셔플·반복·좋아요·볼륨·마지막 곡·내가 담은 곡은 브라우저에 기억
   const KEY = 'mung_music';
-  let S = { shuf: false, rep: 'all', fav: [], vol: 60, last: null, favOnly: false };
+  let S = { shuf: false, rep: 'all', fav: [], vol: 60, last: null, favOnly: false, added: [] };
   try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
+  if (!Array.isArray(S.added)) S.added = [];
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+  let ALL = [];
+  const rebuild = () => { const ids = new Set(BASE.map(t => t.id)); ALL = BASE.concat(S.added.filter(t => !ids.has(t.id)).map(t => ({ ...t, mine: 1 }))); };
+  rebuild();
   const thumb = id => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
   const esc = s => String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const unent = s => { const t = document.createElement('textarea'); t.innerHTML = s; return t.value; };
+  // '가수 - 곡명 | NCS ...' / '곡명 (Official Video)' → 곡명 · 가수
+  function parseTitle(raw, ch) {
+    let t = unent(raw).replace(/\s*[\|｜].*$/, '').replace(/\s*[\[【(（](official|lyric|lyrics|audio|mv|m\/v|music video|visualizer|ncs|free|copyright|4k|hd)[^\]】)）]*[\]】)）]/gi, '').replace(/\s+(official\s+)?(m\/?v|music video|audio)$/i, '').trim();
+    const m = t.split(/\s+[-–—]\s+/);
+    return m.length > 1 ? { song: m.slice(1).join(' - ').trim(), artist: m[0].trim() } : { song: t, artist: unent(ch || '').replace(/\s*-\s*Topic$/, '') };
+  }
   const root = document.createElement('div');
   root.id = 'mg-music';
   root.innerHTML = `<div class="glow"></div>
@@ -251,65 +285,97 @@ _JS = r"""
     <div class="np">
       <div class="np-top"><div class="np-tx"><div class="np-t"></div><div class="np-a"></div></div>
         <button class="ls" title="플레이리스트">${I.list}</button><button class="cl" title="접기">${I.close}</button></div>
-      <div class="np-ctl">${TRACKS.length > 1 ? `<button class="pv" title="이전 곡">${I.prev}</button>` : ''}<button class="pp" title="재생">${I.play}</button>${TRACKS.length > 1 ? `<button class="nx" title="다음 곡">${I.next}</button>` : ''}
+      <div class="np-ctl"><button class="pv" title="이전 곡">${I.prev}</button><button class="pp" title="재생">${I.play}</button><button class="nx" title="다음 곡">${I.next}</button>
         <span class="cur">0:00</span><div class="np-bar"><i></i></div><span class="dur">0:00</span></div>
     </div>
     <div class="pl">
       <div class="pl-hero"><div class="bg"></div><div class="pl-cover"></div>
         <div class="pl-now"><small><i></i><em class="st">PAUSED</em></small><b></b><span class="ar"></span><span class="pl-next"></span></div></div>
-      <div class="pl-tools"><label class="pl-q">${I.search}<input placeholder="곡·가수 검색"></label>
+      <div class="pl-tools"><label class="pl-q">${I.search}<input placeholder="${YTKEY ? '곡·가수 검색 (유튜브까지)' : '곡·가수 검색'}"></label>
         <button class="b-fav" title="좋아요한 곡만">${I.heart}</button><button class="b-shuf" title="셔플">${I.shuf}</button><button class="b-rep" title="반복">${I.rep}<span class="one"></span></button></div>
       <div class="pl-cnt"></div>
-      <div class="pl-ul">${TRACKS.map((t, i) => `
-      <div class="pl-li" data-i="${i}"><div class="pl-k"><span class="pl-n">${String(i + 1).padStart(2, '0')}</span><span class="pl-p">${I.play}</span><span class="eq"><i></i><i></i><i></i></span></div>
-        <div class="pl-tx"><div class="pl-t">${esc(t.song)}</div>${t.artist ? `<div class="pl-a">${esc(t.artist)}</div>` : ''}</div>
-        <button class="pl-fav" title="좋아요">${I.heart}</button></div>`).join('')}<div class="pl-empty" style="display:none"></div></div>
+      <div class="pl-ul"></div>
       <div class="pl-ft"><span class="vi">${I.vol}</span><input type="range" min="0" max="100" step="1"><span class="vv"></span></div>
     </div>
     <div class="yt"><div id="mg-yt"></div></div><div class="tip">인스타·카톡 앱 안에서는 노래가 막힐 수 있어요.<br>오른쪽 위 <b>⋮</b> → <b>외부 브라우저로 열기</b>로 들어와 주세요.</div>`;
   document.body.appendChild(root);
   const INAPP = /Instagram|FBAN|FBAV|FB_IAB|KAKAOTALK|NAVER\(inapp|DaumApps|Line\/|; wv\)/i.test(navigator.userAgent);
   if (INAPP) root.classList.add('inapp');
-  let idx = Math.max(0, TRACKS.findIndex(t => t.id === S.last)), player = null, ready = false, playing = false, want = false;
-  const hist = [];  // 셔플일 때 '이전 곡'으로 돌아가기용
   const $ = s => root.querySelector(s);
   const fmt = t => { t = Math.max(0, Math.floor(t || 0)); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); };
+  let idx = Math.max(0, ALL.findIndex(t => t.id === S.last)), tmp = null, player = null, ready = false, playing = false, want = false;
+  let results = [], searching = false, sErr = '', lastQ = '';
+  const hist = [];  // '이전 곡'으로 돌아가기용 (곡 id)
+  const curT = () => tmp || ALL[idx];
+
+  function renderList() {
+    const q = $('.pl-q input').value.trim().toLowerCase();
+    let n = 0, h = '';
+    ALL.forEach((t, i) => {
+      const ok = (!q || (t.song + ' ' + t.artist).toLowerCase().includes(q)) && (!S.favOnly || S.fav.includes(t.id));
+      if (!ok) return; n++;
+      h += `<div class="pl-li${!tmp && i === idx ? ' cur' : ''}" data-i="${i}"><div class="pl-k"><span class="pl-n">${String(i + 1).padStart(2, '0')}</span><span class="pl-p">${I.play}</span><span class="eq"><i></i><i></i><i></i></span></div>
+        <div class="pl-tx"><div class="pl-t">${esc(t.song)}</div>${t.artist ? `<div class="pl-a">${esc(t.artist)}</div>` : ''}</div>
+        ${t.mine ? `<button class="pl-del" title="내 목록에서 빼기">${I.del}</button>` : ''}<button class="pl-fav${S.fav.includes(t.id) ? ' on' : ''}" title="좋아요">${I.heart}</button></div>`;
+    });
+    if (!n) h += `<div class="pl-empty">${S.favOnly && !S.fav.length ? '♥를 눌러 좋아하는 곡을 모아보세요' : '내 목록에는 없는 곡이에요'}</div>`;
+    // 유튜브 검색
+    if (YTKEY && q) {
+      if (q !== lastQ) h += `<div class="yt-go">${I.yt}<div>유튜브에서 ‘${esc($('.pl-q input').value.trim())}’ 찾기<small>엔터를 눌러도 돼요 · 누르면 바로 재생, ＋로 내 목록에 담기</small></div></div>`;
+      else {
+        h += `<div class="pl-sec"><span>YOUTUBE</span><button class="yt-clear">닫기</button></div>`;
+        if (searching) h += `<div class="pl-msg">찾는 중…</div>`;
+        else if (sErr) h += `<div class="pl-msg">${esc(sErr)}</div>`;
+        else if (!results.length) h += `<div class="pl-msg">검색 결과가 없어요</div>`;
+        else results.forEach((r, k) => {
+          const have = ALL.some(t => t.id === r.id);
+          h += `<div class="pl-li yt-li${tmp && tmp.id === r.id ? ' cur tmp' : ''}" data-r="${k}"><div class="pl-k"><div class="yt-th" style="background-image:url(https://i.ytimg.com/vi/${r.id}/default.jpg)"></div><span class="eq" style="position:absolute"><i></i><i></i><i></i></span></div>
+            <div class="pl-tx"><div class="pl-t">${esc(r.song)}</div><div class="pl-a">${esc(r.artist)}</div></div>
+            <button class="yt-add${have ? ' done' : ''}" title="${have ? '내 목록에 있어요' : '내 목록에 담기'}">${have ? I.check : I.plus}</button></div>`;
+        });
+      }
+    }
+    $('.pl-ul').innerHTML = h;
+    $('.pl-cnt').textContent = (q ? '내 목록에서 ' : S.favOnly ? '좋아요 ' : '전체 ') + n + '곡' + (S.shuf ? ' · 셔플' : '') + (S.rep === 'one' ? ' · 한 곡 반복' : '') + (S.added.length && !q ? ` · 내가 담은 곡 ${S.added.length}` : '');
+  }
+  async function ytSearch() {
+    const q = $('.pl-q input').value.trim(); if (!q || !YTKEY) return;
+    lastQ = q.toLowerCase(); searching = true; sErr = ''; results = []; renderList();
+    try {
+      const u = 'https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&videoCategoryId=10&maxResults=12&q=' + encodeURIComponent(q) + '&key=' + YTKEY;
+      const r = await fetch(u); const j = await r.json();
+      if (j.error) throw new Error(j.error.errors && j.error.errors[0] && j.error.errors[0].reason === 'quotaExceeded' ? '오늘 검색 한도를 다 썼어요 (내일 다시 돼요)' : '유튜브 검색이 안 돼요 · 키 설정을 확인해 주세요');
+      results = (j.items || []).map(it => ({ id: it.id.videoId, ...parseTitle(it.snippet.title, it.snippet.channelTitle) })).filter(x => x.id);
+    } catch (e) { sErr = e.message && /[가-힣]/.test(e.message) ? e.message : '검색 중 문제가 생겼어요 · 잠시 뒤 다시 해주세요'; }
+    searching = false; renderList();
+  }
+
   function show() {
-    const t = TRACKS[idx];
+    const t = curT();
     $('.label').style.backgroundImage = `url(${thumb(t.id)})`;
     $('.np-t').textContent = t.song; $('.np-a').textContent = t.artist || '';
-    root.querySelectorAll('.pl-li').forEach(li => li.classList.toggle('cur', +li.dataset.i === idx));
     $('.np-bar i').style.width = '0%'; $('.cur').textContent = '0:00'; $('.dur').textContent = '0:00';
     $('.pl-hero .bg').style.backgroundImage = $('.pl-cover').style.backgroundImage = `url(${thumb(t.id)})`;
     $('.pl-now b').textContent = t.song; $('.pl-now .ar').textContent = t.artist || '';
-    S.last = t.id; save(); upNext();
+    if (!tmp) { S.last = t.id; save(); }
+    upNext(); renderList();
   }
   // 다음 곡 미리 정해두기 (셔플이면 무작위, 좋아요만 보기 중이면 좋아요 곡 안에서)
-  let nextI = null;
-  function pool() { const f = S.favOnly && S.fav.length ? TRACKS.map((t, i) => i).filter(i => S.fav.includes(TRACKS[i].id)) : TRACKS.map((t, i) => i); return f.length ? f : TRACKS.map((t, i) => i); }
+  let nextI = 0;
+  function pool() { const all = ALL.map((t, i) => i); const f = S.favOnly && S.fav.length ? all.filter(i => S.fav.includes(ALL[i].id)) : all; return f.length ? f : all; }
   function upNext() {
-    const p = pool();
-    if (S.shuf) { const c = p.filter(i => i !== idx && !hist.slice(-Math.floor(p.length / 2)).includes(i)); const q = c.length ? c : p.filter(i => i !== idx); nextI = q.length ? q[Math.floor(Math.random() * q.length)] : idx; }
+    const p = pool(), recent = hist.slice(-Math.floor(p.length / 2));
+    if (S.shuf) { const c = p.filter(i => i !== idx && !recent.includes(ALL[i].id)); const q = c.length ? c : p.filter(i => i !== idx); nextI = q.length ? q[Math.floor(Math.random() * q.length)] : idx; }
+    else if (tmp) nextI = p.includes(idx) ? idx : p[0];
     else { const k = p.indexOf(idx); nextI = p[(k + 1) % p.length] ?? p[0]; }
-    const n = TRACKS[nextI];
-    $('.pl-next').innerHTML = S.rep === 'one' ? '한 곡 반복 중' : `다음 곡 · <em>${esc(n.song)}</em>`;
+    $('.pl-next').innerHTML = S.rep === 'one' ? '한 곡 반복 중' : `다음 곡 · <em>${esc(ALL[nextI].song)}</em>`;
   }
   function tools() {
     $('.b-shuf').classList.toggle('on', S.shuf);
     $('.b-rep').classList.toggle('on', S.rep === 'one'); $('.b-rep .one').textContent = S.rep === 'one' ? '1' : '';
     $('.b-rep').title = S.rep === 'one' ? '한 곡 반복 (누르면 전체 반복)' : '전체 반복 (누르면 한 곡 반복)';
     $('.b-fav').classList.toggle('on', S.favOnly);
-    root.querySelectorAll('.pl-li').forEach(li => li.querySelector('.pl-fav').classList.toggle('on', S.fav.includes(TRACKS[+li.dataset.i].id)));
-    filter();
-  }
-  function filter() {
-    const q = $('.pl-q input').value.trim().toLowerCase(); let n = 0;
-    root.querySelectorAll('.pl-li').forEach(li => {
-      const t = TRACKS[+li.dataset.i], ok = (!q || (t.song + ' ' + t.artist).toLowerCase().includes(q)) && (!S.favOnly || S.fav.includes(t.id));
-      li.style.display = ok ? '' : 'none'; if (ok) n++;
-    });
-    const em = $('.pl-empty'); em.style.display = n ? 'none' : ''; em.textContent = S.favOnly && !S.fav.length ? '♥를 눌러 좋아하는 곡을 모아보세요' : '찾는 곡이 없어요';
-    $('.pl-cnt').textContent = (q ? '검색 결과 ' : S.favOnly ? '좋아요 ' : '전체 ') + n + '곡' + (S.shuf ? ' · 셔플' : '') + (S.rep === 'one' ? ' · 한 곡 반복' : '');
+    renderList();
   }
   function setVol(v) { S.vol = v; save(); const r = $('.pl-ft input'); r.value = v; r.style.setProperty('--v', v + '%'); $('.pl-ft .vv').textContent = v; $('.pl-ft .vi').innerHTML = v ? I.vol : I.mute; if (ready) player.setVolume(v); }
   function setPlaying(v) {
@@ -319,26 +385,47 @@ _JS = r"""
   }
   function play() { want = true; root.classList.add('open'); if (ready) player.playVideo(); }
   function pause() { want = false; if (ready) player.pauseVideo(); }
-  function go(i, back) { if (!back && i !== idx) hist.push(idx); if (hist.length > 50) hist.shift(); idx = (i + TRACKS.length) % TRACKS.length; show(); want = true; root.classList.add('open'); if (ready) player.loadVideoById(TRACKS[idx].id); }
+  function load() { want = true; root.classList.add('open'); if (ready) player.loadVideoById(curT().id); }
+  function go(i, back) { const c = curT(); if (!back && c) hist.push(c.id); if (hist.length > 60) hist.shift(); tmp = null; idx = (i + ALL.length) % ALL.length; show(); load(); }
+  function playTmp(r) { const c = curT(); if (c) hist.push(c.id); tmp = r; show(); load(); }
   // 숨어 있을 때 누르면: 나오면서 재생 / 나와 있을 때 누르면: 재생·일시정지
   $('.disc').onclick = () => { if (!root.classList.contains('open')) { root.classList.add('open'); if (!playing) play(); } else if (playing) pause(); else play(); };
   $('.pp').onclick = () => playing ? pause() : play();
-  if ($('.nx')) $('.nx').onclick = () => go(nextI);
-  if ($('.pv')) $('.pv').onclick = () => { if (ready && player.getCurrentTime() > 3) return player.seekTo(0, true); if (hist.length) return go(hist.pop(), true); const p = pool(), k = p.indexOf(idx); go(p[(k - 1 + p.length) % p.length] ?? idx - 1, true); };
+  $('.nx').onclick = () => go(nextI);
+  $('.pv').onclick = () => {
+    if (ready && player.getCurrentTime() > 3) return player.seekTo(0, true);
+    if (hist.length) { const id = hist.pop(), i = ALL.findIndex(t => t.id === id); if (i >= 0) return go(i, true); const r = results.find(x => x.id === id); if (r) { tmp = r; show(); return load(); } }
+    const p = pool(), k = p.indexOf(idx); go(p[(k - 1 + p.length) % p.length] ?? idx - 1, true);
+  };
   $('.b-shuf').onclick = () => { S.shuf = !S.shuf; save(); tools(); upNext(); };
   $('.b-rep').onclick = () => { S.rep = S.rep === 'one' ? 'all' : 'one'; save(); tools(); upNext(); };
   $('.b-fav').onclick = () => { S.favOnly = !S.favOnly; save(); tools(); upNext(); };
-  $('.pl-q input').oninput = filter;
-  $('.pl-q input').onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') { const li = [...root.querySelectorAll('.pl-li')].find(l => l.style.display !== 'none'); if (li) li.click(); } };
-  root.querySelectorAll('.pl-fav').forEach(b => b.onclick = e => { e.stopPropagation(); const id = TRACKS[+b.closest('.pl-li').dataset.i].id; S.fav = S.fav.includes(id) ? S.fav.filter(x => x !== id) : [...S.fav, id]; save(); tools(); upNext(); });
+  $('.pl-q input').oninput = () => { if ($('.pl-q input').value.trim().toLowerCase() !== lastQ) { lastQ = ''; results = []; } renderList(); };
+  $('.pl-q input').onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') { if (YTKEY) ytSearch(); else { const li = $('.pl-li[data-i]'); if (li) li.click(); } } };
+  // 목록 안 클릭은 한 군데서 처리 (목록을 다시 그려도 동작하게)
+  $('.pl-ul').onclick = e => {
+    const tg = e.target;
+    if (tg.closest('.yt-go')) return ytSearch();
+    if (tg.closest('.yt-clear')) { $('.pl-q input').value = ''; lastQ = ''; results = []; return renderList(); }
+    const li = tg.closest('.pl-li'); if (!li) return;
+    if (li.dataset.r !== undefined) {
+      const r = results[+li.dataset.r];
+      if (tg.closest('.yt-add')) { if (!ALL.some(t => t.id === r.id)) { S.added.push({ id: r.id, song: r.song, artist: r.artist }); save(); const c = curT(); rebuild(); if (!tmp) idx = ALL.findIndex(t => t.id === c.id); upNext(); renderList(); } return; }
+      if (tmp && tmp.id === r.id && ready) return playing ? pause() : play();
+      return playTmp(r);
+    }
+    const i = +li.dataset.i, t = ALL[i];
+    if (tg.closest('.pl-fav')) { S.fav = S.fav.includes(t.id) ? S.fav.filter(x => x !== t.id) : [...S.fav, t.id]; save(); upNext(); return renderList(); }
+    if (tg.closest('.pl-del')) { const c = curT(); S.added = S.added.filter(x => x.id !== t.id); save(); rebuild(); if (!tmp) { const j = ALL.findIndex(x => x.id === c.id); if (j >= 0) idx = j; else { tmp = c; } } upNext(); return renderList(); }
+    if (!tmp && i === idx && ready) { playing ? pause() : play(); } else go(i);
+  };
   $('.pl-ft input').oninput = e => setVol(+e.target.value);
   $('.pl-ft .vi').onclick = () => { if (S.vol) { S._v = S.vol; setVol(0); } else setVol(S._v || 60); };
   $('.ls').onclick = e => { e.stopPropagation(); root.classList.toggle('list'); $('.ls').classList.toggle('on', root.classList.contains('list'));
     if (root.classList.contains('list')) { const c = root.querySelector('.pl-li.cur'); if (c) c.scrollIntoView({ block: 'nearest' }); } };
   $('.cl').onclick = () => { root.classList.remove('open', 'list'); $('.ls').classList.remove('on'); }; // 접기 (노래는 계속)
-  root.querySelectorAll('.pl-li').forEach(li => li.onclick = () => { const i = +li.dataset.i; if (i === idx && ready) { playing ? pause() : play(); } else go(i); });
   $('.np-bar').onclick = e => { if (!ready) return; const r = e.currentTarget.getBoundingClientRect(), d = player.getDuration() || 0; player.seekTo(d * Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), true); };
-  document.addEventListener('click', e => { if (root.classList.contains('list') && !root.contains(e.target)) { root.classList.remove('list'); $('.ls').classList.remove('on'); } });
+  document.addEventListener('click', e => { if (root.classList.contains('list') && e.target.isConnected && !root.contains(e.target)) { root.classList.remove('list'); $('.ls').classList.remove('on'); } });
   setInterval(() => {
     if (!ready || !player.getDuration) return;
     const d = player.getDuration() || 0, c = player.getCurrentTime() || 0;
@@ -347,16 +434,16 @@ _JS = r"""
   show(); tools(); setVol(S.vol);
   function init() {
     player = new YT.Player('mg-yt', {
-      width: 200, height: 200, videoId: TRACKS[idx].id,
+      width: 200, height: 200, videoId: curT().id,
       playerVars: { playsinline: 1, controls: 0, rel: 0 },
       events: {
         onReady: () => { ready = true; player.setVolume(S.vol); if (want) player.playVideo(); },
         onStateChange: e => {
           if (e.data === 1) { setPlaying(true); root.classList.add('open'); root.classList.remove('showtip'); }
           else if (e.data === 2) setPlaying(false);
-          else if (e.data === 0) { if (S.rep === 'one' || TRACKS.length < 2) { player.seekTo(0); player.playVideo(); } else go(nextI); }
+          else if (e.data === 0) { if (S.rep === 'one' || ALL.length < 2) { player.seekTo(0); player.playVideo(); } else go(nextI); }
         },
-        onError: () => { if (TRACKS.length > 1) go(nextI); },
+        onError: () => { if (ALL.length > 1) go(nextI); },
       },
     });
   }
@@ -379,7 +466,11 @@ _JS = r"""
 
 def inject():
     """한 번만 붙음 (이미 있으면 아무것도 안 함). 보이지 않는 0px 높이 칸으로 넣음."""
-    js = _JS.replace("__TRACKS__", json.dumps(_tracks(), ensure_ascii=False))
+    try:
+        ytkey = str(st.secrets.get("YOUTUBE_API_KEY", "") or "")
+    except Exception:
+        ytkey = ""
+    js = _JS.replace("__TRACKS__", json.dumps(_tracks(), ensure_ascii=False)).replace("__YTKEY__", json.dumps(ytkey))
     components.html(
         f"""<script>
 // Streamlit Cloud가 화면 오른쪽 아래에 붙이는 배지(만든 사람 프사·'Hosted with Streamlit') 숨기기
