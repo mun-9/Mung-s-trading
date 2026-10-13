@@ -273,11 +273,16 @@ _JS = r"""
   const esc = s => String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const unent = s => { const t = document.createElement('textarea'); t.innerHTML = s; return t.value; };
   // '가수 - 곡명 | NCS ...' / '곡명 (Official Video)' → 곡명 · 가수
+  const TAG = /official|lyric|lyrics|가사|audio|mv|m\/v|music video|visualizer|ncs|free|copyright|4k|hd|1080|60fps|노래방|karaoke|kpop|k-pop/i;
   function parseTitle(raw, ch) {
-    let t = unent(raw).replace(/\s*[\|｜].*$/, '').replace(/\s*[\[【(（](official|lyric|lyrics|audio|mv|m\/v|music video|visualizer|ncs|free|copyright|4k|hd)[^\]】)）]*[\]】)）]/gi, '').replace(/\s+(official\s+)?(m\/?v|music video|audio)$/i, '').trim();
-    const m = t.split(/\s+[-–—]\s+/);
-    return m.length > 1 ? { song: m.slice(1).join(' - ').trim(), artist: m[0].trim() } : { song: t, artist: unent(ch || '').replace(/\s*-\s*Topic$/, '') };
+    let t = unent(raw).replace(/\s*[\|｜].*$/, '');
+    // [가사/Lyrics] · (Official Video) · 【MV】 같은 꼬리표 지우기
+    t = t.replace(/\s*[\[【(（]([^\]】)）]*)[\]】)）]/g, (m, x) => TAG.test(x) ? '' : m).replace(/\s+(official\s+)?(m\/?v|music video|audio)$/i, '').replace(/\s{2,}/g, ' ').trim();
+    const m = t.split(/\s+[-–—_]\s+/);
+    if (m.length > 1) return { song: m.slice(1).join(' - ').trim(), artist: m[0].trim() };
+    return { song: t, artist: unent(ch || '').replace(/\s*-\s*Topic$/, '').replace(/\s*[\[(].*?[\])]\s*/g, ' ').trim() || unent(ch || '') };
   }
+  const JUNK = /노래방|karaoke|반주|\binst\b|instrumental|mr제거|1시간|1 hour|playlist|플레이리스트/i;  // 노래방·반주·모음 영상은 결과에서 빼기
   const root = document.createElement('div');
   root.id = 'mg-music';
   root.innerHTML = `<div class="glow"></div>
@@ -342,10 +347,10 @@ _JS = r"""
     const q = $('.pl-q input').value.trim(); if (!q || !YTKEY) return;
     lastQ = q.toLowerCase(); searching = true; sErr = ''; results = []; renderList();
     try {
-      const u = 'https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&videoCategoryId=10&maxResults=12&q=' + encodeURIComponent(q) + '&key=' + YTKEY;
+      const u = 'https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&videoCategoryId=10&maxResults=15&q=' + encodeURIComponent(q) + '&key=' + YTKEY;
       const r = await fetch(u); const j = await r.json();
       if (j.error) throw new Error(j.error.errors && j.error.errors[0] && j.error.errors[0].reason === 'quotaExceeded' ? '오늘 검색 한도를 다 썼어요 (내일 다시 돼요)' : '유튜브 검색이 안 돼요 · 키 설정을 확인해 주세요');
-      results = (j.items || []).map(it => ({ id: it.id.videoId, ...parseTitle(it.snippet.title, it.snippet.channelTitle) })).filter(x => x.id);
+      results = (j.items || []).filter(it => it.id && it.id.videoId && !JUNK.test(unent(it.snippet.title) + ' ' + it.snippet.channelTitle)).map(it => ({ id: it.id.videoId, ...parseTitle(it.snippet.title, it.snippet.channelTitle) })).slice(0, 10);
     } catch (e) { sErr = e.message && /[가-힣]/.test(e.message) ? e.message : '검색 중 문제가 생겼어요 · 잠시 뒤 다시 해주세요'; }
     searching = false; renderList();
   }
