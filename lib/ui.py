@@ -333,6 +333,12 @@ div[data-testid="stButtonGroup"] button[data-variant="segmented_control"] { bord
 div[data-testid="stButtonGroup"] button[data-variant="segmented_control"] p { font-size: 13.5px !important; font-weight: 600 !important; color: var(--mg-mid2) !important; }
 div[data-testid="stButtonGroup"] button[data-variant="segmented_control"][aria-checked="true"] { background: var(--mg-raise) !important; box-shadow: 0 1px 4px rgba(15,23,42,0.08) !important; }
 div[data-testid="stButtonGroup"] button[data-variant="segmented_control"][aria-checked="true"] p { color: var(--mg-text) !important; font-weight: 800 !important; }
+/* 빈 화면 안내 */
+.es { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 14px 8px; }
+.es .ei { width: 48px; height: 48px; border-radius: 16px; background: var(--mg-soft); display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 4px; }
+.es b { font-size: 15px; font-weight: 800; color: var(--mg-text); letter-spacing: -0.02em; }
+.es span { font-size: 13px; color: var(--mg-sub); line-height: 1.6; }
+.es-card { padding: 26px 20px !important; }
 /* 맨 아래 안내 */
 .mg-foot { margin: 40px 0 10px; padding: 22px 4px 90px; border-top: 1px solid var(--mg-line); display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--mg-faint); text-align: center; }
 .mg-foot b { color: var(--mg-sub); font-weight: 800; }
@@ -410,7 +416,7 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
 .stButton>button:hover { border-color: #3182F6; color: #3182F6; }
 
 .pill { display:inline-block; font-size:11px; font-weight:800; padding:3px 9px; border-radius:999px; vertical-align:middle; }
-.note-text { font-size:11.5px; line-height:1.7; color:var(--mg-faint); margin:6px 2px 0; }
+.note-text { font-size:12px; line-height:1.7; color:var(--mg-sub); margin:6px 2px 0; }
 .err-box { background:var(--mg-errbg); border:1px solid rgba(240,68,82,0.25); color:#C0303D; border-radius:14px; padding:12px 16px; font-size:13px; margin-bottom:14px; line-height:1.6; }
 
 .log-day { position: sticky; top: 0; z-index: 1; display: flex; justify-content: space-between; align-items: baseline; padding: 14px 4px 8px; background: var(--mg-card); border-bottom: 1px solid var(--mg-line); }
@@ -528,6 +534,12 @@ def nav(current, dark=False):
                 with st.container(key=f"navlink_{key}_{'on' if key == current else 'off'}", width="content"):
                     st.page_link(path, label=label, icon=icon)
         html("<div class='mg-theme-slot'></div>")
+
+
+def empty_state(icon, title, sub=""):
+    """빈 화면 안내: 아이콘 + 굵은 한 줄 + 설명."""
+    return (f"<div class='es'><div class='ei'>{icon}</div><b>{title}</b>"
+            + (f"<span>{sub}</span>" if sub else "") + "</div>")
 
 
 def footer():

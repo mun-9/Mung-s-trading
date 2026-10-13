@@ -65,7 +65,7 @@ def live_positions():
         html(f"<div class='err-box'><b>포지션을 불러오지 못했어요</b> — API 키·권한 또는 거래소 응답을 확인해줘.<br>{err}</div>")
         return
     if not positions:
-        html(f"<div class='card' style='text-align:center;color:{SUB};font-size:14px;padding:32px;margin-bottom:22px;'>현재 진행 중인 포지션이 없습니다</div>")
+        html("<div class='card es-card' style='margin-bottom:18px;'>" + _ui.empty_state("💼", "지금 보유 중인 포지션이 없어요", "Bitget에서 포지션을 열면 여기에 실시간 손익이 바로 떠요") + "</div>")
         return
 
     groups = {}
@@ -105,7 +105,7 @@ def live_positions():
                                       label_visibility="collapsed", key=f"tf_{safe}") or "3분봉"
             df = D.fetch_live_ohlcv(sym, {"3분봉": "3m", "5분봉": "5m", "15분봉": "15m", "1시간봉": "1h"}[tf], 120)
             if df.empty:
-                st.caption("차트 데이터를 불러오지 못했어요")
+                html(_ui.empty_state("📉", "차트 데이터를 불러오지 못했어요", "잠시 뒤 자동으로 다시 불러와요"))
                 continue
             fig = go.Figure(go.Candlestick(
                 x=df["datetime"], open=df["open"], high=df["high"], low=df["low"], close=df["close"],
@@ -498,7 +498,7 @@ def perf_html(p):
 if perf:
     html(perf_html(perf))
 else:
-    html(f"<div class='card' style='color:{SUB};text-align:center;padding:40px;'>선택한 기간에 청산 거래가 없어서 성과 지표를 계산할 수 없어요</div>")
+    html("<div class='card es-card'>" + _ui.empty_state("📊", "선택한 기간에 청산한 거래가 없어요", "기간을 넓히면 성과 지표와 습관 리포트가 나와요") + "</div>")
 st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
@@ -610,7 +610,7 @@ if kind in ("전체", "펀딩비") and not f_events.empty:
 rows.sort(key=lambda x: x[1], reverse=True)
 
 if not rows:
-    html(f"<div class='card' style='text-align:center;color:{SUB};padding:32px;'>표시할 내역이 없습니다</div>")
+    html("<div class='card es-card'>" + _ui.empty_state("🗂️", "표시할 내역이 없어요", "기간이나 종류(전체 · 청산 · 진입 …)를 바꿔 보세요") + "</div>")
 else:
     out = []
     # 날짜별로 묶어서 '10월 13일 (화) · 그날 순손익' 머리줄을 넣음
