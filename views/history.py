@@ -655,7 +655,7 @@ def detail_log():
     section("상세 매매 내역")
     fc1, fc2 = st.columns([2.2, 1])
     with fc1:
-        kind = st.segmented_control("종류", ["전체", "청산", "진입", "입출금", "펀딩비"], default="전체",
+        kind = st.segmented_control("종류", ["전체", "청산", "진입", "페이백", "펀딩비"], default="전체",
                                     label_visibility="collapsed", key="log_kind") or "전체"
     with fc2:
         sym_opts = ["전체 종목"] + sorted(f_trades["symbol"].unique().tolist()) if not f_trades.empty else ["전체 종목"]
@@ -668,11 +668,8 @@ def detail_log():
             tview = tview[tview["bucket"] == ("축소" if kind == "청산" else "증가")]
         for r in tview.itertuples(index=False):
             rows.append(("trade", r.datetime, r))
-    if kind == "입출금":
-        for t in transfers:
-            rows.append(("transfer", t["datetime"], t))
-    if kind in ("전체", "펀딩비") and not f_events.empty:
-        want = {"전체": ["payback"], "펀딩비": ["funding"]}[kind]
+    if kind in ("전체", "페이백", "펀딩비") and not f_events.empty:
+        want = {"전체": ["payback"], "페이백": ["payback"], "펀딩비": ["funding"]}[kind]
         ev = f_events[f_events["kind"].isin(want)]
         if sym_pick != "전체 종목":
             ev = ev[(ev["symbol"] == sym_pick) | (ev["kind"] == "payback")] if kind != "펀딩비" else ev[ev["symbol"] == sym_pick]
