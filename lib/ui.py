@@ -264,6 +264,7 @@ div[class*="st-key-refresh_btn"] button span { color: var(--mg-text) !important;
 .bar > div { height: 100%; border-radius: 4px; }
 .streak { display: flex; gap: 5px; flex-wrap: wrap; margin-top: auto; }
 .streak .sd { width: 14px; height: 14px; border-radius: 4px; }
+.m-only { display: none; }
 .bd-chips { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 12.5px; color: var(--mg-sub); }
 .bd-chips b { font-weight: 700; margin-left: 2px; }
 
@@ -490,10 +491,13 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
     div[data-testid="stHorizontalBlock"]:has(.topc) > div[data-testid="stColumn"] { flex: 1 1 calc(50% - 5px) !important; min-width: calc(50% - 5px) !important; width: calc(50% - 5px) !important; }
     div[data-testid="stHorizontalBlock"]:has(.topc) > div[data-testid="stColumn"]:nth-child(3) { flex-basis: 100% !important; width: 100% !important; }
     .topc { padding: 14px 15px !important; border-radius: 16px !important; }
-    .topc-h { flex-direction: column; align-items: flex-start; gap: 6px; }
-    .topc-t { font-size: 13px; } .topc-chip { font-size: 10.5px; padding: 3px 8px; }
-    .topc-v { font-size: 22px !important; margin-top: 8px; } .topc-k { font-size: 12px; }
-    div[data-testid="stHorizontalBlock"]:has(.topc) > div[data-testid="stColumn"]:nth-child(3) .topc-h { flex-direction: row; align-items: center; }
+    /* 카드 머리: 제목 아래에 보조 정보를 회색 한 줄로, 왼쪽 정렬 통일 (알약 배경 X) */
+    .topc-h { flex-direction: column; align-items: flex-start; gap: 3px; }
+    .topc-t { font-size: 13.5px; }
+    .topc-chip { background: none !important; padding: 0 !important; border-radius: 0; font-size: 11.5px; font-weight: 600; color: var(--mg-sub); }
+    .topc-v { font-size: 22px !important; margin-top: 10px; } .topc-k { font-size: 12px; }
+    .card-title { flex-direction: column; align-items: flex-start; gap: 3px; font-size: 16px; }
+    .card-title span:last-child { font-size: 11.5px; font-weight: 600; }
     /* 주문 횟수 · 롱숏 · 승률 카드: 높이 자동 */
     .tcard { height: auto !important; gap: 14px; }
     /* 상세 매매 내역: 휴대폰에서는 날짜 / 수량·가격, 손익 / 수수료를 줄을 나눠서 깔끔하게 */
@@ -514,6 +518,14 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
     div[data-testid="stButtonGroup"] button p { font-size: 13px !important; }
     .pt { padding: 14px; min-height: 150px; }
     .pt-value { font-size: 22px; }
+    /* 성과 지표 칸: 글자 줄바꿈 없이 깔끔하게 */
+    .d-only { display: none !important; } .m-only { display: inline !important; }
+    .pt-label { font-size: 13px; }
+    .pt-foot { font-size: 11.5px; }
+    .pt-foot > span { display: flex; flex-direction: column; gap: 2px; }
+    .pt-foot > span:last-child:not(:first-child) { text-align: right; align-items: flex-end; }
+    .streak { flex-wrap: nowrap; gap: 3px; }
+    .streak .sd { flex: 1 1 0; width: auto; max-width: 14px; height: 12px; border-radius: 3px; }
     .bar-row { grid-template-columns: 1fr auto; }
     .bar-row .bar { display: none; }
     .kpi { border-left: none !important; padding-left: 0 !important; border-top: 1px solid var(--mg-soft); }

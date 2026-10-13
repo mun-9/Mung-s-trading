@@ -483,7 +483,7 @@ def perf_html(p):
 <div class="pt-grid">
 <div class="pt"><div class="pt-label">Profit Factor</div><div class="pt-value" style="color:{pf_col};">{pf_txt}</div>
   <div class="gauge"><div class="gauge-fill" style="width:{pf_w:.0f}%;background:{pf_col};"></div><div class="gauge-mark" style="left:33.33%;"></div></div>
-  <div class="pt-foot"><span>0</span><span>1.0 이상이면 수익</span><span>3+</span></div></div>
+  <div class="pt-foot"><span>0</span><span><span class="d-only">1.0 이상이면 수익</span><span class="m-only">1.0↑ 수익</span></span><span>3+</span></div></div>
 <div class="pt"><div class="pt-label">손익비</div><div class="pt-value">{rr_txt}</div>
   <div class="bar-row"><span>평균 익절</span><div class="bar"><div style="width:{p['avg_win'] / mx * 100:.0f}%;background:{GREEN};"></div></div><b style="color:{GREEN};">{money(p['avg_win'])}</b></div>
   <div class="bar-row"><span>평균 손절</span><div class="bar"><div style="width:{p['avg_loss'] / mx * 100:.0f}%;background:{RED};"></div></div><b style="color:{RED};">{money(-p['avg_loss'])}</b></div></div>
@@ -491,7 +491,7 @@ def perf_html(p):
   <div class="streak">{dots}</div>
   <div class="pt-foot"><span>최고 <b style="color:{GREEN};">{money(p['best'])}</b></span><span>최악 <b style="color:{RED};">{money(p['worst'])}</b></span></div></div>
 <div class="pt"><div class="pt-label">최대 낙폭</div><div class="pt-value" style="color:{RED if p['mdd'] < 0 else TEXT};">{money(p['mdd'])}</div>
-  {spark}<div class="pt-foot"><span>누적 순손익 고점 대비 하락폭</span></div></div>
+  {spark}<div class="pt-foot"><span class="d-only">누적 순손익 고점 대비 하락폭</span><span class="m-only">고점 대비 하락폭</span></div></div>
 </div></div>"""
 
 
