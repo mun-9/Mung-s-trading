@@ -72,6 +72,33 @@ _JS = r"""
       new MutationObserver(() => tc.setAttribute('content', isDark() ? '#0D1015' : '#FFFFFF')).observe(root, { attributes: true, attributeFilter: ['data-mg-theme'] });
     }
   } catch (e) {}
+
+  // 휴대폰에서 처음 온 사람에게 한 번만: '홈 화면에 추가' 안내 (닫으면 다시 안 뜸)
+  try {
+    const TOP = (() => { try { return window.top.document ? window.top : window; } catch (e) { return window; } })();
+    let deferred = null;
+    TOP.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; });
+    const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+    const seen = (() => { try { return localStorage.getItem('mg_a2hs'); } catch (e) { return '1'; } })();
+    const inapp = /Instagram|FBAN|FBAV|KAKAOTALK|NAVER\(inapp|; wv\)/i.test(navigator.userAgent);
+    if (!standalone && !seen && !inapp && matchMedia('(max-width: 768px)').matches) setTimeout(() => {
+      const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const st = d.createElement('style');
+      st.textContent = '#mg-a2hs{position:fixed;left:12px;right:12px;bottom:84px;z-index:999992;display:flex;align-items:center;gap:12px;padding:14px 14px 14px 16px;border-radius:18px;background:rgba(20,24,31,.95);color:#fff;box-shadow:0 14px 40px rgba(0,0,0,.35);font-family:Pretendard,-apple-system,sans-serif;animation:mg-a2 .5s cubic-bezier(.2,1.3,.4,1)}'
+        + '#mg-a2hs img{width:42px;height:42px;border-radius:11px}#mg-a2hs b{display:block;font-size:14px;font-weight:800}#mg-a2hs span{display:block;font-size:12px;color:rgba(255,255,255,.65);margin-top:2px;line-height:1.45}'
+        + '#mg-a2hs button{border:0;border-radius:10px;font-family:inherit;font-weight:800;cursor:pointer}#mg-a2hs .go{background:#3182F6;color:#fff;padding:9px 12px;font-size:13px;white-space:nowrap}#mg-a2hs .no{background:transparent;color:rgba(255,255,255,.5);font-size:16px;padding:4px}'
+        + '@keyframes mg-a2{from{transform:translateY(30px);opacity:0}to{transform:none;opacity:1}}';
+      d.head.appendChild(st);
+      const box = d.createElement('div'); box.id = 'mg-a2hs';
+      const ico = (location.pathname.includes('/~/+/') ? location.pathname.split('/~/+/')[0] + '/~/+/' : '/') + 'app/static/icon-192.png';
+      box.innerHTML = `<img src="${ico}" alt=""><div style="flex:1;min-width:0"><b>앱처럼 쓰기</b><span>${ios ? '아래 공유 버튼 → ‘홈 화면에 추가’를 누르면 앱처럼 열려요' : '홈 화면에 추가하면 앱처럼 바로 열려요'}</span></div>${ios ? '' : '<button class="go">추가</button>'}<button class="no" title="닫기">✕</button>`;
+      d.body.appendChild(box);
+      const done = () => { try { localStorage.setItem('mg_a2hs', '1'); } catch (e) {} box.remove(); };
+      box.querySelector('.no').onclick = done;
+      const go = box.querySelector('.go');
+      if (go) go.onclick = async () => { if (deferred) { deferred.prompt(); try { await deferred.userChoice; } catch (e) {} done(); } else { box.querySelector('span').textContent = '브라우저 메뉴(⋮) → ‘홈 화면에 추가’ 또는 ‘앱 설치’를 눌러주세요'; go.remove(); } };
+    }, 15000);
+  } catch (e) {}
 })();
 """
 
