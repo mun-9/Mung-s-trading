@@ -126,22 +126,58 @@ _CSS = r"""
 #mg-music button.on { color: var(--mp-acc); }
 
 /* 플레이리스트 */
-#mg-music .pl { position: absolute; left: 0; bottom: 98px; width: 330px; max-height: 0; opacity: 0; overflow: hidden; border-radius: 18px;
+#mg-music .pl { position: absolute; left: 0; bottom: 98px; width: 360px; max-height: 0; opacity: 0; overflow: hidden; border-radius: 20px;
   background: var(--mp-bg); border: 1px solid var(--mp-line); color: #fff; box-shadow: 0 16px 40px rgba(0,0,0,.35);
-  backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4);
-  transform: translateY(8px); transition: max-height .4s ease, opacity .25s ease, transform .3s ease; pointer-events: none; }
-#mg-music.list .pl { max-height: 380px; opacity: 1; transform: none; pointer-events: auto; }
-#mg-music .pl-h { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px 10px; }
-#mg-music .pl-h b { font-size: 11px; font-weight: 800; letter-spacing: .14em; color: var(--mp-sub); }
-#mg-music .pl-h span { font-size: 11px; font-weight: 700; color: #9DB8FF; background: rgba(91,141,255,.14); padding: 3px 8px; border-radius: 999px; }
-#mg-music .pl-ul { max-height: 318px; overflow-y: auto; padding: 0 8px 10px; scrollbar-width: none; }
+  backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  transform: translateY(8px); transition: max-height .4s ease, opacity .25s ease, transform .3s ease; pointer-events: none;
+  display: flex; flex-direction: column; }
+#mg-music.list .pl { max-height: min(600px, calc(100vh - 140px)); opacity: 1; transform: none; pointer-events: auto; }
+/* 맨 위: 지금 곡 (앨범 사진을 흐리게 깐 배경) */
+#mg-music .pl-hero { position: relative; display: flex; align-items: center; gap: 14px; padding: 18px 18px 16px; overflow: hidden; flex-shrink: 0; }
+#mg-music .pl-hero .bg { position: absolute; inset: -30px; background: center/cover; filter: blur(28px) saturate(1.5); opacity: .55; transition: background-image .4s; }
+#mg-music .pl-hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,12,18,.15), rgba(10,12,18,.65)); }
+#mg-music .pl-hero > *:not(.bg) { position: relative; z-index: 1; }
+#mg-music .pl-cover { width: 64px; height: 64px; border-radius: 12px; background: #222 center/cover; flex-shrink: 0; box-shadow: 0 8px 20px rgba(0,0,0,.4); }
+#mg-music .pl-now { flex: 1; min-width: 0; }
+#mg-music .pl-now small { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 800; letter-spacing: .14em; color: rgba(255,255,255,.7); }
+#mg-music .pl-now small em { font-style: normal; }
+#mg-music .pl-now small i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.4); }
+#mg-music.playing .pl-now small i { background: #4ADE80; box-shadow: 0 0 8px #4ADE80; }
+#mg-music .pl-now b { display: block; font-size: 16px; font-weight: 800; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.02em; }
+#mg-music .pl-now span { display: block; font-size: 12px; color: rgba(255,255,255,.7); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#mg-music .pl-next { font-size: 11px !important; color: rgba(255,255,255,.55) !important; margin-top: 6px !important; }
+#mg-music .pl-next em { font-style: normal; color: #C9D7FF; font-weight: 600; }
+/* 도구 줄: 검색 · 셔플 · 반복 · 좋아요만 */
+#mg-music .pl-tools { display: flex; align-items: center; gap: 4px; padding: 10px 12px 8px; border-top: 1px solid var(--mp-line); flex-shrink: 0; }
+#mg-music .pl-q { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border-radius: 10px; background: rgba(255,255,255,.07); }
+#mg-music .pl-q svg { width: 14px; height: 14px; color: var(--mp-sub); flex-shrink: 0; }
+#mg-music .pl-q input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: #fff; font-family: inherit; font-size: 12.5px; }
+#mg-music .pl-q input::placeholder { color: rgba(255,255,255,.4); }
+#mg-music .pl-tools button { width: 32px; height: 32px; border-radius: 10px; color: rgba(255,255,255,.6); position: relative; }
+#mg-music .pl-tools button.on { color: var(--mp-acc); background: rgba(91,141,255,.14); }
+#mg-music .pl-tools button .one { position: absolute; right: 4px; top: 3px; font-size: 8px; font-weight: 900; }
+#mg-music .pl-cnt { font-size: 11px; color: var(--mp-sub); padding: 0 18px 6px; flex-shrink: 0; }
+#mg-music .pl-ul { flex: 1; min-height: 0; overflow-y: auto; padding: 0 8px 8px; scrollbar-width: none; }
 #mg-music .pl-ul::-webkit-scrollbar { display: none; }
-#mg-music .pl-li { position: relative; display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; cursor: pointer; transition: background .15s; }
+#mg-music .pl-empty { padding: 26px 10px; text-align: center; font-size: 12.5px; color: var(--mp-sub); }
+#mg-music .pl-li { position: relative; display: flex; align-items: center; gap: 12px; padding: 9px 6px 9px 12px; border-radius: 12px; cursor: pointer; transition: background .15s; }
 #mg-music .pl-li + .pl-li::before { content: ''; position: absolute; left: 46px; right: 12px; top: 0; height: 1px; background: rgba(255,255,255,.05); }
 #mg-music .pl-li:hover { background: rgba(255,255,255,.06); }
 #mg-music .pl-li.cur { background: linear-gradient(90deg, rgba(91,141,255,.22), rgba(91,141,255,.06)); }
 #mg-music .pl-li.cur::before, #mg-music .pl-li.cur + .pl-li::before { display: none; }
 #mg-music .pl-li.cur::after { content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 2px; background: #5B8DFF; }
+#mg-music .pl-fav { width: 30px !important; height: 30px !important; color: rgba(255,255,255,.28) !important; opacity: 0; transition: opacity .15s, color .15s; }
+#mg-music .pl-li:hover .pl-fav, #mg-music .pl-fav.on { opacity: 1; }
+#mg-music .pl-fav.on { color: #FF5C7A !important; }
+#mg-music .pl-fav svg { width: 15px !important; height: 15px !important; }
+/* 맨 아래: 볼륨 */
+#mg-music .pl-ft { display: flex; align-items: center; gap: 10px; padding: 10px 18px 14px; border-top: 1px solid var(--mp-line); flex-shrink: 0; }
+#mg-music .pl-ft svg { width: 16px; height: 16px; color: var(--mp-sub); flex-shrink: 0; cursor: pointer; }
+#mg-music .pl-ft input { flex: 1; -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px; outline: 0; cursor: pointer;
+  background: linear-gradient(90deg, #5B8DFF var(--v, 60%), rgba(255,255,255,.15) var(--v, 60%)); }
+#mg-music .pl-ft input::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+#mg-music .pl-ft input::-moz-range-thumb { width: 12px; height: 12px; border: 0; border-radius: 50%; background: #fff; }
+#mg-music .pl-ft span { font-size: 11px; color: var(--mp-sub); width: 26px; text-align: right; font-variant-numeric: tabular-nums; }
 /* 왼쪽 칸: 번호 → 마우스 올리면 재생 아이콘 → 지금 곡이면 움직이는 막대 */
 #mg-music .pl-k { position: relative; width: 22px; height: 22px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
 #mg-music .pl-n { font-size: 12px; font-weight: 600; color: var(--mp-sub); font-variant-numeric: tabular-nums; }
@@ -176,8 +212,10 @@ _CSS = r"""
   #mg-music .disc { width: 52px; height: 52px; } #mg-music .label { inset: 16px; }
   #mg-music.open .np { width: min(290px, calc(100vw - 84px)); padding: 0 8px 0 14px; }
   #mg-music .np-top, #mg-music .np-ctl { width: min(268px, calc(100vw - 106px)); }
-  #mg-music .pl { bottom: 96px; }
-  #mg-music .pl { width: calc(100vw - 20px); }
+  #mg-music .pl { bottom: 96px; width: calc(100vw - 20px); }
+  #mg-music.list .pl { max-height: min(560px, calc(100vh - 180px)); }
+  #mg-music .pl-fav { opacity: 1; }
+  #mg-music .pl-ft { display: none; }  /* 휴대폰은 기기 볼륨 버튼으로 */
   #mg-music.inapp .yt { width: 52px; height: 52px; margin-top: -26px; } #mg-music.inapp .yt iframe { transform: scale(.26); }
 }
 """
@@ -192,7 +230,18 @@ _JS = r"""
     prev: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.5v11a1 1 0 0 1-1.55.83L10 13.2V17.5a1 1 0 0 1-2 0v-11a1 1 0 0 1 2 0v4.3l7.45-5.13A1 1 0 0 1 19 6.5z" transform="translate(-1.5 0)"/></svg>',
     list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h11M4 12h11M4 18h7"/><path d="M18 14v6" /><circle cx="16.5" cy="19.5" r="2" fill="currentColor" stroke="none"/><path d="M18 14l3-1"/></svg>',
     close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg>',
+    shuf: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>',
+    rep: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/></svg>',
+    heart: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7.5-4.6-9.6-9.2C1 8.6 3 5 6.6 5c2.1 0 3.6 1.2 4.4 2.5h2C13.8 6.2 15.3 5 17.4 5 21 5 23 8.6 21.6 11.8 19.5 16.4 12 21 12 21z"/></svg>',
+    search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>',
+    vol: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8.5a5 5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    mute: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9l5 6M22 9l-5 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
   };
+  // 셔플·반복·좋아요·볼륨·마지막 곡은 브라우저에 기억
+  const KEY = 'mung_music';
+  let S = { shuf: false, rep: 'all', fav: [], vol: 60, last: null, favOnly: false };
+  try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
   const thumb = id => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
   const esc = s => String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const root = document.createElement('div');
@@ -205,14 +254,24 @@ _JS = r"""
       <div class="np-ctl">${TRACKS.length > 1 ? `<button class="pv" title="이전 곡">${I.prev}</button>` : ''}<button class="pp" title="재생">${I.play}</button>${TRACKS.length > 1 ? `<button class="nx" title="다음 곡">${I.next}</button>` : ''}
         <span class="cur">0:00</span><div class="np-bar"><i></i></div><span class="dur">0:00</span></div>
     </div>
-    <div class="pl"><div class="pl-h"><b>PLAYLIST</b><span>${TRACKS.length}곡</span></div><div class="pl-ul">${TRACKS.map((t, i) => `
+    <div class="pl">
+      <div class="pl-hero"><div class="bg"></div><div class="pl-cover"></div>
+        <div class="pl-now"><small><i></i><em class="st">PAUSED</em></small><b></b><span class="ar"></span><span class="pl-next"></span></div></div>
+      <div class="pl-tools"><label class="pl-q">${I.search}<input placeholder="곡·가수 검색"></label>
+        <button class="b-fav" title="좋아요한 곡만">${I.heart}</button><button class="b-shuf" title="셔플">${I.shuf}</button><button class="b-rep" title="반복">${I.rep}<span class="one"></span></button></div>
+      <div class="pl-cnt"></div>
+      <div class="pl-ul">${TRACKS.map((t, i) => `
       <div class="pl-li" data-i="${i}"><div class="pl-k"><span class="pl-n">${String(i + 1).padStart(2, '0')}</span><span class="pl-p">${I.play}</span><span class="eq"><i></i><i></i><i></i></span></div>
-        <div class="pl-tx"><div class="pl-t">${esc(t.song)}</div>${t.artist ? `<div class="pl-a">${esc(t.artist)}</div>` : ''}</div></div>`).join('')}</div></div>
+        <div class="pl-tx"><div class="pl-t">${esc(t.song)}</div>${t.artist ? `<div class="pl-a">${esc(t.artist)}</div>` : ''}</div>
+        <button class="pl-fav" title="좋아요">${I.heart}</button></div>`).join('')}<div class="pl-empty" style="display:none"></div></div>
+      <div class="pl-ft"><span class="vi">${I.vol}</span><input type="range" min="0" max="100" step="1"><span class="vv"></span></div>
+    </div>
     <div class="yt"><div id="mg-yt"></div></div><div class="tip">인스타·카톡 앱 안에서는 노래가 막힐 수 있어요.<br>오른쪽 위 <b>⋮</b> → <b>외부 브라우저로 열기</b>로 들어와 주세요.</div>`;
   document.body.appendChild(root);
   const INAPP = /Instagram|FBAN|FBAV|FB_IAB|KAKAOTALK|NAVER\(inapp|DaumApps|Line\/|; wv\)/i.test(navigator.userAgent);
   if (INAPP) root.classList.add('inapp');
-  let idx = 0, player = null, ready = false, playing = false, want = false;
+  let idx = Math.max(0, TRACKS.findIndex(t => t.id === S.last)), player = null, ready = false, playing = false, want = false;
+  const hist = [];  // 셔플일 때 '이전 곡'으로 돌아가기용
   const $ = s => root.querySelector(s);
   const fmt = t => { t = Math.max(0, Math.floor(t || 0)); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); };
   function show() {
@@ -221,20 +280,61 @@ _JS = r"""
     $('.np-t').textContent = t.song; $('.np-a').textContent = t.artist || '';
     root.querySelectorAll('.pl-li').forEach(li => li.classList.toggle('cur', +li.dataset.i === idx));
     $('.np-bar i').style.width = '0%'; $('.cur').textContent = '0:00'; $('.dur').textContent = '0:00';
+    $('.pl-hero .bg').style.backgroundImage = $('.pl-cover').style.backgroundImage = `url(${thumb(t.id)})`;
+    $('.pl-now b').textContent = t.song; $('.pl-now .ar').textContent = t.artist || '';
+    S.last = t.id; save(); upNext();
   }
+  // 다음 곡 미리 정해두기 (셔플이면 무작위, 좋아요만 보기 중이면 좋아요 곡 안에서)
+  let nextI = null;
+  function pool() { const f = S.favOnly && S.fav.length ? TRACKS.map((t, i) => i).filter(i => S.fav.includes(TRACKS[i].id)) : TRACKS.map((t, i) => i); return f.length ? f : TRACKS.map((t, i) => i); }
+  function upNext() {
+    const p = pool();
+    if (S.shuf) { const c = p.filter(i => i !== idx && !hist.slice(-Math.floor(p.length / 2)).includes(i)); const q = c.length ? c : p.filter(i => i !== idx); nextI = q.length ? q[Math.floor(Math.random() * q.length)] : idx; }
+    else { const k = p.indexOf(idx); nextI = p[(k + 1) % p.length] ?? p[0]; }
+    const n = TRACKS[nextI];
+    $('.pl-next').innerHTML = S.rep === 'one' ? '한 곡 반복 중' : `다음 곡 · <em>${esc(n.song)}</em>`;
+  }
+  function tools() {
+    $('.b-shuf').classList.toggle('on', S.shuf);
+    $('.b-rep').classList.toggle('on', S.rep === 'one'); $('.b-rep .one').textContent = S.rep === 'one' ? '1' : '';
+    $('.b-rep').title = S.rep === 'one' ? '한 곡 반복 (누르면 전체 반복)' : '전체 반복 (누르면 한 곡 반복)';
+    $('.b-fav').classList.toggle('on', S.favOnly);
+    root.querySelectorAll('.pl-li').forEach(li => li.querySelector('.pl-fav').classList.toggle('on', S.fav.includes(TRACKS[+li.dataset.i].id)));
+    filter();
+  }
+  function filter() {
+    const q = $('.pl-q input').value.trim().toLowerCase(); let n = 0;
+    root.querySelectorAll('.pl-li').forEach(li => {
+      const t = TRACKS[+li.dataset.i], ok = (!q || (t.song + ' ' + t.artist).toLowerCase().includes(q)) && (!S.favOnly || S.fav.includes(t.id));
+      li.style.display = ok ? '' : 'none'; if (ok) n++;
+    });
+    const em = $('.pl-empty'); em.style.display = n ? 'none' : ''; em.textContent = S.favOnly && !S.fav.length ? '♥를 눌러 좋아하는 곡을 모아보세요' : '찾는 곡이 없어요';
+    $('.pl-cnt').textContent = (q ? '검색 결과 ' : S.favOnly ? '좋아요 ' : '전체 ') + n + '곡' + (S.shuf ? ' · 셔플' : '') + (S.rep === 'one' ? ' · 한 곡 반복' : '');
+  }
+  function setVol(v) { S.vol = v; save(); const r = $('.pl-ft input'); r.value = v; r.style.setProperty('--v', v + '%'); $('.pl-ft .vv').textContent = v; $('.pl-ft .vi').innerHTML = v ? I.vol : I.mute; if (ready) player.setVolume(v); }
   function setPlaying(v) {
     playing = v; root.classList.toggle('playing', v);
     $('.pp').innerHTML = v ? I.pause : I.play; $('.hint').innerHTML = v ? I.pause : I.play;
+    $('.pl-now .st').textContent = v ? 'NOW PLAYING' : 'PAUSED';
   }
   function play() { want = true; root.classList.add('open'); if (ready) player.playVideo(); }
   function pause() { want = false; if (ready) player.pauseVideo(); }
-  function go(i) { idx = (i + TRACKS.length) % TRACKS.length; show(); want = true; root.classList.add('open'); if (ready) player.loadVideoById(TRACKS[idx].id); }
+  function go(i, back) { if (!back && i !== idx) hist.push(idx); if (hist.length > 50) hist.shift(); idx = (i + TRACKS.length) % TRACKS.length; show(); want = true; root.classList.add('open'); if (ready) player.loadVideoById(TRACKS[idx].id); }
   // 숨어 있을 때 누르면: 나오면서 재생 / 나와 있을 때 누르면: 재생·일시정지
   $('.disc').onclick = () => { if (!root.classList.contains('open')) { root.classList.add('open'); if (!playing) play(); } else if (playing) pause(); else play(); };
   $('.pp').onclick = () => playing ? pause() : play();
-  if ($('.nx')) $('.nx').onclick = () => go(idx + 1);
-  if ($('.pv')) $('.pv').onclick = () => (ready && player.getCurrentTime() > 3) ? player.seekTo(0, true) : go(idx - 1);
-  $('.ls').onclick = e => { e.stopPropagation(); root.classList.toggle('list'); $('.ls').classList.toggle('on', root.classList.contains('list')); };
+  if ($('.nx')) $('.nx').onclick = () => go(nextI);
+  if ($('.pv')) $('.pv').onclick = () => { if (ready && player.getCurrentTime() > 3) return player.seekTo(0, true); if (hist.length) return go(hist.pop(), true); const p = pool(), k = p.indexOf(idx); go(p[(k - 1 + p.length) % p.length] ?? idx - 1, true); };
+  $('.b-shuf').onclick = () => { S.shuf = !S.shuf; save(); tools(); upNext(); };
+  $('.b-rep').onclick = () => { S.rep = S.rep === 'one' ? 'all' : 'one'; save(); tools(); upNext(); };
+  $('.b-fav').onclick = () => { S.favOnly = !S.favOnly; save(); tools(); upNext(); };
+  $('.pl-q input').oninput = filter;
+  $('.pl-q input').onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') { const li = [...root.querySelectorAll('.pl-li')].find(l => l.style.display !== 'none'); if (li) li.click(); } };
+  root.querySelectorAll('.pl-fav').forEach(b => b.onclick = e => { e.stopPropagation(); const id = TRACKS[+b.closest('.pl-li').dataset.i].id; S.fav = S.fav.includes(id) ? S.fav.filter(x => x !== id) : [...S.fav, id]; save(); tools(); upNext(); });
+  $('.pl-ft input').oninput = e => setVol(+e.target.value);
+  $('.pl-ft .vi').onclick = () => { if (S.vol) { S._v = S.vol; setVol(0); } else setVol(S._v || 60); };
+  $('.ls').onclick = e => { e.stopPropagation(); root.classList.toggle('list'); $('.ls').classList.toggle('on', root.classList.contains('list'));
+    if (root.classList.contains('list')) { const c = root.querySelector('.pl-li.cur'); if (c) c.scrollIntoView({ block: 'nearest' }); } };
   $('.cl').onclick = () => { root.classList.remove('open', 'list'); $('.ls').classList.remove('on'); }; // 접기 (노래는 계속)
   root.querySelectorAll('.pl-li').forEach(li => li.onclick = () => { const i = +li.dataset.i; if (i === idx && ready) { playing ? pause() : play(); } else go(i); });
   $('.np-bar').onclick = e => { if (!ready) return; const r = e.currentTarget.getBoundingClientRect(), d = player.getDuration() || 0; player.seekTo(d * Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), true); };
@@ -244,19 +344,19 @@ _JS = r"""
     const d = player.getDuration() || 0, c = player.getCurrentTime() || 0;
     if (d) { $('.np-bar i').style.width = (c / d * 100).toFixed(2) + '%'; $('.cur').textContent = fmt(c); $('.dur').textContent = fmt(d); }
   }, 500);
-  show();
+  show(); tools(); setVol(S.vol);
   function init() {
     player = new YT.Player('mg-yt', {
       width: 200, height: 200, videoId: TRACKS[idx].id,
       playerVars: { playsinline: 1, controls: 0, rel: 0 },
       events: {
-        onReady: () => { ready = true; player.setVolume(60); if (want) player.playVideo(); },
+        onReady: () => { ready = true; player.setVolume(S.vol); if (want) player.playVideo(); },
         onStateChange: e => {
           if (e.data === 1) { setPlaying(true); root.classList.add('open'); root.classList.remove('showtip'); }
           else if (e.data === 2) setPlaying(false);
-          else if (e.data === 0) { if (TRACKS.length > 1) go(idx + 1); else { player.seekTo(0); player.playVideo(); } }
+          else if (e.data === 0) { if (S.rep === 'one' || TRACKS.length < 2) { player.seekTo(0); player.playVideo(); } else go(nextI); }
         },
-        onError: () => { if (TRACKS.length > 1) go(idx + 1); },
+        onError: () => { if (TRACKS.length > 1) go(nextI); },
       },
     });
   }
