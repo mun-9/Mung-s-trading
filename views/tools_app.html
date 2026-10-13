@@ -13,19 +13,24 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 .num { font-variant-numeric: tabular-nums; }
 .up { color: var(--up) !important; } .down { color: var(--down) !important; }
 .wrap { display: flex; flex-direction: column; gap: 18px; padding: 2px 2px 30px; }
-.top { display: grid; grid-template-columns: auto 1fr; grid-template-areas: "tl tr" "hint hint"; align-items: center; gap: 8px 16px; background: var(--card); border-radius: 18px; box-shadow: var(--shadow); padding: 16px 20px; }
-.top .tl { grid-area: tl; display: flex; flex-direction: column; gap: 6px; }
-.top .tl .lbl { font-size: 12px; font-weight: 700; color: var(--sub); }
-.top .tr { grid-area: tr; display: flex; align-items: baseline; justify-content: flex-end; gap: 10px; }
-.top .hint { grid-area: hint; font-size: 12px; color: var(--sub); border-top: 1px solid var(--line); padding-top: 10px; }
-.top .hint b { color: var(--blue); font-weight: 700; }
-.symin { display: inline-flex; align-items: baseline; gap: 2px; height: 40px; padding: 0 14px; border-radius: 12px; background: var(--soft); border: 1px solid transparent; cursor: text; }
-.symin:focus-within { border-color: var(--blue); }
-.symin input { width: 64px; border: 0; outline: 0; background: transparent; font-family: inherit; font-size: 18px; font-weight: 800; color: var(--text); text-transform: uppercase; padding: 0; line-height: 40px; }
-.symin span { font-size: 13px; font-weight: 700; color: var(--sub); }
-.live { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
-.chg { font-size: 14px; font-weight: 800; padding: 3px 8px; border-radius: 8px; background: var(--soft); }
+.top { display: flex; align-items: center; gap: 14px 18px; flex-wrap: wrap; background: var(--card); border-radius: 20px; box-shadow: var(--shadow); padding: 16px 20px; position: relative; overflow: hidden; }
+.top::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--blue); }
+.coin { display: flex; align-items: center; gap: 12px; }
+.cico { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 900; color: #fff; background: linear-gradient(135deg, #F7931A, #F5B800); flex-shrink: 0; }
+.cname { display: flex; flex-direction: column; gap: 2px; }
+.cname small { font-size: 11.5px; font-weight: 700; color: var(--sub); }
+.symin { display: inline-flex; align-items: baseline; gap: 1px; border-bottom: 2px dashed var(--line); cursor: text; padding-bottom: 1px; }
+.symin:focus-within { border-bottom-color: var(--blue); }
+.symin input { width: 3.2ch; min-width: 2ch; border: 0; outline: 0; background: transparent; font-family: inherit; font-size: 20px; font-weight: 800; color: var(--text); text-transform: uppercase; padding: 0; letter-spacing: -0.02em; }
+.symin span { font-size: 14px; font-weight: 700; color: var(--sub); }
+.px { display: flex; align-items: baseline; gap: 8px; margin-left: 6px; padding-left: 18px; border-left: 1px solid var(--line); }
+.live { font-size: 26px; font-weight: 800; letter-spacing: -0.03em; }
+.chg { font-size: 13px; font-weight: 800; padding: 3px 8px; border-radius: 8px; background: var(--soft); }
 .chg:empty { display: none; }
+.quick { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+.quick button { border: 1px solid var(--border); background: transparent; color: var(--mid); font-family: inherit; font-size: 12.5px; font-weight: 700; padding: 6px 11px; border-radius: 999px; cursor: pointer; }
+.quick button:hover { border-color: var(--blue); color: var(--blue); }
+.quick button.on { background: var(--blue); border-color: var(--blue); color: #fff; }
 .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
 .card { background: var(--card); border-radius: 20px; box-shadow: var(--shadow); padding: 22px 24px; min-width: 0; }
 .ct { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 4px; }
@@ -84,21 +89,18 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 @media (max-width: 900px) { .alset { grid-template-columns: 1fr; } }
 @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } .alf { grid-template-columns: 1fr 1fr; } .alf .fld:nth-child(3) { grid-column: 1 / -1; } .alb { grid-column: 1 / -1; }
   .alr { grid-template-columns: 52px 54px 1fr auto; gap: 8px; } .alr .n { grid-column: 1 / -1; order: 9; margin-top: -4px; } .ct { flex-wrap: wrap; } .ct .perm { font-size: 11px; padding: 5px 8px; } }
-@media (max-width: 640px) { .card { padding: 18px 16px; } .r b { font-size: 16px; } .live { font-size: 21px; } .top { padding: 14px 16px; } }
+@media (max-width: 640px) { .card { padding: 18px 16px; } .r b { font-size: 16px; } .live { font-size: 22px; } .top { padding: 14px 16px; } .px { margin-left: auto; padding-left: 0; border-left: 0; flex-direction: column; align-items: flex-end; gap: 3px; } .live { font-size: 21px !important; } .chg { font-size: 12px; padding: 2px 7px; } .quick { margin-left: 0; width: 100%; } .quick button { flex: 1; padding: 6px 0; } .cico { width: 38px; height: 38px; } }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="top">
-    <div class="tl">
-      <span class="lbl">계산 기준 종목</span>
-      <label class="symin"><input id="sym" value="BTC" maxlength="12" spellcheck="false"><span>/USDT</span></label>
+  <div class="top" title="계산기의 '현재가' 버튼에 이 가격(Bitget 실시간)이 들어가요">
+    <div class="coin">
+      <div class="cico" id="cico">B</div>
+      <div class="cname"><small>계산 기준 종목</small><label class="symin"><input id="sym" value="BTC" maxlength="12" spellcheck="false"><span>/USDT</span></label></div>
     </div>
-    <div class="tr">
-      <span class="live num" id="livePx">-</span>
-      <span class="chg num" id="livePc"></span>
-    </div>
-    <div class="hint">계산기의 <b>현재가</b> 버튼에 이 가격(Bitget 실시간)이 들어가요</div>
+    <div class="px"><span class="live num" id="livePx">-</span><span class="chg num" id="livePc"></span></div>
+    <div class="quick" id="quick"><button>BTC</button><button>ETH</button><button>SOL</button><button>XRP</button><button>DOGE</button></div>
   </div>
 
   <div class="grid">
@@ -349,7 +351,18 @@ function sub() {
   };
   const me = ws; ws.onclose = () => { clearInterval(me._p); };
 }
-let st; $('sym').oninput = e => { clearTimeout(st); st = setTimeout(() => { S.sym = e.target.value.trim().toUpperCase() || 'BTC'; save(); sub(); calc(); }, 500); };
+// 종목 아이콘 색 · 입력칸 폭 · 빠른 선택 버튼
+const CCOL = { BTC: ['#F7931A', '#F5B800'], ETH: ['#627EEA', '#8C9EFF'], SOL: ['#9945FF', '#14F195'], XRP: ['#23292F', '#5A6570'], DOGE: ['#C2A633', '#E1C65B'] };
+function paintSym() {
+  const v = (S.sym || 'BTC').toUpperCase(), c = CCOL[v] || ['#3182F6', '#7FA3FF'];
+  $('cico').textContent = v.slice(0, 1); $('cico').style.background = `linear-gradient(135deg, ${c[0]}, ${c[1]})`;
+  $('sym').style.width = Math.max(2, $('sym').value.length + 0.4) + 'ch';
+  $('quick').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.textContent === v));
+}
+function setSym(v) { S.sym = (v || 'BTC').toUpperCase(); $('sym').value = S.sym; save(); paintSym(); sub(); calc(); }
+let st; $('sym').oninput = e => { $('sym').style.width = Math.max(2, e.target.value.length + 0.4) + 'ch'; clearTimeout(st); st = setTimeout(() => setSym(e.target.value.trim()), 500); };
+$('quick').querySelectorAll('button').forEach(b => b.onclick = () => setSym(b.textContent));
+paintSym();
 sub(); calc();
 
 // ---------- 가격 알림 (사이트 전체 알림 기능 window.mgAlerts 사용) ----------
