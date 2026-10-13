@@ -30,7 +30,10 @@ _JS = r"""
   // 휴대폰: 아래로 스크롤하면 메뉴 윗줄(로고·다크모드)을 접어서 화면을 넓게
   d.addEventListener('scroll', e => {
     const t = e.target; if (!t || !t.getAttribute || t.getAttribute('data-testid') !== 'stMain') return;
-    const on = t.scrollTop > 80; if (d.body.classList.contains('mg-scrolled') !== on) d.body.classList.toggle('mg-scrolled', on);
+    // 접히면 메뉴 높이가 줄어서 스크롤 위치도 같이 바뀜 → 켜는 기준(160)과 끄는 기준(10)을 크게 벌려서 커졌다 작아졌다 반복하지 않게
+    const cur = d.body.classList.contains('mg-scrolled');
+    if (!cur && t.scrollTop > 160) d.body.classList.add('mg-scrolled');
+    else if (cur && t.scrollTop < 10) d.body.classList.remove('mg-scrolled');
   }, true);
   // 히스토리 화면 '바로가기' 칩: 누르면 그 카드로 부드럽게 스크롤
   d.addEventListener('click', e => {
