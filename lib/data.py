@@ -23,7 +23,7 @@ KST = timezone(timedelta(hours=9))
 UTC = timezone.utc
 
 # 대시보드 기준 날짜 (이전 데이터는 표시하지 않음)
-DASHBOARD_START_DATE = "2026-09-28"
+DASHBOARD_START_DATE = "2026-09-20"
 
 # 원금으로 직접 넣은 입금액 (이 금액과 맞는 입금만 원금, 나머지 입금은 전부 페이백)
 PRINCIPAL_DEPOSITS = [10520, 302, 250, 229.25]
@@ -414,7 +414,7 @@ def _finish(fills, events, ledger, errors, demo):
 
 
 @st.cache_data(ttl=1800, show_spinner=False)
-def fetch_history(keys, _format=3):
+def fetch_history(keys, _format=4):
     if is_demo(keys):
         return _demo_history()
 
@@ -427,17 +427,47 @@ def fetch_history(keys, _format=3):
 
     since_ms = int(datetime.strptime(DASHBOARD_START_DATE, "%Y-%m-%d").replace(tzinfo=KST).timestamp() * 1000)
     now_ms = int(datetime.now(UTC).timestamp() * 1000)
+    day = 24 * 60 * 60 * 1000
+    api_floor = now_ms - 89 * day          # 거래소가 내주는 기록은 최근 90일 정도까지
+    look_from = since_ms - 90 * day        # 원금 입금은 시작일 이전 것도 찾아야 해서 더 앞에서부터
 
-    # 1) 장부: 펀딩비 + 실제로 거래한 종목 찾기
+    # 0) 백업 불러오기 (비공개 GitHub 저장소) → 이미 받아둔 기록은 다시 안 받음
+    from lib import archive as AR
+    store, shas, arc_ok = {k: {} for k in AR.KINDS}, {}, False
+    if AR.enabled():
+        try:
+            store, shas = AR.load()
+            arc_ok = True
+        except Exception as e:
+            errors.append(f"백업 저장소 불러오기 실패 (이번엔 거래소 기록만 사용): {type(e).__name__}: {e}")
+
+    def _last(kind):
+        ts = [AR._ts(kind, r) for r in store[kind].values()]
+        return max(ts) if ts else None
+
+    def _from(kind, base):
+        last = _last(kind)
+        start = max(base, last - 3 * day) if last else base
+        return max(start, api_floor) if kind in ("bills", "fills") else start
+
+    changed = set()
+
+    # 1) 장부: 펀딩비 + 실제로 거래한 종목 + 바우처
     events, ledger, traded, vouchers, others = [], pd.DataFrame(columns=["date", "net"]), set(), [], {}
+    fresh_traded = set()
     try:
-        events, ledger, traded, vouchers, others = parse_bills(ex, fetch_bills(ex, since_ms, now_ms))
+        fresh = fetch_bills(ex, _from("bills", since_ms), now_ms)
+        _, _, fresh_traded, _, _ = parse_bills(ex, fresh)
+        changed |= AR.merge(store, "bills", fresh, lambda b: str(b.get("billId") or ""))
     except Exception as e:
         errors.append(f"장부(펀딩비) 조회 실패 — 펀딩비 미반영: {type(e).__name__}: {e}")
+    all_bills = [b for b in store["bills"].values() if int(b.get("cTime") or 0) >= since_ms]
+    if all_bills:
+        events, ledger, traded, vouchers, others = parse_bills(ex, all_bills)
 
-    # 2) 체결: 장부에서 찾은 종목 + 현재 보유 종목 (장부 실패 시 기본 목록)
-    symbols = set(traded)
-    if not symbols:
+    # 2) 체결: 새로 받을 구간에서 거래한 종목 + 현재 보유 종목 (장부 실패 시 기본 목록)
+    symbols = set(fresh_traded) if store["fills"] else set(traded)
+    if not symbols and not store["fills"]:
         symbols = set(BASE_SYMBOLS)
     try:
         pos, _, _ = fetch_positions(keys)
@@ -445,13 +475,14 @@ def fetch_history(keys, _format=3):
     except Exception:
         pass
 
-    fills = []
-    chunk = 2 * 24 * 60 * 60 * 1000
+    fill_from = _from("fills", since_ms)
+    new_fills = []
+    chunk = 2 * day
     for sym in sorted(symbols):
         mkt = f"{sym}:USDT"
         if mkt not in ex.markets:
             continue
-        cur = since_ms
+        cur = fill_from
         while cur < now_ms:
             until = min(cur + chunk, now_ms)
             end = until
@@ -462,7 +493,9 @@ def fetch_history(keys, _format=3):
                 except Exception as e:
                     errors.append(f"{sym} 체결 조회 실패: {type(e).__name__}: {e}")
                     break
-                fills.extend(parse_fill(t) for t in trades)
+                for t in trades:
+                    f = parse_fill(t)
+                    new_fills.append({**f, "datetime": f["datetime"].isoformat(), "ts": int(t["timestamp"])})
                 if len(trades) < 100:
                     break
                 oldest = min(t["timestamp"] for t in trades)
@@ -470,58 +503,57 @@ def fetch_history(keys, _format=3):
                     break
                 end = oldest
             cur = until
+    changed |= AR.merge(store, "fills", new_fills, lambda f: f["trade_id"])
+    fills = [{**f, "datetime": datetime.fromisoformat(f["datetime"])} for f in store["fills"].values() if f["ts"] >= since_ms]
+    for f in fills:
+        f.pop("ts", None)
 
     # 3) 입출금: 원금·페이백 구분 (현물 계좌로 들어오는 USDT 입금)
+    def _slim(x):
+        return {"id": str(x.get("id") or x["timestamp"]), "timestamp": int(x["timestamp"]),
+                "amount": float(x.get("amount") or 0), "status": str(x.get("status", ""))}
+
     transfers = []
     try:
-        look_from_w = int((datetime.strptime(DASHBOARD_START_DATE, "%Y-%m-%d").replace(tzinfo=KST)
-                           - timedelta(days=90)).timestamp() * 1000)
-        cur = look_from_w
-        wds = {}
+        cur, got = _from("withdrawals", look_from), []
         while cur < now_ms:
-            until = min(cur + 30 * 24 * 60 * 60 * 1000, now_ms)
-            for w in ex.fetch_withdrawals(code="USDT", since=cur, limit=100, params={"until": until}):
-                if str(w.get("status", "")).lower() in ("ok", "success", "completed", "1") and w.get("timestamp"):
-                    wds[str(w.get("id") or w["timestamp"])] = w
+            until = min(cur + 30 * day, now_ms)
+            got.extend(_slim(w) for w in ex.fetch_withdrawals(code="USDT", since=cur, limit=100, params={"until": until}) if w.get("timestamp"))
             cur = until
-        for w in wds.values():
+        changed |= AR.merge(store, "withdrawals", got, lambda w: w["id"])
+    except Exception as e:
+        errors.append(f"출금 내역 조회 실패: {type(e).__name__}: {e}")
+    for w in store["withdrawals"].values():
+        if str(w.get("status", "")).lower() in ("ok", "success", "completed", "1"):
             dt = _to_kst(w["timestamp"])
             transfers.append({"datetime": dt.replace(tzinfo=None), "date": dt.strftime("%Y-%m-%d"),
                               "kind": "withdraw", "amount": float(w.get("amount") or 0)})
-    except Exception as e:
-        errors.append(f"출금 내역 조회 실패: {type(e).__name__}: {e}")
 
-    #    PAYBACK_MAX 이상 입금 = 원금. 마지막 원금 입금 이후의 입금은 전부 페이백.
     try:
-        look_from = int((datetime.strptime(DASHBOARD_START_DATE, "%Y-%m-%d").replace(tzinfo=KST)
-                         - timedelta(days=90)).timestamp() * 1000)
-        deps = []
-        cur = look_from
+        cur, got = _from("deposits", look_from), []
         while cur < now_ms:
-            until = min(cur + 30 * 24 * 60 * 60 * 1000, now_ms)
-            deps.extend(ex.fetch_deposits(code="USDT", since=cur, limit=100, params={"until": until}))
+            until = min(cur + 30 * day, now_ms)
+            got.extend(_slim(d) for d in ex.fetch_deposits(code="USDT", since=cur, limit=100, params={"until": until}) if d.get("timestamp"))
             cur = until
-        ok = {}
-        for d in deps:
-            if str(d.get("status", "")).lower() in ("ok", "success", "completed", "1") and d.get("timestamp"):
-                ok[str(d.get("id") or d["timestamp"])] = d
-        deps = sorted(ok.values(), key=lambda d: d["timestamp"])
-        principal_ids = match_principal(deps, principal_list())
-        for d in deps:
-            amount = float(d.get("amount") or 0)
-            dt = _to_kst(d["timestamp"])
-            is_principal = id(d) in principal_ids
-            # 원금이 아닌 입금 중 대시보드 시작일 이후 것 = 페이백
-            is_payback = not is_principal and d["timestamp"] >= since_ms and amount > 0
-            if not is_principal and not is_payback:
-                continue  # 시작일 이전 페이백은 표시·계산 안 함
-            transfers.append({"datetime": dt.replace(tzinfo=None), "date": dt.strftime("%Y-%m-%d"),
-                              "kind": "payback" if is_payback else "principal", "amount": amount})
-            if is_payback:
-                events.append({"datetime": dt.replace(tzinfo=None), "date": dt.strftime("%Y-%m-%d"),
-                               "symbol": "", "kind": "payback", "amount": amount})
+        changed |= AR.merge(store, "deposits", got, lambda d: d["id"])
     except Exception as e:
         errors.append(f"입금(페이백) 조회 실패: {type(e).__name__}: {e}")
+    #    원금 목록(PRINCIPAL_DEPOSITS)과 금액이 맞는 입금 = 원금, 나머지 시작일 이후 입금 = 페이백
+    deps = sorted((d for d in store["deposits"].values()
+                   if str(d.get("status", "")).lower() in ("ok", "success", "completed", "1")), key=lambda d: d["timestamp"])
+    principal_ids = match_principal(deps, principal_list())
+    for d in deps:
+        amount = float(d.get("amount") or 0)
+        dt = _to_kst(d["timestamp"])
+        is_principal = id(d) in principal_ids
+        is_payback = not is_principal and d["timestamp"] >= since_ms and amount > 0
+        if not is_principal and not is_payback:
+            continue  # 시작일 이전 페이백은 표시·계산 안 함
+        transfers.append({"datetime": dt.replace(tzinfo=None), "date": dt.strftime("%Y-%m-%d"),
+                          "kind": "payback" if is_payback else "principal", "amount": amount})
+        if is_payback:
+            events.append({"datetime": dt.replace(tzinfo=None), "date": dt.strftime("%Y-%m-%d"),
+                           "symbol": "", "kind": "payback", "amount": amount})
 
     # 4) 바우처: 회수 안 되는 바우처만 페이백, 포지션 바우처는 상쇄 (사용 중인 건 제외)
     open_syms = set()
@@ -533,11 +565,24 @@ def fetch_history(keys, _format=3):
     v_events, v_pending = settle_vouchers(vouchers, open_syms)
     events.extend(v_events)
 
+    # 5) 새로 생긴 기록을 백업에 저장 (90일이 지나 거래소에서 사라져도 남도록)
+    backup = {"on": AR.enabled(), "ok": arc_ok, "saved": 0,
+              "count": sum(len(v) for v in store.values()), "first": None}
+    if arc_ok and changed:
+        try:
+            backup["saved"] = AR.save(store, shas, changed)
+        except Exception as e:
+            backup["ok"] = False
+            errors.append(f"백업 저장 실패: {type(e).__name__}: {e}")
+    if store["fills"]:
+        backup["first"] = _to_kst(min(f["ts"] for f in store["fills"].values())).strftime("%Y-%m-%d")
+
     out = _finish(fills, events, ledger, errors, demo=False)
     out["transfers"] = sorted(transfers, key=lambda x: x["datetime"], reverse=True)
     out["vouchers"] = sorted(vouchers, key=lambda x: x["datetime"], reverse=True)
     out["voucher_pending"] = v_pending
     out["bill_others"] = others
+    out["backup"] = backup
     return out
 
 
