@@ -126,7 +126,17 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
   .seg button { padding: 5px 9px; font-size: 12px; }
   .lr { grid-template-columns: auto 1fr auto; font-size: 13px; }
   .lr .t { display: none; }
-  .tv { height: 420px; } .r4 { grid-template-columns: 1fr; } .two { grid-template-columns: 1fr; } .card { padding: 18px; } #lmap { height: 380px; } }
+  .tv { height: 420px; }
+  /* 위 요약 4칸: 휴대폰에서도 2×2로 촘촘하게 */
+  .r4 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .r4 .card { padding: 14px 13px; border-radius: 16px; }
+  .r4 .ct { margin-bottom: 8px; } .r4 .ct b { font-size: 14.5px; } .r4 .ct span { display: none; }
+  .r4 .big { font-size: 20px; } .r4 .lbl { font-size: 11.5px; }
+  .r4 .kv { font-size: 12px; padding: 6px 0; }
+  .r4 .num[style*="font-size:14px"] { font-size: 12px !important; }
+  .r4 div[style*="font-size:13px"] { font-size: 11px !important; line-height: 1.4; }
+  .fng .val b { font-size: 26px; } .fng .val { margin-top: -30px; } .fng-hist span { font-size: 10.5px; } .fng-hist b { font-size: 13px; }
+  .dom-lg { font-size: 10.5px; gap: 3px 8px; } .two { grid-template-columns: 1fr; } .card { padding: 18px; } #lmap { height: 380px; } }
 </style>
 </head>
 <body>
@@ -205,7 +215,7 @@ function price(v) { if (v == null || isNaN(v)) return '-'; const a = Math.abs(v)
 const hms = t => new Date(t + 9 * 3600e3).toISOString().slice(11, 19);
 const name = s => s.replace(/USDT$/, '');
 async function get(u) { const r = await fetch(u); if (!r.ok) throw new Error(r.status); return r.json(); }
-function fit() { try { const fe = window.frameElement; if (fe) { const h = document.documentElement.scrollHeight; fe.style.height = h + 'px'; fe.height = h; } } catch (e) {} }
+function fit() { try { const fe = window.frameElement; if (fe) { const h = Math.ceil(document.body.getBoundingClientRect().height) + 4; if (Math.abs(fe.offsetHeight - h) > 2) { fe.style.height = h + 'px'; fe.height = h; } } } catch (e) {} }
 function fail(id, msg) { $(id).innerHTML = `<div class="loading">${msg || '데이터를 불러오지 못했어요'}</div>`; }
 
 // ---------- 공포·탐욕 ----------
@@ -474,7 +484,7 @@ setInterval(() => { loadLS(); loadFng(); }, 300000);
 setInterval(loadGlobal, 180000);
 setInterval(loadMap, 600000);
 let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { loadMap(); fit(); }, 300); });
-setTimeout(fit, 1500); setTimeout(fit, 4000);
+setTimeout(fit, 1500); setTimeout(fit, 4000); setInterval(fit, 2000); try { new ResizeObserver(fit).observe(document.body); } catch (e) {}
 </script>
 </body>
 </html>
