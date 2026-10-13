@@ -489,6 +489,24 @@ else:
 st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
+# 수익 인증 카드 (이미지로 저장 · 공유)
+# -----------------------------------------------------------------------------
+_principal = sum(D.principal_list()) or 1.0
+_share = {
+    "period": f"{start_str.replace('-', '.')} ~ {end_str.replace('-', '.')}", "start": start_str, "end": end_str,
+    "net": round(bd["net"], 2), "roi": bd["net"] / _principal * 100,
+    "wins": wins, "losses": losses, "wr": win_rate if (wins + losses) else None, "count": decr,
+    "pf": perf["profit_factor"] if perf else None, "best": perf["best"] if perf else None,
+    "bestPct": (perf["best"] / _principal * 100) if perf else None,
+    "wd": win_days, "ld": loss_days, "cum": [round(v, 2) for v in daily["cum"].tolist()] if not daily.empty else [],
+}
+from pathlib import Path as _Path
+import json as _json
+import streamlit.components.v1 as _components
+_components.html((_Path(__file__).parent / "share_card.html").read_text(encoding="utf-8").replace("__DATA__", _json.dumps(_share)), height=560)
+st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
+
+# -----------------------------------------------------------------------------
 # 시간대별 손익
 # -----------------------------------------------------------------------------
 with st.container(key="chart_card_hour"):

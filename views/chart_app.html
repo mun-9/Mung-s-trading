@@ -995,6 +995,7 @@ function fitHeight() {
     const fe = window.frameElement; if (!fe) return;
     const h = Math.max(520, window.parent.innerHeight - fe.getBoundingClientRect().top);
     fe.style.height = h + 'px'; fe.height = h;
+    let n = fe.parentElement; for (let i = 0; i < 4 && n; i++, n = n.parentElement) { n.style.height = h + 'px'; if (n.getAttribute && n.getAttribute('data-testid') === 'stElementContainer') break; }
   } catch (e) {}
 }
 try { window.parent.addEventListener('resize', fitHeight); } catch (e) {}
