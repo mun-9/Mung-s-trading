@@ -15,10 +15,10 @@ _CSS = r"""
 #mg-music { position: fixed; left: 0; bottom: 22px; z-index: 999990; display: flex; align-items: center; gap: 10px;
   font-family: 'Pretendard', -apple-system, sans-serif; transform: translateX(-140%); opacity: 0;
   transition: transform .7s cubic-bezier(.2,1.3,.4,1), opacity .5s ease; pointer-events: none; }
-/* 평소: 왼쪽 벽에 반쯤 숨어 있음 → 누르면 쏙 나옴 */
-#mg-music.in { transform: translateX(-31px); opacity: 1; pointer-events: auto; }
-#mg-music.in:not(.open):hover { transform: translateX(-24px); }
-#mg-music.in.open { transform: translateX(14px); }
+/* 컴퓨터: LP 전체가 보임 / 휴대폰(아래 @media): 왼쪽 벽에 반쯤 숨어 있다가 누르면 쏙 나옴 */
+#mg-music.in { transform: translateX(18px); opacity: 1; pointer-events: auto; }
+#mg-music.in.open { transform: translateX(18px); }
+#mg-music.in .disc:hover { filter: brightness(1.15); }
 #mg-music .disc { position: relative; width: 58px; height: 58px; border-radius: 50%; cursor: pointer; flex-shrink: 0;
   background: repeating-radial-gradient(circle, #1b1b1f 0 2px, #26262c 2px 3px);
   box-shadow: 0 6px 20px rgba(0,0,0,.35), inset 0 0 0 2px rgba(255,255,255,.06); animation: mg-spin 3.2s linear infinite; animation-play-state: paused; }
