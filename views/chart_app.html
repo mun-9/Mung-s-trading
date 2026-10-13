@@ -189,6 +189,14 @@ svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-widt
 .row:not(:hover) .star:not(.on) { color: transparent; }
 .star.on { color: var(--star); } .star.on svg { fill: currentColor; }
 .empty { padding: 30px 14px; text-align: center; color: var(--sub); font-size: 13px; }
+/* 빈 화면 안내: 아이콘 + 굵은 한 줄 + 설명 */
+.es { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 26px 18px 24px; }
+.es .ei { width: 44px; height: 44px; border-radius: 14px; background: rgba(41,98,255,0.12); display: flex; align-items: center; justify-content: center; font-size: 21px; margin-bottom: 4px; }
+.es b { font-size: 14px; font-weight: 700; color: var(--strong); letter-spacing: -0.01em; }
+.es span { font-size: 12px; color: var(--sub); line-height: 1.6; max-width: 230px; }
+.es .chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; margin-top: 6px; }
+.es .chips i { font-style: normal; font-size: 11px; font-weight: 700; color: var(--mid); background: rgba(255,255,255,0.06); border-radius: 6px; padding: 3px 7px; }
+.es .warnl { font-size: 11.5px; font-weight: 700; color: #F5B800; margin-top: 4px; }
 .pos { margin: 8px 10px 0; padding: 11px 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--line); cursor: pointer; font-size: 12px; color: var(--sub); }
 .pos:hover { border-color: rgba(255,255,255,0.18); }
 .pos .t1 { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; }
@@ -776,7 +784,7 @@ function watchListHtml(q) {
   const star = all.filter(s => state.stars.includes(s));
   const rest = all.filter(s => !held.has(s) && !state.stars.includes(s));
   const h = secHtml('pos', '보유 중', sorted(pos)) + secHtml('star', '즐겨찾기', sorted(star)) + secHtml('rest', q ? '검색 결과' : '나머지', sorted(rest));
-  return h || '<div class="empty">찾는 종목이 없어요</div>';
+  return h || ES('🔍', '찾는 종목이 없어요', '심볼(예: BTC, SOL)로 검색해 보세요');
 }
 function bindList(el) {
   rowEls = {};
@@ -851,11 +859,12 @@ function renderPanel() {
         <span>현재가</span><span>${fmtPrice(last)}</span><span>청산가</span><span>${fmtPrice(p.liq_price)}</span><span>증거금</span><span>$${p.margin.toFixed(2)}</span></div></div>`;
     }).join('');
     pnl.innerHTML = `<div class="ph"><b>내 포지션</b><span>${DATA.positions.length}</span><button class="x" id="pclose" title="접기">${ICON.close}</button></div>
-      <div class="list">${cards || '<div class="empty">보유 중인 포지션이 없어요</div>'}<div style="height:10px"></div></div>`;
+      <div class="list">${cards || ES('💼', '보유 중인 포지션이 없어요', 'Bitget에서 포지션을 열면 여기와 차트 위에 진입가·청산가가 표시돼요')}<div style="height:10px"></div></div>`;
     pnl.querySelectorAll('.pos').forEach(c => c.onclick = () => selectSym(c.dataset.s));
   }
   $('pclose').onclick = () => { state.panel = false; save(); renderPanel(); };
 }
+const ES = (icon, title, sub = '', extra = '') => `<div class="es"><div class="ei">${icon}</div><b>${title}</b>${sub ? `<span>${sub}</span>` : ''}${extra}</div>`;
 // ---------- 이슈 패널: 급변 기록(가격이 크게 움직인 순간) + 최신 뉴스 ----------
 const escH = t => String(t || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const agoT = ts => { const m = Math.max(0, (Date.now() / 1000 - ts) / 60); return m < 1 ? '방금' : m < 60 ? Math.round(m) + '분 전' : m < 1440 ? Math.round(m / 60) + '시간 전' : Math.round(m / 1440) + '일 전'; };
@@ -867,10 +876,11 @@ function renderNews() {
   const mv = moves.length ? moves.map(m => `<div class="mv"><div class="mvh"><b>${m.sym}</b><span class="num ${m.pct > 0 ? 'up' : 'down'}">${m.pct > 0 ? '▲ +' : '▼ '}${m.pct.toFixed(2)}%</span><em>${agoT(m.ts / 1000)} · 5분</em></div>
       <div class="mvp num">${fmtPrice(m.from)} → ${fmtPrice(m.to)}</div>
       ${m.news && m.news.length ? m.news.map(n => `<a class="mvn" href="${escH(n.link)}" target="_blank" rel="noopener">${escH(n.title)}<i>${escH(n.src)} · ${agoT(n.ts)}</i></a>`).join('') : '<div class="mvn none">이 시간대에 잡힌 뉴스가 없어요 (트윗·고래 매매일 수 있어요)</div>'}</div>`).join('')
-    : `<div class="empty" style="padding:18px 12px">아직 큰 움직임이 없어요.<br>BTC ±1% · ETH ±1.5% · SOL·XRP ±2.5%가 5분 안에 움직이면 여기 기록돼요${F && !F.cfg().moves ? '<br><b style="color:#F5B800">도구 화면에서 급변 알림이 꺼져 있어요</b>' : ''}</div>`;
+    : ES('⚡', '아직 큰 움직임이 없어요', '5분 안에 아래만큼 움직이면 같은 시간대 뉴스와 함께 기록돼요',
+        `<div class="chips"><i>BTC ±1%</i><i>ETH ±1.5%</i><i>SOL ±2.5%</i><i>XRP ±2.5%</i></div>${F && !F.cfg().moves ? '<div class="warnl">도구 화면에서 급변 알림이 꺼져 있어요</div>' : ''}`);
   const nw = news.length ? news.slice(0, 20).map(n => { const imp = N.isImportant(n);
       return `<a class="nwi${imp ? ' imp' : ''}" href="${escH(n.link)}" target="_blank" rel="noopener">${imp ? '<span class="impb">중요</span>' : ''}${escH(n.title)}<i>${escH(n.src)} · ${n.ts ? agoT(n.ts) : ''}</i></a>`; }).join('')
-    : '<div class="empty" style="padding:18px 12px">뉴스를 불러오는 중이에요</div>';
+    : ES('📰', '뉴스를 불러오는 중이에요', '블록미디어 · 토큰포스트 최신 기사가 곧 나와요');
   el.innerHTML = `<div class="sec" style="position:static;cursor:default">⚡ 급변 기록</div>${mv}<div class="sec" style="position:static;cursor:default">📰 최신 뉴스</div>${nw}<div style="height:10px"></div>`;
 }
 try { ['mg-moves-changed', 'mg-news-changed'].forEach(ev => window.parent.addEventListener(ev, () => { if (state.panel && state.view === 'news') renderNews(); })); } catch (e) {}
@@ -935,7 +945,7 @@ function renderBook() {
   const spread = asks.length && bids.length ? asks[0][0] - bids[0][0] : null;
   const dec = asks.length ? ((String(book.asks.keys().next().value || '').split('.')[1] || '').length) : 2;
   $('obMid').innerHTML = `<b class="${cls(t.pct)}">${fmtPrice(t.last)}</b><span>스프레드 ${spread == null ? '-' : spread.toFixed(dec)}</span>`;
-  $('trList').innerHTML = book.trades.map(x => `<div class="obr"><span class="${x.buy ? 'up' : 'down'}">${fmtPrice(x.p)}</span><span>${fq(x.v)}</span><span>${hms(x.t)}</span></div>`).join('') || '<div class="empty">체결 기다리는 중</div>';
+  $('trList').innerHTML = book.trades.map(x => `<div class="obr"><span class="${x.buy ? 'up' : 'down'}">${fmtPrice(x.p)}</span><span>${fq(x.v)}</span><span>${hms(x.t)}</span></div>`).join('') || ES('⏳', '체결 기다리는 중', '');
 }
 setInterval(() => { if (book.dirty) { book.dirty = false; renderBook(); } }, 300);
 
@@ -988,7 +998,7 @@ function renderLiq() {
   const rows = liq.list.filter(x => state.liqFilter === 'all' || x.sym === cur).slice(0, 120);
   $('liqList').innerHTML = rows.map(x => `<div class="lqr ${x.usd >= 50000 ? 'big' : ''}"><span class="tag ${x.longLiq ? 'short' : 'long'}">${x.longLiq ? '롱' : '숏'}</span>
     <b>${base(x.sym)}</b><span class="num ${x.longLiq ? 'down' : 'up'}">$${fmtBig(x.usd)}</span><span class="t num">${hms(x.t)}</span></div>`).join('')
-    || '<div class="empty">아직 청산이 없어요<br><span style="font-size:11.5px">청산이 생기면 바로 표시돼요</span></div>';
+    || ES('💥', '아직 청산이 없어요', '청산이 생기면 바로 여기에 쌓여요');
 }
 setInterval(() => { if (liq.dirty) { liq.dirty = false; renderLiq(); } else if (state.panel && state.view === 'liq') renderLiq(); }, 1000);
 
