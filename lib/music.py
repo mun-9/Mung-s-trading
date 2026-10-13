@@ -37,6 +37,8 @@ TRACKS = [
     {"id": "JhCEXRgbc_M", "title": "Alan Walker - Hope"},
     {"id": "ox4tmEV6-QU", "title": "Alan Walker, K-391 & Emelie Hollow - Lily"},
     {"id": "trnx5XT0cZs", "title": "Alan Walker - Play (ft. K-391, Tungevaag, Mangoo)"},
+    {"id": "q1ULJ92aldE", "title": "Syn Cole - Feel Good"},
+    {"id": "LHvYrn3FAgI", "title": "Unknown Brain - Superhero (feat. Chris Linton)"},
 ]
 
 
