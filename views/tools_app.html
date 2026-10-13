@@ -54,7 +54,21 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 .x { width: 30px; height: 30px; border: 0; border-radius: 9px; background: var(--soft); color: var(--sub); cursor: pointer; font-size: 14px; }
 .add { margin-top: 8px; width: 100%; height: 38px; border: 1px dashed var(--border); border-radius: 11px; background: transparent; color: var(--mid); font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 .add:hover { border-color: var(--blue); color: var(--blue); }
-@media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+.alc { grid-column: 1 / -1; }
+.ct .perm { white-space: nowrap; border: 0; background: var(--sel); color: var(--blue); font-family: inherit; font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 8px; cursor: pointer; }
+.ct .perm.done { background: transparent; color: var(--sub); cursor: default; }
+.alf { display: grid; grid-template-columns: 140px 1fr 1.4fr 110px; gap: 10px; align-items: end; }
+.alb { height: 42px; border: 0; border-radius: 11px; background: var(--blue); color: #fff; font-family: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
+.alr { display: grid; grid-template-columns: 70px 70px 1fr auto auto; gap: 12px; align-items: center; padding: 11px 4px; border-bottom: 1px solid var(--line); font-size: 14px; }
+.alr:last-child { border-bottom: 0; }
+.alr .s { font-weight: 800; } .alr .d { font-size: 12px; font-weight: 800; } .alr .p { font-weight: 700; font-variant-numeric: tabular-nums; }
+.alr .n { font-size: 12.5px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.alr .g { font-size: 12.5px; color: var(--sub); font-variant-numeric: tabular-nums; }
+.alr button { border: 0; background: var(--soft); color: var(--mid); font-family: inherit; font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 8px; cursor: pointer; }
+.ale { font-size: 12.5px; color: var(--sub); padding: 14px 4px 2px; }
+#alList { margin-top: 12px; }
+@media (max-width: 900px) { .grid { grid-template-columns: 1fr; } .alf { grid-template-columns: 1fr 1fr; } .alf .fld:nth-child(3) { grid-column: 1 / -1; } .alb { grid-column: 1 / -1; }
+  .alr { grid-template-columns: 52px 54px 1fr auto; gap: 8px; } .alr .n { grid-column: 1 / -1; order: 9; margin-top: -4px; } .ct { flex-wrap: wrap; } .ct .perm { font-size: 11px; padding: 5px 8px; } }
 @media (max-width: 640px) { .card { padding: 18px 16px; } .top .hint { display: none; } .r b { font-size: 16px; } }
 </style>
 </head>
@@ -68,6 +82,18 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
   </div>
 
   <div class="grid">
+    <!-- 0. 가격 알림 -->
+    <div class="card alc" id="c0">
+      <div class="ct"><b>🔔 가격 알림</b><button class="perm" id="perm">휴대폰·PC 알림 허용</button></div>
+      <div class="desc">가격에 닿으면 화면 알림 + 소리로 알려줘요. 사이트를 열어둔 동안 어느 메뉴에 있든 동작해요. (한 번 울리면 자동 삭제)</div>
+      <div class="alf">
+        <div class="fld"><label>종목</label><div class="inp"><input id="alSym" placeholder="BTC" maxlength="12" style="text-transform:uppercase"><span>USDT</span></div></div>
+        <div class="fld"><label>가격 <button id="alNow">현재가</button></label><div class="inp"><input id="alPx" inputmode="decimal" placeholder="0"></div></div>
+        <div class="fld"><label>메모 (선택)</label><div class="inp"><input id="alNote" placeholder="예: 지지선 이탈하면 숏" maxlength="40"></div></div>
+        <button class="alb" id="alAdd">알림 추가</button>
+      </div>
+      <div id="alList"></div>
+    </div>
     <!-- 1. 포지션 크기 -->
     <div class="card" id="c1">
       <div class="ct"><b>📐 포지션 크기 계산기</b></div>
@@ -300,6 +326,31 @@ function sub() {
 }
 let st; $('sym').oninput = e => { clearTimeout(st); st = setTimeout(() => { S.sym = e.target.value.trim().toUpperCase() || 'BTC'; save(); sub(); calc(); }, 500); };
 sub(); calc();
+
+// ---------- 가격 알림 (사이트 전체 알림 기능 window.mgAlerts 사용) ----------
+const PW = window.parent;
+function alDraw() {
+  const A = PW.mgAlerts;
+  if (!A) { $('alList').innerHTML = '<div class="ale">새로고침 후 사용할 수 있어요</div>'; return; }
+  const a = A.list().sort((x, y) => x.sym.localeCompare(y.sym) || x.price - y.price);
+  $('alList').innerHTML = a.length ? a.map(x => { const cur = A.price(x.sym); const g = cur ? (x.price / cur - 1) * 100 : null;
+    return `<div class="alr"><span class="s">${x.sym}</span><span class="d ${x.dir === 'above' ? 'up' : x.dir === 'below' ? 'down' : ''}">${x.dir === 'above' ? '▲ 이상' : x.dir === 'below' ? '▼ 이하' : '확인 중'}</span>
+      <span class="p">$${px(x.price)} <span class="g">${g == null ? '' : '' + pct(g)}</span></span><span class="n">${x.note ? x.note.replace(/[<>&]/g, '') : ''}</span><button data-id="${x.id}">삭제</button></div>`; }).join('')
+    : '<div class="ale">아직 알림이 없어요. 종목과 가격을 넣고 추가해 보세요.</div>';
+  $('alList').querySelectorAll('button[data-id]').forEach(b => b.onclick = () => { A.remove(b.dataset.id); alDraw(); });
+  fit();
+}
+$('alSym').value = S.sym || 'BTC';
+$('alNow').onclick = () => { const A = PW.mgAlerts, s = ($('alSym').value || 'BTC').toUpperCase(); const p = (A && A.price(s)) || (s === S.sym ? LIVE : null); if (p) $('alPx').value = String(p); else if (A) { A.subscribe(s); setTimeout(() => { const q = A.price(s); if (q) $('alPx').value = String(q); }, 1500); } };
+$('alAdd').onclick = () => { const A = PW.mgAlerts; if (!A) return; if (A.add($('alSym').value, n($('alPx').value), $('alNote').value.trim())) { $('alPx').value = ''; $('alNote').value = ''; alDraw(); } };
+$('alPx').onkeydown = e => { if (e.key === 'Enter') $('alAdd').click(); };
+function permPaint() { const b = $('perm'); try { const p = PW.Notification ? PW.Notification.permission : 'unsupported';
+  if (p === 'granted') { b.textContent = '✓ 알림 허용됨'; b.classList.add('done'); } else if (p === 'denied') { b.textContent = '알림이 차단돼 있어요 (브라우저 설정)'; b.classList.add('done'); } else if (p === 'unsupported') { b.style.display = 'none'; } } catch (e) { b.style.display = 'none'; } }
+$('perm').onclick = () => { try { PW.Notification.requestPermission().then(permPaint); } catch (e) {} };
+permPaint();
+try { PW.addEventListener('mg-alerts-changed', alDraw); } catch (e) {}
+setInterval(alDraw, 5000);
+alDraw();
 </script>
 </body>
 </html>
