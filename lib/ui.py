@@ -606,34 +606,67 @@ def title_row(title, right_html, on_refresh):
 
 
 # 처음 거래 내역을 불러올 때 보여주는 로딩 화면
-LOADER_HTML = """
+# 로딩 화면 가운데 영상/움짤 자리.
+# Streamlit Secrets에 LOADER_MEDIA = "https://....gif" (또는 .mp4 / .webm) 를 넣으면 그걸 보여줌.
+# 없으면 기본: 캔들이 하나씩 그려지는 짧은 애니메이션.
+_CANDLES = [(30, 18, 1), (40, 22, 1), (34, 16, 0), (48, 26, 1), (44, 14, 0), (58, 30, 1), (52, 18, 0),
+            (66, 28, 1), (60, 16, 0), (74, 30, 1), (70, 14, 0), (84, 26, 1)]
+
+
+def _loader_media():
+    try:
+        url = str(st.secrets.get("LOADER_MEDIA", "") or "").strip()
+    except Exception:
+        url = ""
+    if url:
+        u = url.split("?")[0].lower()
+        if u.endswith((".mp4", ".webm", ".mov")):
+            return f'<video src="{url}" autoplay muted loop playsinline></video>'
+        return f'<img src="{url}" alt="">'
+    bars = []
+    for k, (top, h, up) in enumerate(_CANDLES):
+        x = 14 + k * 26
+        y = 120 - top
+        c = "#0ECB81" if up else "#F6465D"
+        bars.append(f'<g class="cd" style="animation-delay:{k * 0.12:.2f}s"><line x1="{x + 7}" y1="{y - 8}" x2="{x + 7}" y2="{y + h + 8}" stroke="{c}" stroke-width="2"/>'
+                    f'<rect x="{x}" y="{y}" width="14" height="{h}" rx="3" fill="{c}"/></g>')
+    pts = " ".join(f"{14 + k * 26 + 7},{120 - top + (0 if up else h)}" for k, (top, h, up) in enumerate(_CANDLES))
+    return (f'<svg viewBox="0 0 330 130" preserveAspectRatio="xMidYMid meet">{"".join(bars)}'
+            f'<polyline class="ln" points="{pts}" fill="none" stroke="var(--mg-accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>')
+
+
+_LOADER_CSS = """
 <style>
 @keyframes mg-bar { 0%,100% { transform: scaleY(.45); opacity: .45; } 50% { transform: scaleY(1); opacity: 1; } }
-@keyframes mg-shine { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
 @keyframes mg-prog { 0% { left: -40%; } 100% { left: 100%; } }
-.mg-load { background:var(--mg-card); border-radius:20px; box-shadow:0 2px 14px rgba(15,23,42,0.05); padding:30px 28px 26px; margin: 14px 0 18px;
+@keyframes mg-cd { 0% { opacity: 0; transform: scaleY(.2); } 12%, 82% { opacity: 1; transform: scaleY(1); } 100% { opacity: 0; transform: scaleY(1); } }
+@keyframes mg-ln { 0% { stroke-dashoffset: 700; } 70%, 100% { stroke-dashoffset: 0; } }
+.mg-load { background:var(--mg-card); border-radius:20px; box-shadow:var(--mg-shadow); padding:28px 28px 26px; margin: 14px 0 18px;
   display:flex; flex-direction:column; align-items:center; text-align:center; }
-.mg-bars { display:flex; align-items:flex-end; gap:5px; height:34px; margin-bottom:16px; }
-.mg-bars i { display:block; width:8px; border-radius:3px; background:var(--mg-accent); transform-origin:bottom; animation: mg-bar 1s ease-in-out infinite; }
-.mg-bars i:nth-child(1) { height:16px; opacity:.5; animation-delay: 0s; }
-.mg-bars i:nth-child(2) { height:24px; opacity:.75; animation-delay: .15s; }
-.mg-bars i:nth-child(3) { height:34px; animation-delay: .3s; }
 .mg-t { font-size:17px; font-weight:800; color:var(--mg-text); letter-spacing:-0.02em; }
 .mg-s { font-size:13px; color:var(--mg-sub); margin-top:6px; line-height:1.6; }
-.mg-prog { position:relative; width:220px; max-width:70%; height:4px; border-radius:2px; background:var(--mg-sk1); overflow:hidden; margin-top:18px; }
+.mg-prog { position:relative; width:220px; max-width:70%; height:4px; border-radius:2px; background:var(--mg-sk1); overflow:hidden; margin-top:16px; }
 .mg-prog::after { content:''; position:absolute; top:0; width:40%; height:100%; border-radius:2px; background:var(--mg-accent); animation: mg-prog 1.2s ease-in-out infinite; }
-.mg-sk { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; width:100%; margin-top:22px; }
-.mg-sk div { height:86px; border-radius:16px; background:linear-gradient(90deg,var(--mg-soft) 0%,var(--mg-sk2) 40%,var(--mg-soft) 80%); background-size:800px 100%; animation: mg-shine 1.4s linear infinite; }
-@media (max-width:768px) { .mg-sk { grid-template-columns:1fr; } .mg-sk div:nth-child(n+2) { display:none; } }
+/* 가운데 영상·움짤 자리: 16:9 상자에 꽉 맞게 */
+.mg-media { width:100%; max-width:420px; aspect-ratio:16/9; border-radius:16px; overflow:hidden; background:var(--mg-tile); margin-bottom:20px;
+  display:flex; align-items:center; justify-content:center; }
+.mg-media img, .mg-media video { width:100%; height:100%; object-fit:cover; display:block; }
+.mg-media svg { width:88%; height:auto; }
+.mg-media .cd { transform-box: fill-box; transform-origin: bottom; animation: mg-cd 2.6s ease-out infinite both; }
+.mg-media .ln { stroke-dasharray: 700; animation: mg-ln 2.6s ease-in infinite; animation-delay: .25s; opacity:.85; }
+@media (max-width:768px) { .mg-load { padding:22px 18px 22px; } .mg-media { max-width:100%; } }
 </style>
-<div class="mg-load">
-  <div class="mg-bars"><i></i><i></i><i></i></div>
-  <div class="mg-t">거래 내역을 불러오고 있어요</div>
-  <div class="mg-s">Bitget에서 체결 · 펀딩비 · 입금 내역을 확인하는 중이에요<br>보통 5~20초 걸려요</div>
-  <div class="mg-prog"></div>
-  <div class="mg-sk"><div></div><div></div><div></div></div>
-</div>
 """
+
+
+def loader_html():
+    return (_LOADER_CSS + '<div class="mg-load"><div class="mg-media">' + _loader_media() + '</div>'
+            '<div class="mg-t">거래 내역을 불러오고 있어요</div>'
+            '<div class="mg-s">Bitget 체결 · 펀딩비 · 입금 내역 확인 중<br>처음엔 조금 걸리고, 다음부터는 금방 떠요</div>'
+            '<div class="mg-prog"></div></div>')
+
+
+LOADER_HTML = loader_html()  # 예전 코드 호환용 (기본 애니메이션)
 
 
 # 포지션 불러오는 동안 보여주는 자리 표시 카드

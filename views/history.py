@@ -28,7 +28,7 @@ keys = D.get_keys()
 _full_load = st.session_state.pop("_full_reload", False) or "hist_seen" not in st.session_state
 _loader = st.empty()
 if _full_load:
-    _loader.markdown("<style>[data-stale='true']{display:none !important;}</style>" + getattr(_ui, "LOADER_HTML", ""),
+    _loader.markdown("<style>[data-stale='true']{display:none !important;}</style>" + (_ui.loader_html() if hasattr(_ui, "loader_html") else getattr(_ui, "LOADER_HTML", "")),
                      unsafe_allow_html=True)
 hist = D.fetch_history(keys)
 st.session_state["hist_seen"] = True
@@ -349,32 +349,38 @@ def style_fig(fig, height=330, category=True, ticks=None):
     return fig
 
 
-with st.container(key="pnl_card"):
-    last_v = daily["pnl"].iloc[-1] if not daily.empty else 0.0
-    win_days = int((daily["pnl"] > 0).sum()) if not daily.empty else 0
-    loss_days = int((daily["pnl"] < 0).sum()) if not daily.empty else 0
-    with st.container(key="pnl_head", horizontal=True, vertical_alignment="center"):
-        html(f"<div style='font-size:17px;color:{TEXT};font-weight:800;letter-spacing:-0.02em;line-height:40px;'>기간 PNL</div>")
-        with st.container(key="pnl_view_box", width="content"):
-            view = st.segmented_control("보기", ["일별", "누적"], default="일별", key="pnl_view", label_visibility="collapsed") or "일별"
-    html(f"""<div style='border-top:1px solid var(--mg-line2);margin:-6px 0 14px;'></div>
+# 일별/누적을 바꿔도 이 카드만 다시 그림 → 바로 바뀜
+@st.fragment
+def pnl_card():
+    with st.container(key="pnl_card"):
+        last_v = daily["pnl"].iloc[-1] if not daily.empty else 0.0
+        win_days = int((daily["pnl"] > 0).sum()) if not daily.empty else 0
+        loss_days = int((daily["pnl"] < 0).sum()) if not daily.empty else 0
+        with st.container(key="pnl_head", horizontal=True, vertical_alignment="center"):
+            html(f"<div style='font-size:17px;color:{TEXT};font-weight:800;letter-spacing:-0.02em;line-height:40px;'>기간 PNL</div>")
+            with st.container(key="pnl_view_box", width="content"):
+                view = st.segmented_control("보기", ["일별", "누적"], default="일별", key="pnl_view", label_visibility="collapsed") or "일별"
+        html(f"""<div style='border-top:1px solid var(--mg-line2);margin:-6px 0 14px;'></div>
 <div style='display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;'><span style='font-size:30px;font-weight:800;color:{pnl_color(bd["net"])};letter-spacing:-0.02em;'>{money(bd["net"])}</span>
 <span style='font-size:14px;color:{SUB};font-weight:600;'>USDT</span><span style='font-size:13.5px;color:{SUB};font-weight:600;'>≈ {"-" if bd["net"] < 0 else "+" if bd["net"] > 0 else ""}₩{abs(bd["net"]) * rate:,.0f}</span></div>
 <div style='font-size:13px;color:{SUB};margin-top:4px;'>Win <b style='color:{GREEN};'>{win_days} days</b> · Loss <b style='color:{RED};'>{loss_days} days</b></div>
 <div style='border-top:1px solid var(--mg-line);margin:16px 0 0;'></div>""")
-    n = len(daily)
-    # 날짜 눈금: 최대 5개를 고르게 (마지막 날 포함), 'MM/DD'로 짧게 → 휴대폰에서도 눕지 않음
-    k = min(5, n)
-    idx = sorted({round(j * (n - 1) / (k - 1)) for j in range(k)}) if k > 1 else [0]
-    ticks = [daily["date"].iloc[i] for i in idx]
-    if view == "일별":
-        fig = go.Figure(go.Bar(x=daily["date"], y=daily["pnl"], marker=dict(color=[GREEN if v >= 0 else RED for v in daily["pnl"]], line_width=0, cornerradius=8),
-                               hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT<extra></extra>"))
-    else:
-        fig = go.Figure(go.Scatter(x=daily["date"], y=daily["cum"], mode="lines+markers", line=dict(color=BLUE, width=3, shape="spline", smoothing=0.4),
-                                   marker=dict(size=5), fill="tozeroy", fillcolor="rgba(49,130,246,0.08)",
+        n = len(daily)
+        # 날짜 눈금: 최대 5개를 고르게 (마지막 날 포함), 'MM/DD'로 짧게 → 휴대폰에서도 눕지 않음
+        k = min(5, n)
+        idx = sorted({round(j * (n - 1) / (k - 1)) for j in range(k)}) if k > 1 else [0]
+        ticks = [daily["date"].iloc[i] for i in idx]
+        if view == "일별":
+            fig = go.Figure(go.Bar(x=daily["date"], y=daily["pnl"], marker=dict(color=[GREEN if v >= 0 else RED for v in daily["pnl"]], line_width=0, cornerradius=8),
                                    hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT<extra></extra>"))
-    st.plotly_chart(no_zoom(style_fig(fig, ticks=ticks)), width="stretch", config=PLOT_CFG)
+        else:
+            fig = go.Figure(go.Scatter(x=daily["date"], y=daily["cum"], mode="lines+markers", line=dict(color=BLUE, width=3, shape="spline", smoothing=0.4),
+                                       marker=dict(size=5), fill="tozeroy", fillcolor="rgba(49,130,246,0.08)",
+                                       hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT<extra></extra>"))
+        st.plotly_chart(no_zoom(style_fig(fig, ticks=ticks)), width="stretch", config=PLOT_CFG)
+
+
+pnl_card()
 ledger_net = float(f_ledger["net"].sum()) if not f_ledger.empty else None
 if ledger_net is not None:
     html(f"<div class='note-text' style='margin-top:-8px;'>검증용 · 거래소 장부 합계 {money(ledger_net)} (페이백 제외, 진입 수수료를 진입 시점에 바로 뺀 값)</div>")
@@ -443,17 +449,24 @@ def _cal_move(step):
         st.session_state.cal_ym = (y, m)
 
 
-with st.container(key="cal_card"):
-    cy, cm = st.session_state.cal_ym
-    with st.container(key="cal_head", horizontal=True, vertical_alignment="center"):
-        html("<div class='cal-title'>PNL 캘린더</div>")
-        with st.container(key="cal_nav", horizontal=True, vertical_alignment="center", width="content", gap="small"):
-            st.button("", icon=":material/chevron_left:", key="cal_prev", on_click=_cal_move, args=(-1,),
-                      disabled=(cy, cm) <= (dash_start.year, dash_start.month))
-            html(f"<div class='cal-ym'>{cy}.{cm:02d}</div>")
-            st.button("", icon=":material/chevron_right:", key="cal_next", on_click=_cal_move, args=(1,),
-                      disabled=(cy, cm) >= (today_d.year, today_d.month))
-    html(calendar_html(cy, cm))
+# 달력 넘기기 버튼을 눌러도 달력만 다시 그림
+@st.fragment
+def cal_card():
+    with st.container(key="cal_card"):
+        cy, cm = st.session_state.cal_ym
+        with st.container(key="cal_head", horizontal=True, vertical_alignment="center"):
+            html("<div class='cal-title'>PNL 캘린더</div>")
+            with st.container(key="cal_nav", horizontal=True, vertical_alignment="center", width="content", gap="small"):
+                st.button("", icon=":material/chevron_left:", key="cal_prev", on_click=_cal_move, args=(-1,),
+                          disabled=(cy, cm) <= (dash_start.year, dash_start.month))
+                html(f"<div class='cal-ym'>{cy}.{cm:02d}</div>")
+                st.button("", icon=":material/chevron_right:", key="cal_next", on_click=_cal_move, args=(1,),
+                          disabled=(cy, cm) >= (today_d.year, today_d.month))
+        html(calendar_html(cy, cm))
+
+
+cal_card()
+
 
 # -----------------------------------------------------------------------------
 # 성과 지표
@@ -633,101 +646,108 @@ def account_check():
 # -----------------------------------------------------------------------------
 # 상세 매매 내역
 # -----------------------------------------------------------------------------
-section("상세 매매 내역")
-fc1, fc2 = st.columns([2.2, 1])
-with fc1:
-    kind = st.segmented_control("종류", ["전체", "청산", "진입", "입출금", "펀딩비"], default="전체",
-                                label_visibility="collapsed", key="log_kind") or "전체"
-with fc2:
-    sym_opts = ["전체 종목"] + sorted(f_trades["symbol"].unique().tolist()) if not f_trades.empty else ["전체 종목"]
-    sym_pick = st.selectbox("종목", sym_opts, label_visibility="collapsed")
+# 필터(종류·종목)를 바꿔도 이 부분만 다시 그림 → 바로바로 바뀜
+@st.fragment
+def detail_log():
+    section("상세 매매 내역")
+    fc1, fc2 = st.columns([2.2, 1])
+    with fc1:
+        kind = st.segmented_control("종류", ["전체", "청산", "진입", "입출금", "펀딩비"], default="전체",
+                                    label_visibility="collapsed", key="log_kind") or "전체"
+    with fc2:
+        sym_opts = ["전체 종목"] + sorted(f_trades["symbol"].unique().tolist()) if not f_trades.empty else ["전체 종목"]
+        sym_pick = st.selectbox("종목", sym_opts, label_visibility="collapsed")
 
-rows = []
-tview = f_trades if sym_pick == "전체 종목" else f_trades[f_trades["symbol"] == sym_pick]
-if kind in ("전체", "청산", "진입") and not tview.empty:
-    if kind != "전체":
-        tview = tview[tview["bucket"] == ("축소" if kind == "청산" else "증가")]
-    for r in tview.itertuples(index=False):
-        rows.append(("trade", r.datetime, r))
-if kind == "입출금":
-    for t in transfers:
-        rows.append(("transfer", t["datetime"], t))
-if kind in ("전체", "펀딩비") and not f_events.empty:
-    want = {"전체": ["payback"], "펀딩비": ["funding"]}[kind]
-    ev = f_events[f_events["kind"].isin(want)]
-    if sym_pick != "전체 종목":
-        ev = ev[(ev["symbol"] == sym_pick) | (ev["kind"] == "payback")] if kind != "펀딩비" else ev[ev["symbol"] == sym_pick]
-    for r in ev.itertuples(index=False):
-        rows.append(("event", r.datetime, r))
-rows.sort(key=lambda x: x[1], reverse=True)
+    rows = []
+    tview = f_trades if sym_pick == "전체 종목" else f_trades[f_trades["symbol"] == sym_pick]
+    if kind in ("전체", "청산", "진입") and not tview.empty:
+        if kind != "전체":
+            tview = tview[tview["bucket"] == ("축소" if kind == "청산" else "증가")]
+        for r in tview.itertuples(index=False):
+            rows.append(("trade", r.datetime, r))
+    if kind == "입출금":
+        for t in transfers:
+            rows.append(("transfer", t["datetime"], t))
+    if kind in ("전체", "펀딩비") and not f_events.empty:
+        want = {"전체": ["payback"], "펀딩비": ["funding"]}[kind]
+        ev = f_events[f_events["kind"].isin(want)]
+        if sym_pick != "전체 종목":
+            ev = ev[(ev["symbol"] == sym_pick) | (ev["kind"] == "payback")] if kind != "펀딩비" else ev[ev["symbol"] == sym_pick]
+        for r in ev.itertuples(index=False):
+            rows.append(("event", r.datetime, r))
+    rows.sort(key=lambda x: x[1], reverse=True)
 
-if not rows:
-    html("<div class='card es-card'>" + _ui.empty_state("🗂️", "표시할 내역이 없어요", "기간이나 종류(전체 · 청산 · 진입 …)를 바꿔 보세요") + "</div>")
-else:
-    out = []
-    # 날짜별로 묶어서 '10월 13일 (화) · 그날 순손익' 머리줄을 넣음
-    def _amt(typ, r):
-        if typ == "trade":
-            return float(r.net) if (r.bucket == "축소" and r.has_pnl) else 0.0
-        if typ == "event":
-            return float(r.amount)
-        return 0.0
-    day_sum = {}
-    for typ, dt, r in rows[:150]:
-        k = pd.Timestamp(dt).strftime("%Y-%m-%d")
-        day_sum[k] = day_sum.get(k, 0.0) + _amt(typ, r)
-    prev_day = None
-    for typ, dt, r in rows[:150]:
-        ts_ = pd.Timestamp(dt)
-        k = ts_.strftime("%Y-%m-%d")
-        if k != prev_day:
-            prev_day = k
-            v = day_sum.get(k, 0.0)
-            wd_ = "월화수목금토일"[ts_.weekday()]
-            lab = "오늘" if k == today_str else ("어제" if k == (now - timedelta(days=1)).strftime("%Y-%m-%d") else f"{ts_.month}월 {ts_.day}일")
-            out.append(f"<div class='log-day'><span>{lab} <small>({wd_})</small></span>"
-                       f"<b style='color:{pnl_color(v)};'>{money(v) if v else ''}</b></div>")
-        dt_str = ts_.strftime("%H:%M")
-        if typ == "transfer":
-            label, tag, c, icon = {"principal": ("원금 입금", "원금", BLUE, "🏦"), "payback": ("수수료 페이백", "페이백", GREEN, "💰"),
-                                   "withdraw": ("출금", "출금", RED, "↗")}[r["kind"]]
-            sign = -1 if r["kind"] == "withdraw" else 1
-            out.append(f"<div class='log-row'><div class='log-left'><div class='sym-badge' style='background:{GRAY_SOFT};color:{c};'>{icon}</div>"
-                       f"<div><div class='row-title'>{label} <span class='pill' style='background:{GRAY_SOFT};color:{c};'>{tag}</span></div>"
-                       f"<div class='row-sub'>{pd.Timestamp(dt).strftime('%Y.%m.%d %H:%M')}</div></div></div>"
-                       f"<div class='row-right'><div class='row-pnl' style='color:{c};'>{money(sign * r['amount'])}</div></div></div>")
-            continue
-        if typ == "event":
-            is_pay = r.kind == "payback"
-            is_v = is_pay and r.symbol == "바우처"
-            name = "바우처 페이백" if is_v else "수수료 페이백" if is_pay else f"펀딩비 · {r.symbol}"
-            badge, tag = ("🎟", "바우처") if is_v else ("💰", "입금") if is_pay else ("⏱", "펀딩")
-            c = pnl_color(r.amount)
-            out.append(f"<div class='log-row'><div class='log-left'><div class='sym-badge' style='background:{GREEN_SOFT if r.amount >= 0 else RED_SOFT};color:{c};'>{badge}</div>"
-                       f"<div><div class='row-title'>{name} <span class='pill' style='background:{GRAY_SOFT};color:{SUB};'>{tag}</span></div>"
-                       f"<div class='row-sub'>{dt_str}</div></div></div>"
-                       f"<div class='row-right'><div class='row-pnl' style='color:{c};'>{money(r.amount)}</div></div></div>")
-            continue
-        sc, ss = (GREEN, GREEN_SOFT) if r.side == "LONG" else (RED, RED_SOFT)
-        price = f"${r.price:,.2f}" if r.price > 0 else "-"
-        coin = r.symbol.split("/")[0]
-        qty_txt = f"{r.amount:,.6g} {coin}"
-        notional = r.amount * r.price
-        if r.bucket == "증가":
-            right = (f"<div class='row-price'>≈ ${notional:,.2f}</div>"
-                     f"<div class='row-pnl' style='color:{TEXT};font-weight:600;font-size:14px;'>{qty_txt}<span class='chip' style='background:{ss};color:{sc};'>진입</span></div>")
-        else:
-            c = pnl_color(r.net) if r.result in ("익절", "손절") else SUB
-            chip_bg = GREEN_SOFT if r.result == "익절" else (RED_SOFT if r.result == "손절" else GRAY_SOFT)
-            right = (f"<div class='row-price'><span>손익 {money(r.gross)}</span><span class='rs-sep'> · </span><span class='rs-d'>수수료 -${r.fee:,.2f}</span></div>"
-                     f"<div class='row-pnl' style='color:{c};'>{money(r.net) if r.has_pnl else '-'}<span class='chip' style='background:{chip_bg};color:{c};'>{r.result}</span></div>")
-        out.append(f"<div class='log-row'><div class='log-left'><div class='sym-badge' style='background:{ss};color:{sc};'>{coin[:1]}</div>"
-                   f"<div><div class='row-title'>{r.symbol} <span class='pill' style='background:{ss};color:{sc};'>{r.side}</span></div>"
-                   f"<div class='row-sub'><span>{dt_str}</span><span class='rs-sep'> · </span><span class='rs-d'>{'진입' if r.bucket == '증가' else '청산'} {qty_txt} @ {price}</span></div></div></div>"
-                   f"<div class='row-right'>{right}</div></div>")
-    html("<div class='card log-card' style='padding:0 20px 6px;max-height:680px;overflow-y:auto;'>" + "".join(out) + "</div>")
-    if len(rows) > 150:
-        html(f"<div class='note-text'>최근 150건만 표시 (전체 {len(rows)}건)</div>")
+    if not rows:
+        html("<div class='card es-card'>" + _ui.empty_state("🗂️", "표시할 내역이 없어요", "기간이나 종류(전체 · 청산 · 진입 …)를 바꿔 보세요") + "</div>")
+    else:
+        out = []
+        # 날짜별로 묶어서 '10월 13일 (화) · 그날 순손익' 머리줄을 넣음
+        def _amt(typ, r):
+            if typ == "trade":
+                return float(r.net) if (r.bucket == "축소" and r.has_pnl) else 0.0
+            if typ == "event":
+                return float(r.amount)
+            return 0.0
+        day_sum = {}
+        for typ, dt, r in rows[:150]:
+            k = pd.Timestamp(dt).strftime("%Y-%m-%d")
+            day_sum[k] = day_sum.get(k, 0.0) + _amt(typ, r)
+        prev_day = None
+        for typ, dt, r in rows[:150]:
+            ts_ = pd.Timestamp(dt)
+            k = ts_.strftime("%Y-%m-%d")
+            if k != prev_day:
+                prev_day = k
+                v = day_sum.get(k, 0.0)
+                wd_ = "월화수목금토일"[ts_.weekday()]
+                lab = "오늘" if k == today_str else ("어제" if k == (now - timedelta(days=1)).strftime("%Y-%m-%d") else f"{ts_.month}월 {ts_.day}일")
+                out.append(f"<div class='log-day'><span>{lab} <small>({wd_})</small></span>"
+                           f"<b style='color:{pnl_color(v)};'>{money(v) if v else ''}</b></div>")
+            dt_str = ts_.strftime("%H:%M")
+            if typ == "transfer":
+                label, tag, c, icon = {"principal": ("원금 입금", "원금", BLUE, "🏦"), "payback": ("수수료 페이백", "페이백", GREEN, "💰"),
+                                       "withdraw": ("출금", "출금", RED, "↗")}[r["kind"]]
+                sign = -1 if r["kind"] == "withdraw" else 1
+                out.append(f"<div class='log-row'><div class='log-left'><div class='sym-badge' style='background:{GRAY_SOFT};color:{c};'>{icon}</div>"
+                           f"<div><div class='row-title'>{label} <span class='pill' style='background:{GRAY_SOFT};color:{c};'>{tag}</span></div>"
+                           f"<div class='row-sub'>{pd.Timestamp(dt).strftime('%Y.%m.%d %H:%M')}</div></div></div>"
+                           f"<div class='row-right'><div class='row-pnl' style='color:{c};'>{money(sign * r['amount'])}</div></div></div>")
+                continue
+            if typ == "event":
+                is_pay = r.kind == "payback"
+                is_v = is_pay and r.symbol == "바우처"
+                name = "바우처 페이백" if is_v else "수수료 페이백" if is_pay else f"펀딩비 · {r.symbol}"
+                badge, tag = ("🎟", "바우처") if is_v else ("💰", "입금") if is_pay else ("⏱", "펀딩")
+                c = pnl_color(r.amount)
+                out.append(f"<div class='log-row'><div class='log-left'><div class='sym-badge' style='background:{GREEN_SOFT if r.amount >= 0 else RED_SOFT};color:{c};'>{badge}</div>"
+                           f"<div><div class='row-title'>{name} <span class='pill' style='background:{GRAY_SOFT};color:{SUB};'>{tag}</span></div>"
+                           f"<div class='row-sub'>{dt_str}</div></div></div>"
+                           f"<div class='row-right'><div class='row-pnl' style='color:{c};'>{money(r.amount)}</div></div></div>")
+                continue
+            sc, ss = (GREEN, GREEN_SOFT) if r.side == "LONG" else (RED, RED_SOFT)
+            price = f"${r.price:,.2f}" if r.price > 0 else "-"
+            coin = r.symbol.split("/")[0]
+            qty_txt = f"{r.amount:,.6g} {coin}"
+            notional = r.amount * r.price
+            if r.bucket == "증가":
+                right = (f"<div class='row-price'>≈ ${notional:,.2f}</div>"
+                         f"<div class='row-pnl' style='color:{TEXT};font-weight:600;font-size:14px;'>{qty_txt}<span class='chip' style='background:{ss};color:{sc};'>진입</span></div>")
+            else:
+                c = pnl_color(r.net) if r.result in ("익절", "손절") else SUB
+                chip_bg = GREEN_SOFT if r.result == "익절" else (RED_SOFT if r.result == "손절" else GRAY_SOFT)
+                right = (f"<div class='row-price'><span>손익 {money(r.gross)}</span><span class='rs-sep'> · </span><span class='rs-d'>수수료 -${r.fee:,.2f}</span></div>"
+                         f"<div class='row-pnl' style='color:{c};'>{money(r.net) if r.has_pnl else '-'}<span class='chip' style='background:{chip_bg};color:{c};'>{r.result}</span></div>")
+            out.append(f"<div class='log-row'><div class='log-left'><div class='sym-badge' style='background:{ss};color:{sc};'>{coin[:1]}</div>"
+                       f"<div><div class='row-title'>{r.symbol} <span class='pill' style='background:{ss};color:{sc};'>{r.side}</span></div>"
+                       f"<div class='row-sub'><span>{dt_str}</span><span class='rs-sep'> · </span><span class='rs-d'>{'진입' if r.bucket == '증가' else '청산'} {qty_txt} @ {price}</span></div></div></div>"
+                       f"<div class='row-right'>{right}</div></div>")
+        html("<div class='card log-card' style='padding:0 20px 6px;max-height:680px;overflow-y:auto;'>" + "".join(out) + "</div>")
+        if len(rows) > 150:
+            html(f"<div class='note-text'>최근 150건만 표시 (전체 {len(rows)}건)</div>")
+
+
+detail_log()
+
 
 # -----------------------------------------------------------------------------
 # 늦게 오는 포지션 정보를 맨 마지막에 채우기

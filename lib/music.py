@@ -62,8 +62,8 @@ def _clean(title):
 def _tracks():
     out = []
     for t in TRACKS:
-        m = _meta(t["id"])
-        title = t.get("title") or _clean(m["title"]) or "Untitled"
+        # 제목을 적어둔 곡은 유튜브에 물어보지 않음 (처음 접속이 느려지지 않게)
+        title = t.get("title") or _clean(_meta(t["id"])["title"]) or "Untitled"
         # '가수 - 곡명' → 곡명은 크게, 가수는 아래 작게 (유튜브 채널명은 안 씀)
         artist, song = (title.split(" - ", 1) + [""])[:2] if " - " in title else ("", title)
         out.append({"id": t["id"], "song": song.strip(), "artist": artist.strip()})

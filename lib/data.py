@@ -469,6 +469,12 @@ def _finish(fills, events, ledger, errors, demo):
             "pending_fees": pending, "errors": errors, "demo": demo, "loaded_at": datetime.now(KST)}
 
 
+@st.cache_resource(show_spinner=False)
+def _mem_store():
+    """서버가 켜져 있는 동안 받아둔 거래 기록 (다음 조회 때 새 기록만 받도록)."""
+    return {}
+
+
 @st.cache_data(ttl=1800, show_spinner=False)
 def fetch_history(keys, _format=5):
     if is_demo(keys):
@@ -487,15 +493,23 @@ def fetch_history(keys, _format=5):
     api_floor = now_ms - 89 * day          # 거래소가 내주는 기록은 최근 90일 정도까지
     look_from = since_ms - 90 * day        # 원금 입금은 시작일 이전 것도 찾아야 해서 더 앞에서부터
 
-    # 0) 백업 불러오기 (비공개 GitHub 저장소) → 이미 받아둔 기록은 다시 안 받음
+    # 0) 이미 받아둔 기록: 서버 메모리 → (처음이면) 비공개 GitHub 백업 → 없으면 처음부터
+    #    받아둔 기록은 다시 안 받고 최근 며칠 것만 새로 받음 → 두 번째부터는 훨씬 빠름
     from lib import archive as AR
-    store, shas, arc_ok = {k: {} for k in AR.KINDS}, {}, False
-    if AR.enabled():
-        try:
-            store, shas = AR.load()
-            arc_ok = True
-        except Exception as e:
-            errors.append(f"백업 저장소 불러오기 실패 (이번엔 거래소 기록만 사용): {type(e).__name__}: {e}")
+    mem = _mem_store()
+    if mem.get("start") != DASHBOARD_START_DATE:
+        mem.clear()
+        mem["start"] = DASHBOARD_START_DATE
+    if "store" not in mem:
+        store, shas, arc_ok = {k: {} for k in AR.KINDS}, {}, False
+        if AR.enabled():
+            try:
+                store, shas = AR.load()
+                arc_ok = True
+            except Exception as e:
+                errors.append(f"백업 저장소 불러오기 실패 (이번엔 거래소 기록만 사용): {type(e).__name__}: {e}")
+        mem.update(store=store, shas=shas, arc_ok=arc_ok)
+    store, shas, arc_ok = mem["store"], mem["shas"], mem["arc_ok"]
 
     for k in ("fills", "bills", "spot_bills", "deposits", "withdrawals"):  # 예전 백업 형식에 없는 종류도 빈 칸으로
         store.setdefault(k, {})
@@ -637,7 +651,7 @@ def fetch_history(keys, _format=5):
     # 5) 새로 생긴 기록을 백업에 저장 (90일이 지나 거래소에서 사라져도 남도록)
     backup = {"on": AR.enabled(), "ok": arc_ok, "saved": 0,
               "count": sum(len(v) for v in store.values()), "first": None}
-    if arc_ok and changed:
+    if arc_ok and changed and AR.enabled():
         try:
             backup["saved"] = AR.save(store, shas, changed)
         except Exception as e:
@@ -1010,7 +1024,6 @@ def pending_fee_for(pending, symbol, side, size):
         return 0.0
 
 
-@st.cache_data(ttl=30, show_spinner=False)
 @st.cache_data(ttl=60, show_spinner=False)
 def fetch_equity(keys):
     """(선물 계정 자산(미실현 포함), 현물 USDT, 오류) — 계좌 기준 손익 계산용."""
