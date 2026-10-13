@@ -7,9 +7,9 @@
 - 펀딩비: 거래소 장부(account bill)의 contract_settle_fee, 발생한 날짜에 반영
 - 페이백: USDT 입금 중 조건에 맞는 것, 입금된 날짜에 반영
 - 바우처: 선물 장부의 cash_gift_* / bonus_* 항목.
-    · 회수되지 않는 바우처(수수료 할인 캐시백 등) = 페이백으로 반영
-    · 포지션용 바우처(지급 → 포지션 종료 시 회수) = 지급액과 회수액이 상쇄되므로 수익 아님.
-      아직 회수 전인 지급분은 '사용 중'으로 따로 보관하고 손익에 넣지 않음.
+    · 회수되지 않는 바우처(수수료 할인 페이백 등, 출금 가능한 돈) = 페이백으로 반영
+    · 포지션 바우처(지급 → 포지션 종료 시 회수) = 지급·회수가 상쇄되어 수익 아님.
+      포지션이 열려 있는 동안 늘어난 증거금은 손익에 넣지 않음.
 - 순손익 = 청산 손익 - 수수료(청산 + 배분된 진입) + 펀딩비 + 페이백
 """
 import random
@@ -356,39 +356,41 @@ def parse_bills(ex, bills):
     return events, ledger_df, symbols, vouchers, others
 
 
-def settle_vouchers(vouchers):
-    """바우처 장부 → (손익에 넣을 이벤트 list, 아직 회수 전인 지급 list).
+def settle_vouchers(vouchers, open_syms=()):
+    """바우처 장부 → (손익에 넣을 이벤트 list, 사용 중이라 보류한 지급 list).
 
-    - cash_gift 중 회수(−)가 한 번도 없는 지급 = 캐시백(수수료 할인 등) → 지급 날짜에 페이백으로 반영.
-    - bonus(체험금·포지션 바우처)는 항상 지급 → 회수 방식으로 봄.
-    - 회수가 있는 종류(포지션 바우처): 회수 시점에 '그 전 지급 합계 + 회수액'을 반영.
-        · 바우처 포지션이 수익이면 지급=회수 → 0 (수익은 거래 손익에 이미 들어 있음)
-        · 손실이면 손실만큼 바우처가 대신 냈으므로 그만큼 +로 되돌려 → 내 돈 기준 0
-    - 마지막 회수 이후의 지급 = 지금 사용 중인 포지션 바우처 → 손익 제외, 따로 표시.
+    - 지급(+) 후 회수(−)되는 건 포지션 바우처 → 지급과 회수를 짝지어 상쇄.
+        · 바우처 포지션이 수익이면 지급=회수 → 0 (번 돈은 거래 손익에 이미 들어 있음)
+        · 손실이면 그만큼 바우처가 대신 낸 것 → 차액을 되돌려 내 돈 기준 0
+    - 회수되지 않은 지급 = 출금 가능한 진짜 돈(수수료 할인 페이백 등) → 지급 날짜에 페이백으로 반영.
+      단, 지금 그 종목 포지션이 열려 있고 지급 기록에 종목이 붙어 있으면 '사용 중인 포지션 바우처'일 수 있어
+      포지션이 닫힐 때까지 보류(닫히면서 회수되면 상쇄, 회수 안 되면 그때 페이백으로 반영).
     """
+    rows = sorted(vouchers, key=lambda v: v["datetime"])
+    issues = [{"v": v, "left": v["amount"], "used": False} for v in rows if v["amount"] > 0]
     out, pending = [], []
-    for fam in ("cash_gift", "bonus"):
-        rows = sorted([v for v in vouchers if v["family"] == fam], key=lambda v: v["datetime"])
-        if not rows:
+    for v in rows:
+        if v["amount"] >= 0:
             continue
-        # bonus(체험금·포지션 바우처)는 항상 '지급 → 회수' 방식으로 봄. cash_gift는 회수가 없으면 캐시백.
-        if fam == "cash_gift" and not any(v["amount"] < 0 for v in rows):
-            for v in rows:
-                if v["amount"] > 0:
-                    out.append({"datetime": v["datetime"], "date": v["date"], "symbol": "바우처", "kind": "payback", "amount": v["amount"]})
+        need = -v["amount"]
+        cands = [i for i in issues if not i["used"] and i["v"]["datetime"] <= v["datetime"]]
+        if not cands:
+            continue  # 집계 시작 전에 받은 바우처의 회수 → 무시
+        exact = [i for i in cands if abs(i["left"] - need) < 0.01]
+        enough = [i for i in cands if i["left"] >= need - 0.01]
+        pick = (exact or enough or cands)[-1]
+        pick["used"] = True
+        net = pick["left"] - need
+        if net > 0.005:
+            out.append({"datetime": v["datetime"], "date": v["date"], "symbol": "바우처", "kind": "payback", "amount": net})
+    for i in issues:
+        if i["used"]:
             continue
-        acc, since = 0.0, []
-        for v in rows:
-            if v["amount"] > 0:
-                acc += v["amount"]
-                since.append(v)
-                continue
-            if acc > 0:
-                net = acc + v["amount"]
-                if abs(net) > 0.005:
-                    out.append({"datetime": v["datetime"], "date": v["date"], "symbol": "바우처", "kind": "payback", "amount": net})
-            acc, since = 0.0, []
-        pending.extend({"datetime": v["datetime"], "date": v["date"], "type": v["type"], "amount": v["amount"]} for v in since)
+        v = i["v"]
+        if v.get("symbol") and v["symbol"] in open_syms:
+            pending.append({"datetime": v["datetime"], "date": v["date"], "type": v["type"], "amount": v["amount"]})
+        else:
+            out.append({"datetime": v["datetime"], "date": v["date"], "symbol": "바우처", "kind": "payback", "amount": v["amount"]})
     return out, pending
 
 
@@ -522,7 +524,13 @@ def fetch_history(keys, _format=3):
         errors.append(f"입금(페이백) 조회 실패: {type(e).__name__}: {e}")
 
     # 4) 바우처: 회수 안 되는 바우처만 페이백, 포지션 바우처는 상쇄 (사용 중인 건 제외)
-    v_events, v_pending = settle_vouchers(vouchers)
+    open_syms = set()
+    try:
+        _, open_book = build_trades(fills)
+        open_syms = {k.split("|")[0] for k in open_book}
+    except Exception:
+        pass
+    v_events, v_pending = settle_vouchers(vouchers, open_syms)
     events.extend(v_events)
 
     out = _finish(fills, events, ledger, errors, demo=False)

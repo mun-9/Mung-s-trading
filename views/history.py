@@ -628,10 +628,7 @@ def account_check():
     st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
 
 
-try:
-    account_check()
-except Exception:
-    pass
+# 계좌 점검 카드는 공개 화면에서 뺌 (나중에 비밀번호로 들어가는 개인 카테고리에서 account_check() 사용)
 
 # -----------------------------------------------------------------------------
 # 상세 매매 내역
