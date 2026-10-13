@@ -453,7 +453,9 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
     div[class*="st-key-navtabs"] { width: 100% !important; padding: 3px !important; }
     div[class*="st-key-navtabs"] > div[class*="st-key-navlink_"], div[class*="st-key-navtabs"] > [data-testid="stLayoutWrapper"] { flex: 1 1 0 !important; width: auto !important; min-width: 0; }
     div[class*="st-key-navtabs"] > [data-testid="stLayoutWrapper"] > div[class*="st-key-navlink_"] { width: 100% !important; }
-    div[class*="st-key-navlink_"] a { width: 100%; }
+    div[class*="st-key-navlink_"] a { width: 100% !important; }
+    div[class*="st-key-navlink_"], div[class*="st-key-navlink_"] [data-testid="stElementContainer"], div[class*="st-key-navlink_"] [data-testid="stPageLink"], div[class*="st-key-navlink_"] [data-testid="stPageLink"] > div { width: 100% !important; max-width: none !important; }
+    div[class*="st-key-navlink_"] a > span { margin: 0 auto; }
     div[class*="st-key-navlink_"] a { justify-content: center; }
     body.mg-scrolled div[class*="st-key-topnav_"] > [data-testid="stElementContainer"] { display: none !important; }
     body.mg-scrolled div[class*="st-key-topnav_"] { padding: 8px 14px !important; row-gap: 0 !important; }
