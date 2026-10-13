@@ -13,7 +13,15 @@ import streamlit.components.v1 as components
 
 # 플레이리스트: 유튜브 영상 ID만 넣으면 제목·채널명은 자동으로 가져옴 (title을 적으면 그걸 우선 사용)
 TRACKS = [
-    {"id": "SHFTHDncw0g"},
+    {"id": "SHFTHDncw0g", "title": "Lost Sky - Dreams"},
+    {"id": "7RU1l8GtGOc", "title": "Lost Sky - Vision"},
+    {"id": "9rujCfYXhQc", "title": "Lost Sky - Fearless"},
+    {"id": "U9pGr6KMdyg", "title": "Lost Sky - Where We Started (feat. Jex)"},
+    {"id": "9iHM6X6uUH8", "title": "Jim Yosef - Link"},
+    {"id": "p7ZsBPK656s", "title": "Disfigure - Blank"},
+    {"id": "__CRWE-L45k", "title": "Electro-Light - Symbolism"},
+    {"id": "x_OwcYTNbHs", "title": "Jim Yosef - Firefly"},
+    {"id": "vBGiFtb8Rpw", "title": "Culture Code - Make Me Move (feat. Karra)"},
 ]
 
 
