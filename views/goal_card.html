@@ -8,7 +8,7 @@
 :root[data-theme="dark"] { --text: #ECEEF2; --sub: #8A93A2; --mid: #B4BBC6; --soft: #20252D; --tile: #1E232B; --card: #171B22; --blue: #5B8DFF; --shadow: 0 2px 14px rgba(0,0,0,0.35); --border: rgba(255,255,255,0.07); }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: transparent; color: var(--text); font-family: 'Pretendard', -apple-system, sans-serif; letter-spacing: -0.01em; }
-.wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.wrap { display: grid; grid-template-columns: 1fr; gap: 18px; }
 .card { background: var(--card); border-radius: 20px; box-shadow: var(--shadow); padding: 18px 22px; min-width: 0; display: flex; gap: 18px; align-items: center; }
 .ring { position: relative; width: 92px; height: 92px; flex-shrink: 0; }
 .ring svg { width: 92px; height: 92px; transform: rotate(-90deg); }
@@ -38,7 +38,6 @@ html, body { margin: 0; background: transparent; color: var(--text); font-family
 <body>
 <div class="wrap">
   <div class="card" id="goal"></div>
-  <div class="card" id="limit"></div>
 </div>
 <script>
 const D = __DATA__;
@@ -76,22 +75,7 @@ function draw() {
       <div class="tx"><div class="hd"><b>이번 달 목표</b></div><div class="s">한 달 수익 목표를 정하면 달성률과 하루에 필요한 금액을 보여줘요.</div>${form('goal', '', '예: 500 (USDT)').replace('class="form"', 'class="form on"')}</div>`;
   }
   $('goal').innerHTML = h;
-  // 오늘 손실 한도
-  const L = S.limit, t = D.today;
-  if (L) {
-    const used = Math.max(0, -t), p = used / L, over = p >= 1;
-    const col = over ? 'var(--down)' : p >= .7 ? '#F5A623' : 'var(--up)';
-    h = `<div class="ring">${ring(p, col)}<div class="c"><b>${Math.round(p * 100)}%</b><span>사용</span></div></div>
-      <div class="tx"><div class="hd"><b>🛑 오늘 손실 한도</b><button class="edit" id="limitE">수정</button></div>
-      <div class="v ${t >= 0 ? 'up' : 'down'}">${money(t)}<small>/ 한도 -$${L.toLocaleString()}</small></div>
-      <div class="bar"><i style="width:${Math.min(100, p * 100).toFixed(0)}%;background:${col}"></i></div>
-      ${over ? '<div class="warn">한도를 넘었어요. 오늘은 여기서 멈추는 게 좋아요.</div>' : `<div class="s">${t >= 0 ? '오늘은 아직 손실이 없어요' : `한도까지 <b>${money(L - used, false)}</b> 남았어요`}</div>`}${form('limit', L, '하루 최대 손실 (USDT)')}</div>`;
-  } else {
-    h = `<div class="ring">${ring(0, 'var(--up)')}<div class="c"><b>🛑</b></div></div>
-      <div class="tx"><div class="hd"><b>오늘 손실 한도</b></div><div class="s">하루에 잃어도 되는 최대 금액을 정해두면, 가까워질 때 색으로 경고해줘요.</div>${form('limit', '', '예: 50 (USDT)').replace('class="form"', 'class="form on"')}</div>`;
-  }
-  $('limit').innerHTML = h;
-  for (const k of ['goal', 'limit']) {
+  for (const k of ['goal']) {
     const e = $(k + 'E'); if (e) e.onclick = () => $(k + 'F').classList.toggle('on');
     $(k + 'B').onclick = () => { const v = parseFloat(String($(k + 'I').value).replace(/,/g, '')); S[k] = v > 0 ? v : null; save(); draw(); };
     $(k + 'I').onkeydown = ev => { if (ev.key === 'Enter') $(k + 'B').click(); };

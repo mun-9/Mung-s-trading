@@ -86,6 +86,21 @@ svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-widt
 .tag { font-size: 10px; font-weight: 700; padding: 2px 5px; border-radius: 4px; font-style: normal; }
 .tag.long { background: rgba(60,195,180,0.15); color: var(--up); } .tag.short { background: rgba(245,100,107,0.15); color: var(--down); }
 .bar-right { margin-left: auto; display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+.alcnt { font-size: 10px; font-weight: 800; color: #F5B800; min-width: 0; }
+.alcnt:empty { display: none; }
+#alBtn svg.i { width: 16px; height: 16px; }
+#alBtn.on { color: #F5B800; }
+.alpop { display: none; position: absolute; right: 8px; top: 96px; z-index: 60; width: 260px; background: var(--panel); border: 1px solid var(--line2); border-radius: 12px; box-shadow: 0 16px 40px rgba(0,0,0,.45); padding: 12px; }
+.alpop.open { display: block; }
+.alh { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; } .alh b { font-size: 13.5px; color: var(--strong); } .alh span { font-size: 12px; color: var(--mid); }
+.alrow { display: flex; gap: 6px; }
+.alrow input { flex: 1; min-width: 0; height: 34px; border-radius: 8px; border: 1px solid var(--line2); background: var(--bg); color: var(--strong); font-family: inherit; font-size: 14px; padding: 0 10px; outline: 0; }
+.alrow input:focus { border-color: var(--accent); }
+.alrow button { border: 0; border-radius: 8px; background: var(--accent); color: #fff; font-weight: 800; padding: 0 12px; cursor: pointer; font-family: inherit; }
+.alq { display: flex; gap: 4px; margin: 8px 0; } .alq button { flex: 1; border: 0; border-radius: 6px; background: rgba(255,255,255,.06); color: var(--mid); font-size: 11.5px; font-weight: 700; padding: 5px 0; cursor: pointer; }
+.alli { display: flex; align-items: center; gap: 8px; padding: 7px 2px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--strong); }
+.alli span { font-size: 11px; font-weight: 800; width: 40px; } .alli button { margin-left: auto; border: 0; background: transparent; color: var(--mid); font-size: 11.5px; cursor: pointer; }
+.alnote { font-size: 11px; color: var(--mid); margin-top: 8px; line-height: 1.5; }
 .tbtn { display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 9px; border-radius: 6px; border: 0; background: transparent; color: var(--mid); font-size: 13px; cursor: pointer; white-space: nowrap; position: relative; }
 .tbtn:hover { background: var(--hover); color: var(--strong); }
 .tbtn select { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
@@ -287,6 +302,14 @@ svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-widt
     <div id="posChips" class="hide-sm"></div>
     <div class="bar-right">
       <div class="engine hide-sm" id="engineSeg" title="실시간: 체결마다 바로 움직이는 차트 · TradingView: 그리기 도구·지표 사용 가능"><button data-e="live">실시간</button><button data-e="tv">TradingView</button></div>
+      <button class="tbtn" id="alBtn" title="가격 알림"><svg class="i" viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span id="alCnt" class="alcnt"></span></button>
+      <div id="alPop" class="alpop">
+        <div class="alh"><b>🔔 가격 알림</b><span id="alSymT"></span></div>
+        <div class="alrow"><input id="alIn" inputmode="decimal" placeholder="알림 가격"><button id="alGo">추가</button></div>
+        <div class="alq"><button data-p="-3">-3%</button><button data-p="-1">-1%</button><button data-p="1">+1%</button><button data-p="3">+3%</button></div>
+        <div id="alLs"></div>
+        <div class="alnote">차트 위에 노란 점선으로 표시돼요 · 사이트를 열어둔 동안 울려요</div>
+      </div>
       <span class="tbtn" title="실시간 시세 연결 상태"><span class="livedot" id="live"></span></span>
     </div>
   </div>
@@ -503,6 +526,7 @@ function selectSym(sym) {
   const p = panes[state.active]; if (sym === p.sym) return;
   p.sym = sym; if (isMobile()) state.panel = false; // 휴대폰: 종목을 고르면 바로 차트로
   save(); refreshHeads(); renderBar(); renderPanel(); buildPane(state.active);
+  renderAlerts();
 }
 
 // ---------- 실시간 차트 (체결마다 바로 갱신) ----------
@@ -538,6 +562,7 @@ async function buildLive(i, body) {
     candle.createPriceLine({ price: p.entry_price, color: c, lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: `${p.side === 'LONG' ? '롱' : '숏'} 진입` });
     if (p.liq_price > 0) candle.createPriceLine({ price: p.liq_price, color: '#F7A600', lineWidth: 1, lineStyle: 1, axisLabelVisible: true, title: '청산가' });
   }
+  drawAlertLines(st);
   syncTrades();
   try {
     const rows = await X.candles(sym, iv);
@@ -552,6 +577,30 @@ async function buildLive(i, body) {
     el.innerHTML = `<div class="empty">${X.name} 차트 데이터를 불러오지 못했어요</div>`;
   }
 }
+// 가격 알림 → 차트 위 노란 점선 (사이트 전체 알림 기능 window.parent.mgAlerts 사용)
+const PA = () => { try { return window.parent.mgAlerts || null; } catch (e) { return null; } };
+function drawAlertLines(st) {
+  const A = PA(); if (!A || !st || !st.candle) return;
+  (st.alines || []).forEach(l => { try { st.candle.removePriceLine(l); } catch (e) {} });
+  st.alines = A.list().filter(a => a.sym === base(st.sym)).map(a =>
+    st.candle.createPriceLine({ price: a.price, color: '#F5B800', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: '🔔 ' + (a.dir === 'above' ? '이상' : a.dir === 'below' ? '이하' : '') }));
+}
+function renderAlerts() {
+  const A = PA(); const s = base(curSym());
+  const mine = A ? A.list().filter(a => a.sym === s) : [];
+  $('alCnt').textContent = mine.length || ''; $('alBtn').classList.toggle('on', mine.length > 0);
+  $('alSymT').textContent = s + ' · 지금 ' + fmtPrice((state.tk[curSym()] || {}).last);
+  $('alLs').innerHTML = !A ? '<div class="alnote">새로고침 후 사용할 수 있어요</div>' : mine.map(a => `<div class="alli"><span style="color:${a.dir === 'above' ? 'var(--up)' : 'var(--down)'}">${a.dir === 'above' ? '▲ 이상' : a.dir === 'below' ? '▼ 이하' : '확인 중'}</span>${fmtPrice(a.price)}<button data-id="${a.id}">삭제</button></div>`).join('');
+  $('alLs').querySelectorAll('button[data-id]').forEach(b => b.onclick = () => { A.remove(b.dataset.id); });
+  Object.values(LC).forEach(drawAlertLines);
+}
+$('alBtn').onclick = e => { e.stopPropagation(); $('alPop').classList.toggle('open'); renderAlerts(); if ($('alPop').classList.contains('open')) $('alIn').focus(); };
+$('alPop').onclick = e => e.stopPropagation();
+document.addEventListener('click', () => $('alPop').classList.remove('open'));
+$('alGo').onclick = () => { const A = PA(); if (!A) return; if (A.add(base(curSym()), $('alIn').value)) { $('alIn').value = ''; renderAlerts(); } };
+$('alIn').onkeydown = e => { if (e.key === 'Enter') $('alGo').click(); };
+document.querySelectorAll('.alq button').forEach(b => b.onclick = () => { const p = (state.tk[curSym()] || {}).last; if (p) $('alIn').value = +(p * (1 + +b.dataset.p / 100)).toPrecision(6); });
+try { window.parent.addEventListener('mg-alerts-changed', renderAlerts); } catch (e) {}
 function drawAll(st) {
   st.candle.setData(st.rows.map(c => ({ time: c.time, open: c.open, high: c.high, low: c.low, close: c.close })));
   st.vol.setData(st.rows.map(c => ({ time: c.time, value: c.v, color: c.close >= c.open ? 'rgba(8,153,129,0.35)' : 'rgba(242,54,69,0.35)' })));
@@ -1059,6 +1108,7 @@ setTimeout(hideSplash, 6000);
 fitHeight(); setTimeout(fitHeight, 400);
 $('spTxt').textContent = X.name + ' 실시간 시세 연결 중';
 if (isMobile()) state.panel = false; // 휴대폰은 차트부터
+setTimeout(renderAlerts, 1500);
 try { window.parent.document.body.classList.add('mg-on-chart'); window.addEventListener('pagehide', () => window.parent.document.body.classList.remove('mg-on-chart')); } catch (e) {}
 renderTabs(); renderEngine(); renderBar(); renderPanel(); renderStatus(); tickClock();
 setInterval(tickClock, 1000);

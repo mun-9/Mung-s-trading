@@ -201,7 +201,7 @@ with c3:
 
 html(f"<div class='note-text' style='margin-top:-8px;'>PNL = 청산 손익 − 수수료 + 펀딩비 + 페이백 · 진입 수수료는 청산할 때 그 거래에서 함께 차감 · 미실현은 합계에 미포함</div>")
 
-# 이번 달 목표 · 오늘 손실 한도 (값은 이 브라우저에 저장)
+# 이번 달 목표 (값은 이 브라우저에 저장)
 import calendar as _calendar
 import json as _json
 from pathlib import Path as _Path
@@ -210,7 +210,7 @@ _goal = {"month": round(month_net, 2), "today": round(today_net, 2),
          "daysLeft": _calendar.monthrange(now.year, now.month)[1] - now.day}
 st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
 with st.container(key="goal_box"):
-    _components.html((_Path(__file__).parent / "goal_card.html").read_text(encoding="utf-8").replace("__DATA__", _json.dumps(_goal)), height=140)
+    _components.html((_Path(__file__).parent / "goal_card.html").read_text(encoding="utf-8").replace("__DATA__", _json.dumps(_goal)), height=130)
 
 transfers = hist.get("transfers", [])
 
