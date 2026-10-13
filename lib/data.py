@@ -497,6 +497,9 @@ def fetch_history(keys, _format=5):
         except Exception as e:
             errors.append(f"백업 저장소 불러오기 실패 (이번엔 거래소 기록만 사용): {type(e).__name__}: {e}")
 
+    for k in ("fills", "bills", "spot_bills", "deposits", "withdrawals"):  # 예전 백업 형식에 없는 종류도 빈 칸으로
+        store.setdefault(k, {})
+
     def _last(kind):
         ts = [AR._ts(kind, r) for r in store[kind].values()]
         return max(ts) if ts else None

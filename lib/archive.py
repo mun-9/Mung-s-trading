@@ -86,7 +86,7 @@ def load():
         blob = _req("GET", f"https://api.github.com/repos/{repo}/contents/{DIR}/{name}?ref={BRANCH}", raw=True)
         part = json.loads(gzip.decompress(blob).decode("utf-8"))
         for k in KINDS:
-            out[k].update(part.get(k) or {})
+            out.setdefault(k, {}).update(part.get(k) or {})
     return out, shas
 
 
@@ -99,7 +99,7 @@ def save(store, shas, changed_months):
     _, repo = _cfg()
     n = 0
     for m in sorted(changed_months):
-        part = {k: {key: rec for key, rec in store[k].items() if _month_of_ms(_ts(k, rec)) == m} for k in KINDS}
+        part = {k: {key: rec for key, rec in store.get(k, {}).items() if _month_of_ms(_ts(k, rec)) == m} for k in KINDS}
         name = f"{m}.json.gz"
         body = {"message": f"backup {m} ({datetime.now(KST):%Y-%m-%d %H:%M} KST)", "branch": BRANCH,
                 "content": base64.b64encode(gzip.compress(json.dumps(part, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))).decode()}
