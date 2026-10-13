@@ -67,6 +67,25 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 .add { margin-top: 8px; width: 100%; height: 38px; border: 1px dashed var(--border); border-radius: 11px; background: transparent; color: var(--mid); font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 .add:hover { border-color: var(--blue); color: var(--blue); }
 .alc { grid-column: 1 / -1; }
+/* 테더 · 원화 계산기 */
+.fx { grid-column: 1 / -1; }
+.fxrow { display: grid; grid-template-columns: 1fr 40px 1fr; gap: 10px; align-items: end; }
+.fxsw { width: 40px; height: 42px; border: 0; border-radius: 11px; background: var(--soft); color: var(--mid); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.fxsw svg { width: 18px; height: 18px; }
+.fx .inp input { font-size: 18px; font-weight: 750; }
+.fx .inp { height: 50px; }
+.fxchips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.fxchips button { border: 1px solid var(--border); background: transparent; color: var(--mid); font-family: inherit; font-size: 12.5px; font-weight: 700; padding: 6px 12px; border-radius: 999px; cursor: pointer; font-variant-numeric: tabular-nums; }
+.fxchips button:hover { border-color: var(--blue); color: var(--blue); }
+.fxinfo { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+.fxk { flex: 1 1 0; min-width: 130px; background: var(--tile); border-radius: 12px; padding: 10px 13px; }
+.fxk span { display: block; font-size: 11.5px; color: var(--sub); font-weight: 600; }
+.fxk b { display: block; font-size: 16px; font-weight: 800; margin-top: 3px; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.fxk b small { font-size: 11.5px; font-weight: 700; margin-left: 4px; }
+.fxk.on { background: var(--sel); box-shadow: inset 0 0 0 1.5px var(--blue); cursor: default; }
+.fxk.pick { cursor: pointer; }
+.fxt { font-size: 11.5px; color: var(--sub); margin-left: auto; align-self: center; }
+
 .ct .perm { white-space: nowrap; border: 0; background: var(--sel); color: var(--blue); font-family: inherit; font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 8px; cursor: pointer; }
 .ct .perm.done { background: transparent; color: var(--sub); cursor: default; }
 .alf { display: grid; grid-template-columns: 140px 1fr 1.4fr 110px; gap: 10px; align-items: end; }
@@ -89,7 +108,7 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 @media (max-width: 900px) { .alset { grid-template-columns: 1fr; } }
 @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } .alf { grid-template-columns: 1fr 1fr; } .alf .fld:nth-child(3) { grid-column: 1 / -1; } .alb { grid-column: 1 / -1; }
   .alr { grid-template-columns: 52px 54px 1fr auto; gap: 8px; } .alr .n { grid-column: 1 / -1; order: 9; margin-top: -4px; } .ct { flex-wrap: wrap; } .ct .perm { font-size: 11px; padding: 5px 8px; } }
-@media (max-width: 640px) { .ct { flex-direction: column; align-items: flex-start; gap: 6px; } .ct b { font-size: 16px; } .ct .perm { font-size: 11.5px; padding: 5px 9px; } .ct .perm.done { padding: 0; } .card { padding: 18px 16px; } .r b { font-size: 16px; } .live { font-size: 22px; } .top { padding: 14px 16px; } .px { margin-left: auto; padding-left: 0; border-left: 0; flex-direction: column; align-items: flex-end; gap: 3px; } .live { font-size: 21px !important; } .chg { font-size: 12px; padding: 2px 7px; } .quick { margin-left: 0; width: 100%; } .quick button { flex: 1; padding: 6px 0; } .cico { width: 38px; height: 38px; } }
+@media (max-width: 640px) { .fxrow { grid-template-columns: 1fr; gap: 8px; } .fxsw { width: 100%; height: 34px; } .fxk { min-width: calc(50% - 4px); } .fxt { width: 100%; margin-left: 0; } .ct { flex-direction: column; align-items: flex-start; gap: 6px; } .ct b { font-size: 16px; } .ct .perm { font-size: 11.5px; padding: 5px 9px; } .ct .perm.done { padding: 0; } .card { padding: 18px 16px; } .r b { font-size: 16px; } .live { font-size: 22px; } .top { padding: 14px 16px; } .px { margin-left: auto; padding-left: 0; border-left: 0; flex-direction: column; align-items: flex-end; gap: 3px; } .live { font-size: 21px !important; } .chg { font-size: 12px; padding: 2px 7px; } .quick { margin-left: 0; width: 100%; } .quick button { flex: 1; padding: 6px 0; } .cico { width: 38px; height: 38px; } }
 </style>
 </head>
 <body>
@@ -104,6 +123,23 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
   </div>
 
   <div class="grid">
+    <!-- 테더 · 원화 계산기 -->
+    <div class="card fx" id="cfx">
+      <div class="ct"><b>💱 테더 · 원화 계산기</b></div>
+      <div class="desc">USDT를 넣으면 원화로, 원화를 넣으면 USDT로 바로 바꿔줘요. 기준 가격을 아래에서 고를 수 있어요.</div>
+      <div class="fxrow">
+        <div class="fld"><label>테더</label><div class="inp"><input id="fxU" inputmode="decimal" placeholder="0"><span>USDT</span></div></div>
+        <button class="fxsw" id="fxSw" title="입력 칸 비우기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4h4"/></svg></button>
+        <div class="fld"><label>원화</label><div class="inp"><input id="fxK" inputmode="numeric" placeholder="0"><span>원</span></div></div>
+      </div>
+      <div class="fxchips" id="fxChips"><button data-v="100">100 USDT</button><button data-v="300">300</button><button data-v="500">500</button><button data-v="1000">1,000</button><button data-v="5000">5,000</button></div>
+      <div class="fxinfo">
+        <div class="fxk pick" id="fxA"><span>업비트 테더 (실시간)</span><b id="fxUp">-</b></div>
+        <div class="fxk pick" id="fxB"><span>달러 환율</span><b id="fxFx">-</b></div>
+        <div class="fxk"><span>테더 프리미엄</span><b id="fxPrem">-</b></div>
+        <div class="fxt" id="fxTime"></div>
+      </div>
+    </div>
     <!-- 0. 가격 알림 -->
     <div class="card alc" id="c0">
       <div class="ct"><b>🔔 가격 알림</b><button class="perm" id="perm">휴대폰·PC 알림 허용</button></div>
@@ -393,6 +429,43 @@ cfgPaint();
 try { PW.addEventListener('mg-alerts-changed', alDraw); } catch (e) {}
 setInterval(alDraw, 5000);
 alDraw();
+
+// ---------- 테더 · 원화 계산기 ----------
+(function () {
+  const FX = { usdt: (DATA.usdt && DATA.usdt.p) || null, pct: DATA.usdt ? DATA.usdt.pct : null, usdkrw: DATA.usdkrw || null, t: Date.now() };
+  let base = 'usdt', last = 'u';
+  try { base = localStorage.getItem('mung_fx_base') || 'usdt'; } catch (e) {}
+  const rate = () => base === 'fx' ? (FX.usdkrw || FX.usdt) : (FX.usdt || FX.usdkrw);
+  const n = v => parseFloat(String(v).replace(/,/g, ''));
+  const won = v => Math.round(v).toLocaleString('ko-KR');
+  const usd = v => v.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  function calc() {
+    const r = rate(); if (!r) return;
+    if (last === 'u') { const v = n($('fxU').value); $('fxK').value = isFinite(v) && $('fxU').value !== '' ? won(v * r) : ''; }
+    else { const v = n($('fxK').value); $('fxU').value = isFinite(v) && $('fxK').value !== '' ? usd(v / r) : ''; }
+  }
+  function info() {
+    $('fxUp').innerHTML = FX.usdt ? '₩' + FX.usdt.toLocaleString('ko-KR', { maximumFractionDigits: 1 }) + (FX.pct != null ? `<small class="${FX.pct >= 0 ? 'up' : 'down'}">${FX.pct >= 0 ? '+' : ''}${FX.pct.toFixed(2)}%</small>` : '') : '-';
+    $('fxFx').textContent = FX.usdkrw ? '₩' + FX.usdkrw.toLocaleString('ko-KR', { maximumFractionDigits: 1 }) : '-';
+    if (FX.usdt && FX.usdkrw) { const p = (FX.usdt / FX.usdkrw - 1) * 100; $('fxPrem').textContent = (p >= 0 ? '+' : '') + p.toFixed(2) + '%'; $('fxPrem').className = p >= 0 ? 'up' : 'down'; }
+    $('fxA').classList.toggle('on', base !== 'fx'); $('fxB').classList.toggle('on', base === 'fx');
+    $('fxA').title = '이 가격으로 계산'; $('fxB').title = '이 가격으로 계산';
+    tick();
+  }
+  function tick() { const s = Math.round((Date.now() - FX.t) / 1000); $('fxTime').textContent = (base === 'fx' ? '달러 환율' : '업비트 테더') + ' 기준 · ' + (s < 5 ? '방금' : s + '초 전') + ' 갱신'; }
+  $('fxU').oninput = () => { last = 'u'; calc(); };
+  $('fxK').oninput = () => { last = 'k'; calc(); };
+  $('fxK').onblur = () => { const v = n($('fxK').value); if (isFinite(v) && $('fxK').value !== '') $('fxK').value = won(v); };
+  $('fxSw').onclick = () => { $('fxU').value = ''; $('fxK').value = ''; $('fxU').focus(); };
+  $('fxChips').onclick = e => { const b = e.target.closest('button'); if (!b) return; $('fxU').value = b.dataset.v; last = 'u'; calc(); };
+  const pick = b => { base = b; try { localStorage.setItem('mung_fx_base', b); } catch (e) {} info(); calc(); };
+  $('fxA').onclick = () => pick('usdt'); $('fxB').onclick = () => pick('fx');
+  function pull() { let d = null; try { d = window.parent.__mgFx; } catch (e) {} if (!d) return;
+    if (d.usdt && d.usdt.p) { FX.usdt = d.usdt.p; FX.pct = d.usdt.pct; } if (d.usdkrw) FX.usdkrw = d.usdkrw; FX.t = Date.now(); info(); calc(); }
+  try { window.parent.addEventListener('mg-fx', pull); } catch (e) {}
+  setInterval(tick, 1000);
+  info();
+})();
 </script>
 </body>
 </html>

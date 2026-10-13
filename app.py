@@ -23,7 +23,7 @@ for _m in (lib.data, lib.ui, lib.music, lib.theme, lib.alerts, lib.newsfeed):
 lib.ui.inject_css()
 
 # 왼쪽 아래 LP 음악 플레이어 (사이트에 한 번만 붙어서 페이지를 옮겨도 계속 재생)
-st.html("<style>div[class*='st-key-mg_music_host']{position:absolute !important;height:0 !important;overflow:hidden;}</style>")
+st.html("<style>div[class*='st-key-mg_music_host'],[data-testid='stLayoutWrapper']:has(> div[class*='st-key-mg_music_host']),div[class*='st-key-mg_hidden_'],[data-testid='stLayoutWrapper']:has(> div[class*='st-key-mg_hidden_']){position:absolute !important;height:0 !important;overflow:hidden;}</style>")
 with st.container(key="mg_music_host"):
     lib.theme.inject()
     lib.alerts.inject()

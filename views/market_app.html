@@ -109,7 +109,18 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 .lr .t { font-size: 12px; color: var(--sub); }
 
 .tv { height: 520px; border-radius: 14px; overflow: hidden; }
-.tape { height: 78px; border-radius: 14px; overflow: hidden; background: var(--card); box-shadow: var(--shadow); }
+.mkt { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); background: var(--card); border-radius: 16px; box-shadow: var(--shadow); padding: 14px 6px; }
+.mk { padding: 2px 16px; min-width: 0; border-left: 1px solid var(--line); }
+.mk:first-child { border-left: 0; }
+.mk span { display: block; font-size: 12px; font-weight: 700; color: var(--sub); white-space: nowrap; }
+.mk b { display: block; font-size: 18px; font-weight: 800; letter-spacing: -.02em; margin-top: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mk i { display: block; font-style: normal; font-size: 12.5px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.mk.na b { color: var(--sub); }
+@media (max-width: 760px) {
+  .mkt { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 12px; padding: 12px 2px; }
+  .mk { padding: 2px 12px; } .mk:nth-child(4) { border-left: 0; }
+  .mk b { font-size: 15.5px; } .mk span { font-size: 11px; } .mk i { font-size: 11.5px; }
+}
 
 @media (max-width: 1000px) { .col .grow .lqex { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--sub); margin: -2px 0 10px; }
 .lqex b { color: var(--mid); font-weight: 700; }
@@ -149,7 +160,7 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 </head>
 <body>
 <div class="wrap">
-  <div class="tape" id="tvTape"></div>
+  <div class="mkt" id="mkt"></div>
   <div class="row r4">
     <div class="card"><div class="ct"><b>공포·탐욕 지수</b><span>alternative.me</span></div><div class="fng" id="fng"><div class="loading">불러오는 중</div></div></div>
     <div class="card"><div class="ct"><b>시장 규모</b><span>CoinGecko</span></div><div id="global"><div class="loading">불러오는 중</div></div></div>
@@ -193,11 +204,6 @@ function siteDark() {
 const TV = {
   tvHeat: ['embed-widget-crypto-coins-heatmap.js', { dataSource: 'Crypto', blockSize: 'market_cap_calc', blockColor: '24h_close_change|5', locale: 'kr', symbolUrl: '',
     hasTopBar: false, isDataSetEnabled: false, isZoomEnabled: true, hasSymbolTooltip: true, isMonoSize: false, width: '100%', height: '100%' }],
-  tvTape: ['embed-widget-ticker-tape.js', { symbols: [
-      { proName: 'BITGET:BTCUSDT.P', title: 'BTC' }, { proName: 'BITGET:ETHUSDT.P', title: 'ETH' }, { proName: 'FOREXCOM:NSXUSD', title: '나스닥100' },
-      { proName: 'FOREXCOM:SPXUSD', title: 'S&P500' }, { proName: 'OANDA:XAUUSD', title: '금' },
-      { proName: 'FX_IDC:USDKRW', title: '달러/원' }],
-    showSymbolLogo: true, isTransparent: true, displayMode: 'compact', locale: 'kr' }],
   tvCal: ['embed-widget-events.js', { isTransparent: true, width: '100%', height: '100%', locale: 'kr', importanceFilter: '1', countryFilter: 'us,eu,cn,jp,gb,kr' }],
 };
 function mountTV(dark) {
@@ -506,6 +512,22 @@ setInterval(loadGlobal, 180000);
 setInterval(loadMap, 600000);
 let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { loadMap(); fit(); }, 300); });
 setTimeout(fit, 1500); setTimeout(fit, 4000); setInterval(fit, 2000); try { new ResizeObserver(fit).observe(document.body); } catch (e) {}
+
+// ---------- 맨 위 시세 줄 (서버가 1분마다 넘겨줌) ----------
+(function () {
+  const fmt = (k, p) => k === 'usdkrw' ? '₩' + p.toLocaleString('ko-KR', { maximumFractionDigits: 1 }) : k === 'gold' ? '$' + p.toLocaleString('en-US', { maximumFractionDigits: 1 })
+    : (k === 'soxl' ? '$' : '') + p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  function render(list) {
+    if (!list || !list.length) list = ['코스피', 'S&P500', 'SOXL', 'VIX', '금', '달러/원'].map(name => ({ name, p: null }));
+    document.getElementById('mkt').innerHTML = list.map(m => {
+      if (m.p == null) return `<div class="mk na"><span>${m.name}</span><b>-</b><i>&nbsp;</i></div>`;
+      const c = m.pct == null ? '' : m.pct >= 0 ? 'up' : 'down';
+      return `<div class="mk"><span>${m.name}</span><b>${fmt(m.k, m.p)}</b><i class="${c}">${m.pct == null ? '&nbsp;' : (m.pct >= 0 ? '▲ ' : '▼ ') + Math.abs(m.pct).toFixed(2) + '%'}</i></div>`;
+    }).join('');
+  }
+  render(DATA.macro);
+  try { parent.addEventListener('mg-mkt', () => render(parent.__mgMkt)); if (parent.__mgMkt) render(parent.__mgMkt); } catch (e) {}
+})();
 </script>
 </body>
 </html>

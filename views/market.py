@@ -21,6 +21,25 @@ try:
 except Exception:
     ls_ext = {}
 
-payload = {"usdkrw": D.fetch_usdkrw(), "lsExt": ls_ext}
+try:
+    macro = D.fetch_macro()
+except Exception:
+    macro = []
+
+payload = {"usdkrw": D.fetch_usdkrw(), "lsExt": ls_ext, "macro": macro}
 page = (Path(__file__).parent / "market_app.html").read_text(encoding="utf-8")
 components.html(page.replace("__DATA__", json.dumps(payload)), height=2600)
+
+
+# 맨 위 시세 줄(코스피 · S&P500 ...)은 서버가 1분마다 새로 받아서 화면에 넘겨줌 (브라우저에서 직접 못 읽는 시세라서)
+@st.fragment(run_every=60)
+def _macro_feed():
+    try:
+        m = D.fetch_macro()
+    except Exception:
+        return
+    components.html(f"<script>try{{const P=window.parent;P.__mgMkt={json.dumps(m)};P.dispatchEvent(new P.CustomEvent('mg-mkt'));}}catch(e){{}}</script>", height=0)
+
+
+with st.container(key="mg_hidden_mkt"):
+    _macro_feed()

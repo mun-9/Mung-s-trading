@@ -659,6 +659,68 @@ def fetch_upbit_krw():
         return {}
 
 
+_UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"}
+
+
+def _http_json(url, timeout=5):
+    import json as _json
+    import urllib.request
+    with urllib.request.urlopen(urllib.request.Request(url, headers=_UA), timeout=timeout) as r:
+        return _json.loads(r.read().decode("utf-8"))
+
+
+@st.cache_data(ttl=15, show_spinner=False)
+def fetch_usdt_live():
+    """업비트 테더(USDT/KRW) 실시간 가격 + 전일 대비 %. 실패하면 None."""
+    try:
+        t = _http_json("https://api.upbit.com/v1/ticker?markets=KRW-USDT")[0]
+        return {"p": float(t["trade_price"]), "pct": float(t.get("signed_change_rate") or 0) * 100}
+    except Exception:
+        try:
+            return {"p": float(fetch_usdt_krw()), "pct": None}
+        except Exception:
+            return None
+
+
+def _yahoo(sym):
+    for host in ("query1", "query2"):
+        try:
+            j = _http_json(f"https://{host}.finance.yahoo.com/v8/finance/chart/{sym}?range=1d&interval=1d")
+            m = j["chart"]["result"][0]["meta"]
+            p, prev = float(m["regularMarketPrice"]), float(m.get("chartPreviousClose") or m.get("previousClose") or 0)
+            return {"p": p, "pct": (p / prev - 1) * 100 if prev else None}
+        except Exception:
+            continue
+    return None
+
+
+def _naver_index(code):
+    try:
+        j = _http_json(f"https://m.stock.naver.com/api/index/{code}/basic")
+        num = lambda v: float(str(v).replace(",", ""))
+        return {"p": num(j["closePrice"]), "pct": num(j["fluctuationsRatio"])}
+    except Exception:
+        return None
+
+
+MACRO = [("kospi", "코스피", "KOSPI", "^KS11"), ("spx", "S&P500", None, "^GSPC"), ("soxl", "SOXL", None, "SOXL"),
+         ("vix", "VIX", None, "^VIX"), ("gold", "금", None, "GC=F"), ("usdkrw", "달러/원", None, "KRW=X")]
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def fetch_macro():
+    """시장 화면 맨 위 줄: 코스피 · S&P500 · SOXL · VIX · 금 · 달러/원 (1분마다 새로)."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    def one(row):
+        k, name, naver, yh = row
+        q = (_naver_index(naver) if naver else None) or _yahoo(yh)
+        return {"k": k, "name": name, **(q or {"p": None, "pct": None})}
+
+    with ThreadPoolExecutor(max_workers=6) as ex:
+        return list(ex.map(one, MACRO))
+
+
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_usdkrw():
     """달러-원 환율 (김프 계산용). 실패하면 None."""
