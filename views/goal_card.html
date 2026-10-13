@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+:root { --text: #191F28; --sub: #8B95A1; --mid: #4E5968; --soft: #F2F4F6; --tile: #F7F8FA; --card: #fff; --blue: #3182F6; --up: #089981; --down: #F04452; --shadow: 0 2px 14px rgba(15,23,42,0.05); --border: rgba(15,23,42,0.08); }
+:root[data-theme="dark"] { --text: #ECEEF2; --sub: #8A93A2; --mid: #B4BBC6; --soft: #20252D; --tile: #1E232B; --card: #171B22; --blue: #5B8DFF; --shadow: 0 2px 14px rgba(0,0,0,0.35); --border: rgba(255,255,255,0.07); }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: transparent; color: var(--text); font-family: 'Pretendard', -apple-system, sans-serif; letter-spacing: -0.01em; }
+.wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.card { background: var(--card); border-radius: 20px; box-shadow: var(--shadow); padding: 18px 22px; min-width: 0; display: flex; gap: 18px; align-items: center; }
+.ring { position: relative; width: 92px; height: 92px; flex-shrink: 0; }
+.ring svg { width: 92px; height: 92px; transform: rotate(-90deg); }
+.ring .c { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.ring .c b { font-size: 19px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.ring .c span { font-size: 10.5px; color: var(--sub); font-weight: 600; }
+.tx { flex: 1; min-width: 0; }
+.hd { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.hd b { font-size: 15.5px; font-weight: 800; }
+.edit { border: 0; background: var(--soft); color: var(--mid); font-family: inherit; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 8px; cursor: pointer; }
+.v { font-size: 21px; font-weight: 800; margin-top: 6px; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.v small { font-size: 13px; color: var(--sub); font-weight: 600; margin-left: 4px; }
+.s { font-size: 12.5px; color: var(--sub); margin-top: 4px; line-height: 1.5; }
+.s b { color: var(--text); font-weight: 700; }
+.up { color: var(--up); } .down { color: var(--down); }
+.bar { height: 8px; border-radius: 4px; background: var(--soft); overflow: hidden; margin-top: 10px; }
+.bar i { display: block; height: 100%; border-radius: 4px; transition: width .5s ease; }
+.form { display: none; gap: 8px; margin-top: 8px; }
+.form.on { display: flex; }
+.form input { flex: 1; min-width: 0; height: 38px; border-radius: 10px; border: 1px solid var(--border); background: var(--tile); color: var(--text); font-family: inherit; font-size: 14px; font-weight: 650; padding: 0 12px; outline: 0; }
+.form input:focus { border-color: var(--blue); }
+.form button { border: 0; border-radius: 10px; background: var(--blue); color: #fff; font-family: inherit; font-weight: 800; font-size: 13px; padding: 0 14px; cursor: pointer; }
+.warn { margin-top: 8px; font-size: 12px; font-weight: 700; color: var(--down); background: rgba(240,68,82,.08); padding: 7px 10px; border-radius: 8px; }
+@media (max-width: 700px) { .wrap { grid-template-columns: 1fr; gap: 10px; } .card { padding: 14px 16px; gap: 14px; border-radius: 16px; } .ring, .ring svg { width: 76px; height: 76px; } .ring .c b { font-size: 16px; } .v { font-size: 19px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card" id="goal"></div>
+  <div class="card" id="limit"></div>
+</div>
+<script>
+const D = __DATA__;
+const $ = id => document.getElementById(id);
+const PD = window.parent.document, MQ = matchMedia('(prefers-color-scheme: dark)');
+function siteDark() { let t = null; try { t = PD.documentElement.getAttribute('data-mg-theme'); } catch (e) {} return t ? t === 'dark' : MQ.matches; }
+function syncTheme() { document.documentElement.setAttribute('data-theme', siteDark() ? 'dark' : 'light'); }
+syncTheme(); try { new MutationObserver(syncTheme).observe(PD.documentElement, { attributes: true, attributeFilter: ['data-mg-theme'] }); } catch (e) {}
+function _fitFrame(fe, h) { fe.style.height = h + 'px'; fe.height = h; let n = fe.parentElement; for (let i = 0; i < 4 && n; i++, n = n.parentElement) { n.style.height = h + 'px'; n.style.minHeight = h + 'px'; n.style.flex = '0 0 ' + h + 'px'; if (n.getAttribute && n.getAttribute('data-testid') === 'stElementContainer') break; } }
+function fit() { try { const h = Math.ceil(document.body.getBoundingClientRect().height) + 4, fe = window.frameElement; if (fe && (Math.abs(fe.offsetHeight - h) > 2 || (fe.parentElement && Math.abs(fe.parentElement.offsetHeight - h) > 2))) _fitFrame(fe, h); } catch (e) {} }
+new ResizeObserver(fit).observe(document.body); setInterval(fit, 1500);
+
+let S = { goal: null, limit: null };
+try { Object.assign(S, JSON.parse(localStorage.getItem('mung_goal') || '{}')); } catch (e) {}
+const save = () => { try { localStorage.setItem('mung_goal', JSON.stringify(S)); } catch (e) {} };
+const money = (v, sign = true) => (sign ? (v > 0 ? '+' : v < 0 ? '-' : '') : (v < 0 ? '-' : '')) + '$' + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function ring(p, col) {
+  const r = 40, c = 2 * Math.PI * r, f = Math.max(0, Math.min(1, p));
+  return `<svg viewBox="0 0 92 92"><circle cx="46" cy="46" r="${r}" fill="none" style="stroke:var(--soft)" stroke-width="9"/>${f > 0.005 ? `<circle cx="46" cy="46" r="${r}" fill="none" stroke="${col}" stroke-width="9" stroke-linecap="round" stroke-dasharray="${(c * f).toFixed(1)} ${c.toFixed(1)}"/>` : ''}</svg>`;
+}
+function form(id, val, ph) { return `<div class="form" id="${id}F"><input id="${id}I" inputmode="decimal" placeholder="${ph}" value="${val ?? ''}"><button id="${id}B">저장</button></div>`; }
+function draw() {
+  // 이번 달 목표
+  const g = S.goal, m = D.month;
+  let h;
+  if (g) {
+    const p = m / g, left = Math.max(0, g - m), need = D.daysLeft > 0 ? left / D.daysLeft : left;
+    const col = p >= 1 ? 'var(--up)' : m < 0 ? 'var(--down)' : 'var(--blue)';
+    h = `<div class="ring">${ring(p, col)}<div class="c"><b>${Math.round(Math.max(0, p) * 100)}%</b><span>달성</span></div></div>
+      <div class="tx"><div class="hd"><b>🎯 이번 달 목표</b><button class="edit" id="goalE">수정</button></div>
+      <div class="v ${m >= 0 ? 'up' : 'down'}">${money(m)}<small>/ ${money(g, false)}</small></div>
+      <div class="s">${p >= 1 ? '목표 달성! 🎉 이제 지키는 매매를 해요' : `남은 ${D.daysLeft}일 동안 하루 평균 <b>${money(need, false)}</b>씩이면 달성`}</div>${form('goal', g, '목표 금액 (USDT)')}</div>`;
+  } else {
+    h = `<div class="ring">${ring(0, 'var(--blue)')}<div class="c"><b>🎯</b></div></div>
+      <div class="tx"><div class="hd"><b>이번 달 목표</b></div><div class="s">한 달 수익 목표를 정하면 달성률과 하루에 필요한 금액을 보여줘요.</div>${form('goal', '', '예: 500 (USDT)').replace('class="form"', 'class="form on"')}</div>`;
+  }
+  $('goal').innerHTML = h;
+  // 오늘 손실 한도
+  const L = S.limit, t = D.today;
+  if (L) {
+    const used = Math.max(0, -t), p = used / L, over = p >= 1;
+    const col = over ? 'var(--down)' : p >= .7 ? '#F5A623' : 'var(--up)';
+    h = `<div class="ring">${ring(p, col)}<div class="c"><b>${Math.round(p * 100)}%</b><span>사용</span></div></div>
+      <div class="tx"><div class="hd"><b>🛑 오늘 손실 한도</b><button class="edit" id="limitE">수정</button></div>
+      <div class="v ${t >= 0 ? 'up' : 'down'}">${money(t)}<small>/ 한도 -$${L.toLocaleString()}</small></div>
+      <div class="bar"><i style="width:${Math.min(100, p * 100).toFixed(0)}%;background:${col}"></i></div>
+      ${over ? '<div class="warn">한도를 넘었어요. 오늘은 여기서 멈추는 게 좋아요.</div>' : `<div class="s">${t >= 0 ? '오늘은 아직 손실이 없어요' : `한도까지 <b>${money(L - used, false)}</b> 남았어요`}</div>`}${form('limit', L, '하루 최대 손실 (USDT)')}</div>`;
+  } else {
+    h = `<div class="ring">${ring(0, 'var(--up)')}<div class="c"><b>🛑</b></div></div>
+      <div class="tx"><div class="hd"><b>오늘 손실 한도</b></div><div class="s">하루에 잃어도 되는 최대 금액을 정해두면, 가까워질 때 색으로 경고해줘요.</div>${form('limit', '', '예: 50 (USDT)').replace('class="form"', 'class="form on"')}</div>`;
+  }
+  $('limit').innerHTML = h;
+  for (const k of ['goal', 'limit']) {
+    const e = $(k + 'E'); if (e) e.onclick = () => $(k + 'F').classList.toggle('on');
+    $(k + 'B').onclick = () => { const v = parseFloat(String($(k + 'I').value).replace(/,/g, '')); S[k] = v > 0 ? v : null; save(); draw(); };
+    $(k + 'I').onkeydown = ev => { if (ev.key === 'Enter') $(k + 'B').click(); };
+  }
+  fit();
+}
+draw();
+</script>
+</body>
+</html>
