@@ -109,7 +109,7 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 .lr .t { font-size: 12px; color: var(--sub); }
 
 .tv { height: 520px; border-radius: 14px; overflow: hidden; }
-.tape { height: 46px; border-radius: 14px; overflow: hidden; background: var(--card); box-shadow: var(--shadow); }
+.tape { height: 62px; border-radius: 14px; overflow: hidden; background: var(--card); box-shadow: var(--shadow); }
 
 @media (max-width: 1000px) { .col .grow .lqex { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--sub); margin: -2px 0 10px; }
 .lqex b { color: var(--mid); font-weight: 700; }
@@ -310,7 +310,7 @@ function renderFund() {
     <div class="kv"><span>ETH</span><b class="num ${cls(f('ETHUSDT'))}">${pct(f('ETHUSDT'), 4)}</b></div>
     <div class="kv"><span>SOL</span><b class="num ${cls(f('SOLUSDT'))}">${pct(f('SOLUSDT'), 4)}</b></div>
     <div class="kv"><span>XRP</span><b class="num ${cls(f('XRPUSDT'))}">${pct(f('XRPUSDT'), 4)}</b></div>
-    <div class="kv"><span>전체 평균 (${liquid.length}종목)</span><b class="num ${cls(avg)}">${pct(avg, 4)}</b></div>
+    <div class="kv" title="거래량 많은 ${liquid.length}종목 평균"><span>전체 평균</span><b class="num ${cls(avg)}">${pct(avg, 4)}</b></div>
     <div class="note" style="margin-top:6px">다음 펀딩까지 <b id="fundCd" class="num" style="color:var(--mid)">-</b></div>`;
   tickFund();
 }

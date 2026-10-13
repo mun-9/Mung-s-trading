@@ -22,6 +22,21 @@ TRACKS = [
     {"id": "__CRWE-L45k", "title": "Electro-Light - Symbolism"},
     {"id": "x_OwcYTNbHs", "title": "Jim Yosef - Firefly"},
     {"id": "vBGiFtb8Rpw", "title": "Culture Code - Make Me Move (feat. Karra)"},
+    {"id": "CaZXdZGZfb0", "title": "K-391, Alan Walker & Ahrix - End of Time"},
+    {"id": "Mw9U7FPaZho", "title": "Alan Walker x David Whistle - Routine"},
+    {"id": "bdE_SyHad90", "title": "Robin Hustin x TobiMorrow - Light It Up (feat. Jex)"},
+    {"id": "fzNMd3Tu1Zw", "title": "Elektronomia - Energy"},
+    {"id": "ZRnrjxDKv6Q", "title": "3rd Prototype - I Know"},
+    {"id": "J2X5mJ3HDYE", "title": "DEAF KEV - Invincible"},
+    {"id": "n4tK7LYFxI0", "title": "Spektrem - Shine"},
+    {"id": "AlXfbVpDUdo", "title": "Unknown Brain - MATAFAKA (feat. Marvin Divine)"},
+    {"id": "rdD-DMTWqU4", "title": "Unknown Brain - Say Goodbye (ft. Marvin Divine)"},
+    {"id": "aCH1eyWq9B0", "title": "Unknown Brain - Inspiration (feat. Aviella)"},
+    {"id": "BSDPQ1uP7GI", "title": "Alan Walker - Spectre"},
+    {"id": "MVMIwIJtMdU", "title": "TonyZ - Road So Far"},
+    {"id": "JhCEXRgbc_M", "title": "Alan Walker - Hope"},
+    {"id": "ox4tmEV6-QU", "title": "Alan Walker, K-391 & Emelie Hollow - Lily"},
+    {"id": "trnx5XT0cZs", "title": "Alan Walker - Play (ft. K-391, Tungevaag, Mangoo)"},
 ]
 
 
