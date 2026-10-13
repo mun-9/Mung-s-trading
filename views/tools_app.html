@@ -178,6 +178,19 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
       </div>
       <div class="res" id="r6"></div>
     </div>
+    <!-- 7. 복리 목표 -->
+    <div class="card" id="c7">
+      <div class="ct"><b>📈 복리 목표 계산기</b></div>
+      <div class="desc">하루에 몇 %씩 불리면 언제 목표에 닿는지, 목표까지 가려면 하루 몇 %가 필요한지 계산해요.</div>
+      <div class="f">
+        <div class="fld"><label>시작 시드</label><div class="inp"><input data-k="seed" inputmode="decimal" placeholder="1000"><span>USDT</span></div></div>
+        <div class="fld"><label>목표 금액</label><div class="inp"><input data-k="goal" inputmode="decimal" placeholder="10000"><span>USDT</span></div></div>
+        <div class="fld"><label>하루 수익률</label><div class="inp"><input data-k="daily" inputmode="decimal" placeholder="1"><span>%</span></div></div>
+        <div class="fld"><label>기간</label><div class="inp"><input data-k="days" inputmode="decimal" placeholder="90"><span>일</span></div></div>
+      </div>
+      <div class="res" id="r7"></div>
+      <svg id="g7" viewBox="0 0 300 90" preserveAspectRatio="none" style="width:100%;height:90px;margin-top:10px;display:block"></svg>
+    </div>
   </div>
 </div>
 
@@ -224,7 +237,7 @@ function card(id) {
   });
   return k => n(st[k]);
 }
-const g1 = card('c1'), g2 = card('c2'), g3 = card('c3'), g4 = card('c4'), g5 = card('c5'), g6 = card('c6');
+const g1 = card('c1'), g2 = card('c2'), g3 = card('c3'), g4 = card('c4'), g5 = card('c5'), g6 = card('c6'), g7 = card('c7');
 
 // ---------- 물타기 행 ----------
 S.c4.rows = Array.isArray(S.c4.rows) && S.c4.rows.length ? S.c4.rows : [['', ''], ['', '']];
@@ -304,6 +317,23 @@ function calc() {
       h += R(`${N}회 후 시드 (평균)`, pct((grow - 1) * 100, 1), '복리 · 수수료 제외', cl(grow - 1));
     } else h = '<div class="ok">승률과 손익비를 넣으면 계산돼요. 히스토리 화면의 성과 지표 숫자를 넣어보세요.</div>';
     $('r6').innerHTML = h; }
+  // 7. 복리 목표
+  { const seed = g7('seed'), goal = g7('goal'), dr = g7('daily'), days = Math.min(g7('days') || 0, 3650); let h = '', pts = [];
+    if (seed && dr != null && days) { const fin = seed * Math.pow(1 + dr / 100, days);
+      h += R(`${days}일 뒤`, usd(fin), `하루 ${dr}%씩 · ${pct((fin / seed - 1) * 100, 1)}`, 'up', true);
+      for (let i = 0; i <= 40; i++) pts.push(seed * Math.pow(1 + dr / 100, days * i / 40)); }
+    if (seed && goal && goal > seed) {
+      if (dr > 0) { const nd = Math.ceil(Math.log(goal / seed) / Math.log(1 + dr / 100)); h += R('목표까지 걸리는 날', `${nd.toLocaleString()}일`, `하루 ${dr}% 기준 · 약 ${(nd / 30).toFixed(1)}개월`); }
+      if (days) { const need = (Math.pow(goal / seed, 1 / days) - 1) * 100; h += R(`${days}일 안에 목표`, `하루 ${need.toFixed(2)}%`, `한 달(30일)이면 ${pct((Math.pow(1 + need / 100, 30) - 1) * 100, 1)}`); }
+    }
+    if (h) h += '<div class="ok">하루 1%도 1년이면 37배예요. 실제 매매엔 손실일이 섞이니 목표는 보수적으로 잡는 게 좋아요.</div>';
+    else h = '<div class="ok">시드와 하루 수익률·기간(또는 목표 금액)을 넣으면 계산돼요.</div>';
+    $('r7').innerHTML = h;
+    const sv = $('g7');
+    if (pts.length) { const hi = Math.max(...pts), lo = pts[0], r = hi - lo || 1;
+      const p = pts.map((v, i) => `${(i / 40 * 300).toFixed(1)},${(86 - (v - lo) / r * 80).toFixed(1)}`).join(' ');
+      sv.innerHTML = `<polygon points="0,90 ${p} 300,90" style="fill:var(--sel)"/><polyline points="${p}" fill="none" style="stroke:var(--blue)" stroke-width="2" vector-effect="non-scaling-stroke"/>`; }
+    else sv.innerHTML = ''; }
   fit();
 }
 
