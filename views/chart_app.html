@@ -86,6 +86,16 @@ svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-widt
 .tag { font-size: 10px; font-weight: 700; padding: 2px 5px; border-radius: 4px; font-style: normal; }
 .tag.long { background: rgba(60,195,180,0.15); color: var(--up); } .tag.short { background: rgba(245,100,107,0.15); color: var(--down); }
 .bar-right { margin-left: auto; display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+.mv { padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.mvh { display: flex; align-items: baseline; gap: 8px; } .mvh b { font-size: 13.5px; color: var(--strong); } .mvh span { font-size: 13px; font-weight: 800; } .mvh em { margin-left: auto; font-style: normal; font-size: 11px; color: var(--sub); }
+.mvp { font-size: 11.5px; color: var(--mid); margin: 3px 0 6px; }
+.mvn { display: block; font-size: 12px; line-height: 1.45; color: var(--strong); text-decoration: none; padding: 6px 8px; margin-top: 4px; border-radius: 6px; background: rgba(255,255,255,.04); }
+.mvn:hover { background: rgba(255,255,255,.08); } .mvn.none { color: var(--sub); }
+.mvn i, .nwi i { display: block; font-style: normal; font-size: 10.5px; color: var(--sub); margin-top: 3px; }
+.nwi { display: block; padding: 9px 12px; font-size: 12.5px; line-height: 1.5; color: var(--strong); text-decoration: none; border-bottom: 1px solid var(--line); }
+.nwi:hover { background: var(--hover); }
+.nwi.imp { background: rgba(245,184,0,.06); }
+.impb { display: inline-block; font-size: 10px; font-weight: 800; color: #1a1a1a; background: #F5B800; border-radius: 4px; padding: 1px 5px; margin-right: 6px; vertical-align: 1px; }
 .alcnt { font-size: 10px; font-weight: 800; color: #F5B800; min-width: 0; }
 .alcnt:empty { display: none; }
 #alBtn svg.i { width: 16px; height: 16px; }
@@ -322,6 +332,7 @@ svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-widt
       <button class="rbtn" data-v="watch"><svg class="i" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>와치</button>
       <button class="rbtn" data-v="book"><svg class="i" viewBox="0 0 24 24"><path d="M4 6h10M4 10h7M4 14h12M4 18h8"/><path d="M19 5v14"/></svg>호가</button>
       <button class="rbtn" data-v="liq"><svg class="i" viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>청산</button>
+      <button class="rbtn" data-v="news"><svg class="i" viewBox="0 0 24 24"><path d="M4 5h13v14a2 2 0 0 0 2 2H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v10a2 2 0 0 1-2 2M8 9h5M8 13h5M8 17h3"/></svg>이슈</button>
       <button class="rbtn" data-v="pos"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M16 13h.01M3 10h18M7 6V4h10v2"/></svg>포지션</button>
       <button class="rbtn rail-bottom" id="panelToggle" title="오른쪽 패널 접기/펴기"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg></button>
     </div>
@@ -368,7 +379,7 @@ const state = {
   layout: [1, 2, 3, 4].includes(saved.layout) ? saved.layout : 1,
   active: Number.isInteger(saved.active) ? saved.active : 0,
   engine: saved.engine === 'tv' ? 'tv' : 'live', src: 'bitget',
-  panel: saved.panel === false ? false : true, view: ['pos', 'book', 'liq'].includes(saved.view) ? saved.view : 'watch', liqFilter: saved.liqFilter || 'all',
+  panel: saved.panel === false ? false : true, view: ['pos', 'book', 'liq', 'news'].includes(saved.view) ? saved.view : 'watch', liqFilter: saved.liqFilter || 'all',
   stars: (saved.stars || ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'XRP/USDT']).filter(valid),
   closed: saved.closed || {}, sortKey: saved.sortKey || 'pct', sortDir: saved.sortDir || -1,
   tk: Object.assign({}, DATA.tickers), bgf: Object.assign({}, DATA.bgfund || {}), up: Object.assign({}, DATA.upbit || {}), q: '',
@@ -818,6 +829,10 @@ function renderPanel() {
       <div class="sec" style="position:static;cursor:default">최근 체결</div>
       <div class="obh"><span>가격</span><span>수량</span><span>시간</span></div><div class="list" id="trList"></div>`;
     book.need(s); renderBook();
+  } else if (state.view === 'news') {
+    rowEls = {};
+    pnl.innerHTML = `<div class="ph"><b>이슈</b><span>급변 · 뉴스</span><button class="x" id="pclose" title="접기">${ICON.close}</button></div><div class="list" id="newsList"></div>`;
+    renderNews();
   } else if (state.view === 'liq') {
     rowEls = {};
     pnl.innerHTML = `<div class="ph"><b>실시간 청산</b><span>Bybit · Binance</span><button class="x" id="pclose" title="접기">${ICON.close}</button></div>
@@ -841,6 +856,26 @@ function renderPanel() {
   }
   $('pclose').onclick = () => { state.panel = false; save(); renderPanel(); };
 }
+// ---------- 이슈 패널: 급변 기록(가격이 크게 움직인 순간) + 최신 뉴스 ----------
+const escH = t => String(t || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const agoT = ts => { const m = Math.max(0, (Date.now() / 1000 - ts) / 60); return m < 1 ? '방금' : m < 60 ? Math.round(m) + '분 전' : m < 1440 ? Math.round(m / 60) + '시간 전' : Math.round(m / 1440) + '일 전'; };
+function renderNews() {
+  const el = $('newsList'); if (!el) return;
+  let P = null; try { P = window.parent; } catch (e) {}
+  const F = P && P.mgFeed, N = P && P.mgNews;
+  const moves = F ? F.moves() : [], news = N ? N.list() : [];
+  const mv = moves.length ? moves.map(m => `<div class="mv"><div class="mvh"><b>${m.sym}</b><span class="num ${m.pct > 0 ? 'up' : 'down'}">${m.pct > 0 ? '▲ +' : '▼ '}${m.pct.toFixed(2)}%</span><em>${agoT(m.ts / 1000)} · 5분</em></div>
+      <div class="mvp num">${fmtPrice(m.from)} → ${fmtPrice(m.to)}</div>
+      ${m.news && m.news.length ? m.news.map(n => `<a class="mvn" href="${escH(n.link)}" target="_blank" rel="noopener">${escH(n.title)}<i>${escH(n.src)} · ${agoT(n.ts)}</i></a>`).join('') : '<div class="mvn none">이 시간대에 잡힌 뉴스가 없어요 (트윗·고래 매매일 수 있어요)</div>'}</div>`).join('')
+    : `<div class="empty" style="padding:18px 12px">아직 큰 움직임이 없어요.<br>BTC ±1% · ETH ±1.5% · SOL·XRP ±2.5%가 5분 안에 움직이면 여기 기록돼요${F && !F.cfg().moves ? '<br><b style="color:#F5B800">도구 화면에서 급변 알림이 꺼져 있어요</b>' : ''}</div>`;
+  const nw = news.length ? news.slice(0, 20).map(n => { const imp = N.isImportant(n);
+      return `<a class="nwi${imp ? ' imp' : ''}" href="${escH(n.link)}" target="_blank" rel="noopener">${imp ? '<span class="impb">중요</span>' : ''}${escH(n.title)}<i>${escH(n.src)} · ${n.ts ? agoT(n.ts) : ''}</i></a>`; }).join('')
+    : '<div class="empty" style="padding:18px 12px">뉴스를 불러오는 중이에요</div>';
+  el.innerHTML = `<div class="sec" style="position:static;cursor:default">⚡ 급변 기록</div>${mv}<div class="sec" style="position:static;cursor:default">📰 최신 뉴스</div>${nw}<div style="height:10px"></div>`;
+}
+try { ['mg-moves-changed', 'mg-news-changed'].forEach(ev => window.parent.addEventListener(ev, () => { if (state.panel && state.view === 'news') renderNews(); })); } catch (e) {}
+setInterval(() => { if (state.panel && state.view === 'news') renderNews(); }, 60000);
+
 // 시세만 바뀔 때: 목록을 다시 그리지 않고 숫자만 갱신
 function updateRows() {
   for (const [s, els] of Object.entries(rowEls)) {

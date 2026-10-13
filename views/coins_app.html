@@ -246,7 +246,7 @@ $('triSel').querySelectorAll('button').forEach(b => b.onclick = () => {
 });
 
 // ---------- 표 ----------
-let tab = 'all', q = '', sortK = 'rank', sortD = 1, shown = 50;
+let tab = 'all', q = '', sortK = 'rank', sortD = 1, shown = 15;
 function list() {
   let a = COINS;
   if (tab === 'fav') a = a.filter(c => FAV.has(c.sym));
@@ -299,7 +299,7 @@ function renderTable() {
   const a = list();
   $('tb').innerHTML = a.length ? a.slice(0, shown).map(rowHtml).join('') : `<tr><td colspan="12" class="c" style="padding:40px 0;color:var(--sub)">${tab === 'fav' ? '별(★)을 눌러 즐겨찾기를 추가해 보세요' : '찾는 코인이 없어요'}</td></tr>`;
   $('more').style.display = a.length > shown ? 'block' : 'none';
-  $('more').textContent = `더 보기 (${Math.min(50, a.length - shown)}개 더 · 전체 ${a.length}개)`;
+  $('more').textContent = `더 보기 (${Math.min(25, a.length - shown)}개 더 · 전체 ${a.length}개)`;
   document.querySelectorAll('th[data-k]').forEach(th => {
     const on = th.dataset.k === sortK; th.classList.toggle('sorted', on);
     th.innerHTML = th.innerHTML.replace(/<span class="ar">.*?<\/span>/, '') + (on ? `<span class="ar">${sortD > 0 ? '▲' : '▼'}</span>` : '');
@@ -316,11 +316,11 @@ document.querySelectorAll('th[data-k]').forEach(th => th.onclick = () => {
   renderTable();
 });
 $('tabs').querySelectorAll('button').forEach(b => b.onclick = () => {
-  tab = b.dataset.t; shown = 50; if (tab === 'up' || tab === 'down') sortK = 'rank';
+  tab = b.dataset.t; shown = 15; if (tab === 'up' || tab === 'down') sortK = 'rank';
   $('tabs').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); renderTable();
 });
-$('q').oninput = e => { q = e.target.value.trim(); shown = 50; renderTable(); };
-$('more').onclick = () => { shown += 50; renderTable(); };
+$('q').oninput = e => { q = e.target.value.trim(); shown = 15; renderTable(); };
+$('more').onclick = () => { shown += 25; renderTable(); };
 
 // ---------- 뉴스 ----------
 function renderNews() {

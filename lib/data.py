@@ -842,8 +842,8 @@ def fetch_cg_trending():
 NEWS_FEEDS = [("블록미디어", "https://www.blockmedia.co.kr/feed"), ("토큰포스트", "https://www.tokenpost.kr/rss")]
 
 
-@st.cache_data(ttl=600, show_spinner=False)
-def fetch_news(limit=24):
+@st.cache_data(ttl=120, show_spinner=False)
+def fetch_news(limit=30):
     """국내 코인 뉴스 RSS (최신순)."""
     import re as _re
     import urllib.request

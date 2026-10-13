@@ -12,8 +12,9 @@ import lib.ui  # noqa: E402
 import lib.music  # noqa: E402
 import lib.theme  # noqa: E402
 import lib.alerts  # noqa: E402
+import lib.newsfeed  # noqa: E402
 
-for _m in (lib.data, lib.ui, lib.music, lib.theme, lib.alerts):
+for _m in (lib.data, lib.ui, lib.music, lib.theme, lib.alerts, lib.newsfeed):
     _mt = os.path.getmtime(_m.__file__)
     if getattr(_m, "_loaded_mtime", _mt) != _mt:
         importlib.reload(_m)
@@ -26,6 +27,7 @@ st.html("<style>div[class*='st-key-mg_music_host']{position:absolute !important;
 with st.container(key="mg_music_host"):
     lib.theme.inject()
     lib.alerts.inject()
+    lib.newsfeed.feed()
     lib.music.inject()
 
 pages = [

@@ -16,7 +16,7 @@ _CSS = r"""
   animation: mg-tin .45s cubic-bezier(.2,1.3,.4,1); }
 .mg-toast.out { animation: mg-tout .3s ease forwards; }
 .mg-toast .ic { width: 36px; height: 36px; border-radius: 11px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-.mg-toast .ic.up { background: rgba(8,153,129,.2); } .mg-toast .ic.down { background: rgba(240,68,82,.2); }
+.mg-toast .ic.up { background: rgba(8,153,129,.2); } .mg-toast .ic.down { background: rgba(240,68,82,.2); } .mg-toast .ic.nw { background: rgba(91,141,255,.2); }
 .mg-toast b { display: block; font-size: 14.5px; font-weight: 800; letter-spacing: -.01em; }
 .mg-toast span { display: block; font-size: 12.5px; color: rgba(255,255,255,.65); margin-top: 3px; line-height: 1.45; }
 .mg-toast button { margin-left: auto; border: 0; background: transparent; color: rgba(255,255,255,.5); font-size: 16px; cursor: pointer; padding: 0 0 0 6px; }
@@ -32,12 +32,14 @@ _JS = r"""
   const store = a => { try { localStorage.setItem(KEY, JSON.stringify(a)); } catch (e) {} };
   const fmt = v => { const a = Math.abs(v), dg = a >= 1000 ? 2 : a >= 1 ? 4 : a >= 0.01 ? 6 : 8; return '$' + (+v).toLocaleString('en-US', { maximumFractionDigits: dg }); };
   const box = d.createElement('div'); box.id = 'mg-toasts'; d.body.appendChild(box);
-  function toast(title, body, dir) {
+  function toast(title, body, dir, icon, link) {
     const t = d.createElement('div'); t.className = 'mg-toast';
-    t.innerHTML = `<div class="ic ${dir === 'above' ? 'up' : 'down'}">${dir === 'above' ? '🚀' : '🔻'}</div><div><b></b><span></span></div><button title="닫기">✕</button>`;
+    t.innerHTML = `<div class="ic ${dir === 'above' ? 'up' : dir === 'below' ? 'down' : 'nw'}">${icon || (dir === 'above' ? '🚀' : '🔻')}</div><div><b></b><span></span></div><button title="닫기">✕</button>`;
     t.querySelector('b').textContent = title; t.querySelector('span').textContent = body;
     const close = () => { t.classList.add('out'); setTimeout(() => t.remove(), 300); };
-    t.querySelector('button').onclick = close; box.appendChild(t); setTimeout(close, 12000);
+    t.querySelector('button').onclick = ev => { ev.stopPropagation(); close(); };
+    if (link) { t.style.cursor = 'pointer'; t.onclick = () => { W.open(link, '_blank', 'noopener'); close(); }; }
+    box.appendChild(t); setTimeout(close, link ? 20000 : 12000);
   }
   function beep() {
     try { const C = new (W.AudioContext || W.webkitAudioContext)(), o = C.createOscillator(), g = C.createGain();
@@ -50,7 +52,12 @@ _JS = r"""
   }
   const last = {};
   let ws = null, subs = new Set(), retry = 0;
-  function wanted() { return new Set(load().map(a => a.sym)); }
+  // ---------- 설정 (도구 화면에서 켜고 끔) ----------
+  const CFG_KEY = 'mung_alert_cfg';
+  const cfg = () => { let c = {}; try { c = JSON.parse(localStorage.getItem(CFG_KEY) || '{}'); } catch (e) {} return Object.assign({ news: true, moves: true }, c); };
+  const MOVE_SYMS = ['BTC', 'ETH', 'SOL', 'XRP'];
+  const TH = { BTC: 1.0, ETH: 1.5, SOL: 2.5, XRP: 2.5 };  // 5분 안에 이만큼(%) 움직이면 '급변'
+  function wanted() { const w = new Set(load().map(a => a.sym)); if (cfg().moves) MOVE_SYMS.forEach(s => w.add(s)); return w; }
   function connect() {
     const want = wanted();
     if (!want.size) { if (ws) { try { ws.close(); } catch (e) {} ws = null; } subs = new Set(); return; }
@@ -69,7 +76,7 @@ _JS = r"""
       if (!m.data || !m.arg || m.arg.channel !== 'ticker') return;
       for (const x of m.data) {
         const sym = String(x.instId || m.arg.instId).replace(/USDT$/, ''), px = +x.lastPr; if (!px) continue;
-        last[sym] = px; check(sym, px);
+        last[sym] = px; check(sym, px); track(sym, px);
       }
     };
     ws.onclose = () => { clearInterval(ws && ws._p); ws = null; retry = Math.min(retry + 1, 5); setTimeout(connect, 1000 * 2 ** retry); };
@@ -89,6 +96,57 @@ _JS = r"""
     });
     if (hit || changed) { store(keep); W.dispatchEvent(new Event('mg-alerts-changed')); }
   }
+  // ---------- 급변 감지: 5분 안에 크게 움직이면 알림 + 그 시간대 뉴스 ----------
+  const MKEY = 'mung_moves', hist = {}, lastMove = {};
+  const loadMoves = () => { try { const a = JSON.parse(localStorage.getItem(MKEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } };
+  function track(sym, px) {
+    if (!TH[sym] || !cfg().moves) return;
+    const now = Date.now(), h = hist[sym] = hist[sym] || [];
+    if (!h.length || now - h[h.length - 1][0] >= 3000) h.push([now, px]);
+    while (h.length && now - h[0][0] > 6 * 60000) h.shift();
+    const ref = h.find(x => now - x[0] <= 5 * 60000); if (!ref || now - h[0][0] < 2 * 60000) return;  // 데이터가 2분 이상 쌓인 뒤부터
+    const lo = Math.min(...h.map(x => x[1])), hi = Math.max(...h.map(x => x[1]));
+    const up = (px / lo - 1) * 100, dn = (px / hi - 1) * 100;
+    const pct = Math.abs(up) >= Math.abs(dn) ? up : dn;
+    if (Math.abs(pct) < TH[sym] || now - (lastMove[sym] || 0) < 20 * 60000) return;
+    lastMove[sym] = now;
+    const rel = relatedNews(now);
+    const ev = { id: now.toString(36) + sym, sym, pct: +pct.toFixed(2), from: pct > 0 ? lo : hi, to: px, ts: now, news: rel.slice(0, 3) };
+    const all = loadMoves(); all.unshift(ev); try { localStorage.setItem(MKEY, JSON.stringify(all.slice(0, 30))); } catch (e) {}
+    W.dispatchEvent(new Event('mg-moves-changed'));
+    const title = `${sym} 5분 새 ${pct > 0 ? '+' : ''}${pct.toFixed(2)}% ${pct > 0 ? '급등' : '급락'}`;
+    const body = rel.length ? '같은 시간대 뉴스: ' + rel[0].title : `지금 ${fmt(px)} · 아직 관련 뉴스가 없어요 (차트 화면 '이슈' 탭에서 업데이트)`;
+    toast(title, body, pct > 0 ? 'above' : 'below', pct > 0 ? '📈' : '📉', rel.length ? rel[0].link : null); notify(title, body); beep();
+  }
+  // ---------- 뉴스: 서버가 90초마다 넘겨주는 최신 목록 ----------
+  let NEWS = [];
+  const IMPORTANT = /속보|긴급|단독|SEC|ETF|FOMC|파월|연준|금리|CPI|해킹|상장\s?폐지|상폐|파산|트럼프|규제|승인|폭락|폭등|급락|급등|대규모\s?청산|비상/;
+  const isImportant = n => IMPORTANT.test(n.title || '');
+  function relatedNews(now) {
+    // 최근 3시간 뉴스 중 중요 뉴스 먼저, 최신순
+    const r = NEWS.filter(n => n.ts && now / 1000 - n.ts <= 3 * 3600);
+    return r.sort((a, b) => (isImportant(b) - isImportant(a)) || (b.ts - a.ts));
+  }
+  const SKEY = 'mung_news_seen';
+  function updateNews(items) {
+    if (!Array.isArray(items) || !items.length) return;
+    NEWS = items;
+    let seen; try { seen = JSON.parse(localStorage.getItem(SKEY) || 'null'); } catch (e) { seen = null; }
+    const first = !Array.isArray(seen); seen = new Set(seen || []);
+    const fresh = items.filter(n => !seen.has(n.link));
+    items.forEach(n => seen.add(n.link));
+    try { localStorage.setItem(SKEY, JSON.stringify([...seen].slice(-300))); } catch (e) {}
+    W.dispatchEvent(new Event('mg-news-changed'));
+    if (first || !cfg().news) return;  // 처음 들어왔을 때 예전 뉴스로 알림 폭탄 방지
+    fresh.filter(isImportant).filter(n => !n.ts || Date.now() / 1000 - n.ts < 3 * 3600).slice(0, 2).forEach(n => {
+      toast('📰 중요 뉴스 · ' + n.src, n.title, null, '📰', n.link); notify('📰 ' + n.title, n.src); beep();
+    });
+  }
+  W.mgNews = { update: updateNews, list: () => NEWS, isImportant };
+  if (W.__mgNewsPending) { updateNews(W.__mgNewsPending); W.__mgNewsPending = null; }
+  W.mgFeed = { cfg, setCfg(k, v) { const c = cfg(); c[k] = v; try { localStorage.setItem(CFG_KEY, JSON.stringify(c)); } catch (e) {} connect(); W.dispatchEvent(new Event('mg-moves-changed')); },
+    moves: loadMoves, clearMoves() { try { localStorage.removeItem(MKEY); } catch (e) {} W.dispatchEvent(new Event('mg-moves-changed')); }, TH, MOVE_SYMS };
+
   // 다른 화면(코인 상세 · 도구)이 쓰는 함수
   W.mgAlerts = {
     list: load,
@@ -102,7 +160,7 @@ _JS = r"""
       try { if ('Notification' in W && Notification.permission === 'default') Notification.requestPermission(); } catch (e) {}
       return a;
     },
-    _feed(sym, px) { last[sym] = px; check(sym, px); },
+    _feed(sym, px) { last[sym] = px; check(sym, px); track(sym, px); },
     remove(id) { store(load().filter(a => a.id !== id)); connect(); W.dispatchEvent(new Event('mg-alerts-changed')); },
     subscribe(sym) { sym = String(sym || '').toUpperCase(); if (!sym) return; const want = wanted(); if (!want.has(sym) && ws && ws.readyState === 1 && !subs.has(sym)) { ws.send(JSON.stringify({ op: 'subscribe', args: [{ instType: 'USDT-FUTURES', channel: 'ticker', instId: sym + 'USDT' }] })); subs.add(sym); } },
   };

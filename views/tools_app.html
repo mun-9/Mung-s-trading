@@ -13,13 +13,19 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 .num { font-variant-numeric: tabular-nums; }
 .up { color: var(--up) !important; } .down { color: var(--down) !important; }
 .wrap { display: flex; flex-direction: column; gap: 18px; padding: 2px 2px 30px; }
-.top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--card); border-radius: 18px; box-shadow: var(--shadow); padding: 14px 18px; }
-.top b { font-size: 14px; font-weight: 800; }
-.top .hint { font-size: 12.5px; color: var(--sub); margin-left: auto; }
-.symin { display: flex; align-items: center; gap: 6px; height: 38px; padding: 0 6px 0 12px; border-radius: 11px; background: var(--soft); }
-.symin input { width: 90px; border: 0; outline: 0; background: transparent; font-family: inherit; font-size: 14px; font-weight: 700; color: var(--text); text-transform: uppercase; }
-.symin span { font-size: 12px; color: var(--sub); }
-.live { font-size: 15px; font-weight: 800; }
+.top { display: grid; grid-template-columns: auto 1fr; grid-template-areas: "tl tr" "hint hint"; align-items: center; gap: 8px 16px; background: var(--card); border-radius: 18px; box-shadow: var(--shadow); padding: 16px 20px; }
+.top .tl { grid-area: tl; display: flex; flex-direction: column; gap: 6px; }
+.top .tl .lbl { font-size: 12px; font-weight: 700; color: var(--sub); }
+.top .tr { grid-area: tr; display: flex; align-items: baseline; justify-content: flex-end; gap: 10px; }
+.top .hint { grid-area: hint; font-size: 12px; color: var(--sub); border-top: 1px solid var(--line); padding-top: 10px; }
+.top .hint b { color: var(--blue); font-weight: 700; }
+.symin { display: inline-flex; align-items: baseline; gap: 2px; height: 40px; padding: 0 14px; border-radius: 12px; background: var(--soft); border: 1px solid transparent; cursor: text; }
+.symin:focus-within { border-color: var(--blue); }
+.symin input { width: 64px; border: 0; outline: 0; background: transparent; font-family: inherit; font-size: 18px; font-weight: 800; color: var(--text); text-transform: uppercase; padding: 0; line-height: 40px; }
+.symin span { font-size: 13px; font-weight: 700; color: var(--sub); }
+.live { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+.chg { font-size: 14px; font-weight: 800; padding: 3px 8px; border-radius: 8px; background: var(--soft); }
+.chg:empty { display: none; }
 .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
 .card { background: var(--card); border-radius: 20px; box-shadow: var(--shadow); padding: 22px 24px; min-width: 0; }
 .ct { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 4px; }
@@ -67,18 +73,30 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 .alr button { border: 0; background: var(--soft); color: var(--mid); font-family: inherit; font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 8px; cursor: pointer; }
 .ale { font-size: 12.5px; color: var(--sub); padding: 14px 4px 2px; }
 #alList { margin-top: 12px; }
+.alset { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; }
+.as { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 2px; }
+.as b { display: block; font-size: 14px; font-weight: 800; } .as span { display: block; font-size: 12px; color: var(--sub); margin-top: 3px; line-height: 1.5; }
+.sw { position: relative; width: 44px; height: 26px; border-radius: 13px; background: rgba(139,149,161,.4); cursor: pointer; transition: background .2s; flex-shrink: 0; }
+.sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+.sw.on { background: var(--blue); } .sw.on::after { transform: translateX(18px); }
+@media (max-width: 900px) { .alset { grid-template-columns: 1fr; } }
 @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } .alf { grid-template-columns: 1fr 1fr; } .alf .fld:nth-child(3) { grid-column: 1 / -1; } .alb { grid-column: 1 / -1; }
   .alr { grid-template-columns: 52px 54px 1fr auto; gap: 8px; } .alr .n { grid-column: 1 / -1; order: 9; margin-top: -4px; } .ct { flex-wrap: wrap; } .ct .perm { font-size: 11px; padding: 5px 8px; } }
-@media (max-width: 640px) { .card { padding: 18px 16px; } .top .hint { display: none; } .r b { font-size: 16px; } }
+@media (max-width: 640px) { .card { padding: 18px 16px; } .r b { font-size: 16px; } .live { font-size: 21px; } .top { padding: 14px 16px; } }
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="top">
-    <b>기준 종목</b>
-    <div class="symin"><input id="sym" value="BTC" maxlength="12"><span>USDT</span></div>
-    <span class="live num" id="livePx">-</span><span class="num" id="livePc" style="font-size:13px;font-weight:700"></span>
-    <span class="hint">‘현재가’ 버튼을 누르면 Bitget 실시간 가격이 들어가요 · 입력값은 이 브라우저에 저장돼요</span>
+    <div class="tl">
+      <span class="lbl">계산 기준 종목</span>
+      <label class="symin"><input id="sym" value="BTC" maxlength="12" spellcheck="false"><span>/USDT</span></label>
+    </div>
+    <div class="tr">
+      <span class="live num" id="livePx">-</span>
+      <span class="chg num" id="livePc"></span>
+    </div>
+    <div class="hint">계산기의 <b>현재가</b> 버튼에 이 가격(Bitget 실시간)이 들어가요</div>
   </div>
 
   <div class="grid">
@@ -93,6 +111,10 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
         <button class="alb" id="alAdd">알림 추가</button>
       </div>
       <div id="alList"></div>
+      <div class="alset">
+        <div class="as"><div><b>📰 중요 뉴스 알림</b><span>‘속보·ETF·FOMC·해킹·상장폐지’ 같은 큰 뉴스가 새로 뜨면 바로 알려줘요</span></div><div class="sw" id="swNews"></div></div>
+        <div class="as"><div><b>⚡ 급변 알림</b><span>5분 안에 BTC ±1% · ETH ±1.5% · SOL·XRP ±2.5% 움직이면 같은 시간대 뉴스와 함께 알려줘요 (기록은 차트 화면 ‘이슈’ 탭)</span></div><div class="sw" id="swMoves"></div></div>
+      </div>
     </div>
     <!-- 1. 포지션 크기 -->
     <div class="card" id="c1">
@@ -318,7 +340,7 @@ function sub() {
   ws.onopen = () => { ws.send(JSON.stringify({ op: 'subscribe', args: [{ instType: 'USDT-FUTURES', channel: 'ticker', instId: inst }] })); ws._p = setInterval(() => { try { ws.send('ping'); } catch (e) {} }, 25000); };
   ws.onmessage = ev => {
     if (ev.data === 'pong') return; let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
-    if (m.event === 'error') { $('livePx').textContent = 'Bitget에 없는 종목'; return; }
+    if (m.event === 'error') { $('livePx').innerHTML = '<span style="font-size:14px;color:var(--sub)">Bitget에 없는 종목이에요</span>'; return; }
     if (!m.data || !m.data[0]) return; const d = m.data[0]; LIVE = +d.lastPr;
     $('livePx').textContent = '$' + px(LIVE);
     const c = d.change24h != null ? +d.change24h * 100 : null; $('livePc').innerHTML = c == null ? '' : `<span class="${cl(c)}">${pct(c)}</span>`;
@@ -349,6 +371,10 @@ function permPaint() { const b = $('perm'); try { const p = PW.Notification ? PW
   if (p === 'granted') { b.textContent = '✓ 알림 허용됨'; b.classList.add('done'); } else if (p === 'denied') { b.textContent = '알림이 차단돼 있어요 (브라우저 설정)'; b.classList.add('done'); } else if (p === 'unsupported') { b.style.display = 'none'; } } catch (e) { b.style.display = 'none'; } }
 $('perm').onclick = () => { try { PW.Notification.requestPermission().then(permPaint); } catch (e) {} };
 permPaint();
+function cfgPaint() { const F = PW.mgFeed; if (!F) { document.querySelector('.alset').style.display = 'none'; return; } const c = F.cfg(); $('swNews').classList.toggle('on', !!c.news); $('swMoves').classList.toggle('on', !!c.moves); }
+$('swNews').onclick = () => { const F = PW.mgFeed; if (F) { F.setCfg('news', !F.cfg().news); cfgPaint(); } };
+$('swMoves').onclick = () => { const F = PW.mgFeed; if (F) { F.setCfg('moves', !F.cfg().moves); cfgPaint(); } };
+cfgPaint();
 try { PW.addEventListener('mg-alerts-changed', alDraw); } catch (e) {}
 setInterval(alDraw, 5000);
 alDraw();

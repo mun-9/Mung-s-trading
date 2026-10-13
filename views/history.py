@@ -359,7 +359,7 @@ with st.container(key="pnl_card"):
             view = st.segmented_control("보기", ["일별", "누적"], default="일별", key="pnl_view", label_visibility="collapsed") or "일별"
     html(f"""<div style='border-top:1px solid var(--mg-line2);margin:-6px 0 14px;'></div>
 <div style='display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;'><span style='font-size:30px;font-weight:800;color:{pnl_color(bd["net"])};letter-spacing:-0.02em;'>{money(bd["net"])}</span>
-<span style='font-size:14px;color:{SUB};font-weight:600;'>USDT</span></div>
+<span style='font-size:14px;color:{SUB};font-weight:600;'>USDT</span><span style='font-size:13.5px;color:{SUB};font-weight:600;'>≈ {"-" if bd["net"] < 0 else "+" if bd["net"] > 0 else ""}₩{abs(bd["net"]) * rate:,.0f}</span></div>
 <div style='font-size:13px;color:{SUB};margin-top:4px;'>Win <b style='color:{GREEN};'>{win_days} days</b> · Loss <b style='color:{RED};'>{loss_days} days</b></div>
 <div style='border-top:1px solid var(--mg-line);margin:16px 0 0;'></div>""")
     n = len(daily)
