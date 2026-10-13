@@ -84,17 +84,17 @@ def live_positions():
                 pend = D.pending_fee_for(hist["pending_fees"], sym, p["side"], p["size"])
                 pend_html = (f"<div style='font-size:11.5px;color:{SUB};margin-top:6px;'>진입 수수료 -${pend:,.2f} · 청산 시 반영</div>"
                              if pend > 0 else "")
-                html(f"""<div style="display:flex;flex-wrap:wrap;margin-bottom:5px;">
-<div class="pos-box" style="padding-left:0;"><div style='font-size:12.5px;color:{SUB};font-weight:600;margin-bottom:9px;'>종목 · 방향</div>
+                html(f"""<div class="pos-wrap" style="display:flex;flex-wrap:wrap;margin-bottom:5px;">
+<div class="pos-box pb-sym" style="padding-left:0;"><div style='font-size:12.5px;color:{SUB};font-weight:600;margin-bottom:9px;'>종목 · 방향</div>
 <div style='font-size:22px;font-weight:800;color:{TEXT};'>{sym} <span class='pill' style='background:{ss};color:{sc};font-size:12px;padding:4px 10px;'>{p['side']} {p['leverage']}x</span></div>
 <div style='font-size:13px;color:{SUB};margin-top:8px;'>{p['size']} {coin} ≈ ${p['size'] * p['entry_price']:,.2f}</div></div>
-<div class="pos-box pos-divider"><div style='font-size:12.5px;color:{SUB};font-weight:600;margin-bottom:12px;'>진입가 · 현재가</div>
+<div class="pos-box pos-divider pb-px"><div style='font-size:12.5px;color:{SUB};font-weight:600;margin-bottom:12px;'>진입가 · 현재가</div>
 <div style='display:flex;align-items:baseline;gap:8px;margin-bottom:6px;'><span style='width:42px;font-size:11.5px;color:{SUB};'>진입가</span><span style='font-size:17px;font-weight:700;color:{TEXT};'>${p['entry_price']:,.2f}</span></div>
 <div style='display:flex;align-items:baseline;gap:8px;'><span style='width:42px;font-size:11.5px;color:{SUB};'>현재가</span><span style='font-size:17px;font-weight:700;color:{BLUE};'>${p['mark_price']:,.2f}</span></div></div>
-<div class="pos-box pos-divider"><div style='font-size:12.5px;color:{SUB};font-weight:600;margin-bottom:12px;'>미실현 손익 · ROI</div>
+<div class="pos-box pos-divider pb-pnl"><div style='font-size:12.5px;color:{SUB};font-weight:600;margin-bottom:12px;'>미실현 손익 · ROI</div>
 <div style='font-size:24px;font-weight:800;color:{pc};margin-bottom:-4px;'>{sign}${p['unrealized_pnl']:,.2f}</div>
 <div style='font-size:14px;font-weight:700;color:{pc};'>({sign}{p['roe']:.2f}%)</div>{pend_html}</div>
-<div class="pos-box pos-divider" style="padding-right:0;"><div style='font-size:12.5px;color:{SUB};font-weight:600;margin-bottom:12px;'>증거금 <span style="color:{BLUE};">(비중%)</span> · 청산가</div>
+<div class="pos-box pos-divider pb-mg" style="padding-right:0;"><div style='font-size:12.5px;color:{SUB};font-weight:600;margin-bottom:12px;'>증거금 <span style="color:{BLUE};">(비중%)</span> · 청산가</div>
 <div style='display:flex;align-items:baseline;gap:8px;margin-bottom:6px;'><span style='width:42px;font-size:11.5px;color:{SUB};'>증거금</span><span style='font-size:17px;font-weight:700;color:{TEXT};'>${p['margin']:,.2f} <span style='font-size:13px;color:{BLUE};'>({ratio:.1f}%)</span></span></div>
 <div style='display:flex;align-items:baseline;gap:8px;'><span style='width:42px;font-size:11.5px;color:{SUB};'>청산가</span><span style='font-size:17px;font-weight:700;color:var(--mg-mid);'>${p['liq_price']:,.2f}</span></div></div></div>""")
                 if i < len(plist) - 1:
@@ -260,7 +260,7 @@ sh = int((closes["side"] == "SHORT").sum()) if decr else 0
 lp = (lg / (lg + sh) * 100) if (lg + sh) else 0
 long_net = float(closes.loc[closes["side"] == "LONG", "net"].sum()) if decr else 0.0
 short_net = float(closes.loc[closes["side"] == "SHORT", "net"].sum()) if decr else 0.0
-card_style = "background:var(--mg-card);border-radius:20px;padding:22px;box-shadow:0 2px 14px rgba(15,23,42,0.05);height:320px;display:flex;flex-direction:column;justify-content:space-between;"
+card_style = "background:var(--mg-card);border-radius:20px;padding:22px;box-shadow:var(--mg-shadow);display:flex;flex-direction:column;justify-content:space-between;"
 
 
 def pair(l1, v1, c1, l2, v2, c2):
@@ -271,7 +271,7 @@ def pair(l1, v1, c1, l2, v2, c2):
 
 
 with col_t1:
-    html(f"""<div style="{card_style}"><div><div class="card-title"><span>총 주문 횟수</span><span>선택 기간</span></div>
+    html(f"""<div class="tcard" style="{card_style}"><div><div class="card-title"><span>총 주문 횟수</span><span>선택 기간</span></div>
 <div style='display:flex;align-items:baseline;margin:14px 0 22px;'><span style='font-size:34px;font-weight:800;color:{TEXT};'>{total}</span><span style='font-size:13px;font-weight:600;color:{SUB};margin-left:4px;'>회</span></div>
 <div style='display:flex;flex-direction:column;gap:14px;'>{pair('진입', f'{incr} 회', TEXT, '청산', f'{decr} 회', TEXT)}{pair('익절', f'{wins} 회', GREEN, '손절', f'{losses} 회', RED)}</div></div>
 <div style='border-top:1px solid var(--mg-line);padding-top:14px;display:flex;justify-content:space-between;align-items:center;'>
@@ -279,7 +279,7 @@ with col_t1:
 
 with col_t2:
     grad = f"conic-gradient({GREEN} 0% {lp}%, {RED} {lp}% 100%)" if (lg + sh) else "conic-gradient(var(--mg-soft) 0% 100%)"
-    html(f"""<div style="{card_style}"><div class="card-title"><span>LONG / SHORT</span><span>청산 횟수 · 순손익</span></div>
+    html(f"""<div class="tcard" style="{card_style}"><div class="card-title"><span>LONG / SHORT</span><span>청산 횟수 · 순손익</span></div>
 <div style="display:flex;justify-content:center;align-items:center;flex-grow:1;"><div style="width:118px;height:118px;border-radius:50%;background:{grad};display:flex;justify-content:center;align-items:center;">
 <div style="width:86px;height:86px;background:var(--mg-card);border-radius:50%;display:flex;flex-direction:column;justify-content:center;align-items:center;">
 <span style="font-size:11.5px;color:{SUB};font-weight:600;">총 청산</span><b style="font-size:22px;color:{TEXT};">{decr}건</b></div></div></div>
@@ -309,7 +309,7 @@ with col_t3:
     dots = "".join(f"<circle cx='{x:.1f}' cy='{y:.1f}' r='4' fill='{BLUE}'/><text x='{x:.1f}' y='{y - 12:.1f}' font-size='12' font-weight='bold' fill='{BLUE}' text-anchor='middle'>{v:.0f}%</text>" for r in runs for x, y, v in r)
     dashes = "".join(f"<text x='{i * step:.1f}' y='60' font-size='13' style='fill:var(--mg-line2)' text-anchor='middle'>―</text>" for i, v in enumerate(vals) if v is None)
     days = "".join(f"<text x='{i * step:.1f}' y='130' font-size='10' style='fill:{SUB}' text-anchor='middle'>{labels[i]}</text>" for i in range(7))
-    html(f"""<div style="{card_style}"><div class="card-title"><span>승률 추이</span><span>최근 7일 · 오늘 포함</span></div>
+    html(f"""<div class="tcard" style="{card_style}"><div class="card-title"><span>승률 추이</span><span>최근 7일 · 오늘 포함</span></div>
 <div style="display:flex;align-items:baseline;gap:10px;margin-top:10px;"><span style="font-size:30px;font-weight:800;color:{BLUE};">{r7}%</span><span style="font-size:12px;color:{SUB};">익절 {tw} · 손절 {tl}</span></div>
 <div style="flex-grow:1;display:flex;flex-direction:column;justify-content:flex-end;"><svg viewBox='-15 -15 310 150' style='width:100%;height:130px;display:block;'>{lines}{dots}{dashes}{days}</svg></div></div>""")
 
@@ -367,6 +367,82 @@ if ledger_net is not None:
     html(f"<div class='note-text' style='margin-top:-8px;'>검증용 · 거래소 장부 합계 {money(ledger_net)} (페이백 제외, 진입 수수료를 진입 시점에 바로 뺀 값)</div>")
 
 # -----------------------------------------------------------------------------
+# PNL 캘린더 (한 달을 달력으로: 날마다 순손익이 색으로 보임)
+# -----------------------------------------------------------------------------
+st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
+
+
+def _cal_amt(v):
+    a = abs(v)
+    s = f"{a / 1000:.1f}k" if a >= 1000 else (f"{a:.0f}" if a >= 10 else f"{a:.1f}")
+    return ("+" if v > 0 else "-") + s
+
+
+def calendar_html(year, month):
+    import calendar as _cal
+    first = datetime(year, month, 1).date()
+    last = datetime(year, month, _cal.monthrange(year, month)[1]).date()
+    lo = max(first, dash_start)
+    t, e, _ = D.period_slice(hist, lo.strftime("%Y-%m-%d"), last.strftime("%Y-%m-%d"))
+    dn = D.daily_net(t, e, lo.strftime("%Y-%m-%d"), last.strftime("%Y-%m-%d")) if lo <= last else pd.DataFrame(columns=["date", "pnl"])
+    pnl = dict(zip(dn["date"], dn["pnl"])) if not dn.empty else {}
+    cl = t[t["bucket"] == "축소"] if not t.empty else t
+    cnt = cl.groupby("date").size().to_dict() if not cl.empty else {}
+    vals = [abs(v) for v in pnl.values() if v]
+    mx = max(vals) if vals else 1
+    total = sum(pnl.values())
+    wd = sum(1 for v in pnl.values() if v > 0); ld = sum(1 for v in pnl.values() if v < 0)
+    cells = []
+    for _ in range((first.weekday() + 1) % 7):  # 일요일 시작
+        cells.append("<div class='cal-c empty'></div>")
+    for d in range(1, last.day + 1):
+        day = datetime(year, month, d).date()
+        ds = day.strftime("%Y-%m-%d")
+        v = pnl.get(ds, 0.0)
+        cls = ["cal-c"]
+        if day > today_d or day < dash_start:
+            cls.append("off")
+        if day == today_d:
+            cls.append("today")
+        style = ""
+        if v:
+            a = 0.14 + 0.66 * min(1.0, abs(v) / mx)
+            style = f"background:rgba({'8,153,129' if v > 0 else '240,68,82'},{a:.2f});"
+            # 옅은 칸은 글자를 색으로, 진한 칸은 흰 글자로 (잘 보이게)
+            cls.append(("pos" if v > 0 else "neg") + ("" if a >= 0.42 else "-lt"))
+        amt = f"<b>{_cal_amt(v)}</b>" if v else ""
+        n = f"<i>{cnt[ds]}건</i>" if cnt.get(ds) else ""
+        cells.append(f"<div class='{' '.join(cls)}' style='{style}' title='{ds} · {money(v)}'><span>{d}</span>{amt}{n}</div>")
+    head = "".join(f"<div class='cal-h{' sun' if i == 0 else ' sat' if i == 6 else ''}'>{w}</div>" for i, w in enumerate("일월화수목금토"))
+    return (f"<div class='cal-sum'><span class='{'up' if total > 0 else 'down' if total < 0 else ''}'>{money(total)}</span>"
+            f"<small>수익 {wd}일 · 손실 {ld}일</small></div><div class='cal'>{head}{''.join(cells)}</div>")
+
+
+if "cal_ym" not in st.session_state:
+    st.session_state.cal_ym = (today_d.year, today_d.month)
+
+
+def _cal_move(step):
+    y, m = st.session_state.cal_ym
+    m += step
+    y, m = (y - 1, 12) if m < 1 else (y + 1, 1) if m > 12 else (y, m)
+    if (y, m) <= (today_d.year, today_d.month) and (y, m) >= (dash_start.year, dash_start.month):
+        st.session_state.cal_ym = (y, m)
+
+
+with st.container(key="cal_card"):
+    cy, cm = st.session_state.cal_ym
+    with st.container(key="cal_head", horizontal=True, vertical_alignment="center"):
+        html("<div class='cal-title'>PNL 캘린더</div>")
+        with st.container(key="cal_nav", horizontal=True, vertical_alignment="center", width="content", gap="small"):
+            st.button("", icon=":material/chevron_left:", key="cal_prev", on_click=_cal_move, args=(-1,),
+                      disabled=(cy, cm) <= (dash_start.year, dash_start.month))
+            html(f"<div class='cal-ym'>{cy}.{cm:02d}</div>")
+            st.button("", icon=":material/chevron_right:", key="cal_next", on_click=_cal_move, args=(1,),
+                      disabled=(cy, cm) >= (today_d.year, today_d.month))
+    html(calendar_html(cy, cm))
+
+# -----------------------------------------------------------------------------
 # 성과 지표
 # -----------------------------------------------------------------------------
 st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
@@ -416,13 +492,30 @@ st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
 # 시간대별 손익
 # -----------------------------------------------------------------------------
 with st.container(key="chart_card_hour"):
-    html(f"<div class='card-title'><span>시간대별 순손익</span><span>청산 시각 · KST</span></div>")
+    with st.container(key="hour_head", horizontal=True, vertical_alignment="center"):
+        html(f"<div style='font-size:17px;color:{TEXT};font-weight:800;letter-spacing:-0.02em;line-height:40px;'>언제 잘 벌까?</div>")
+        with st.container(key="hour_view_box", width="content"):
+            hview = st.segmented_control("기준", ["시간대별", "요일별"], default="시간대별", key="hour_view", label_visibility="collapsed") or "시간대별"
     if decr:
-        hrs = closes.assign(h=pd.to_datetime(closes["datetime"]).dt.hour).groupby("h")["net"].agg(["sum", "size"]).reindex(range(24), fill_value=0)
-        fig = go.Figure(go.Bar(x=[f"{h}시" for h in hrs.index], y=hrs["sum"],
-                               marker=dict(color=[GREEN if v >= 0 else RED for v in hrs["sum"]], line_width=0, cornerradius=4),
-                               customdata=hrs["size"], hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT · %{customdata}건<extra></extra>"))
-        fig = style_fig(fig, height=280, ticks=[f"{h}시" for h in range(0, 24, 3)])
+        dtc = pd.to_datetime(closes["datetime"])
+        if hview == "시간대별":
+            grp = closes.assign(k=dtc.dt.hour).groupby("k")["net"].agg(["sum", "size"]).reindex(range(24), fill_value=0)
+            xs = [f"{h}시" for h in grp.index]
+            ticks_h = [f"{h}시" for h in range(0, 24, 3)]
+        else:
+            grp = closes.assign(k=dtc.dt.weekday).groupby("k")["net"].agg(["sum", "size"]).reindex(range(7), fill_value=0)
+            xs = list("월화수목금토일")
+            ticks_h = xs
+        best = grp["sum"].idxmax() if grp["sum"].max() > 0 else None
+        worst = grp["sum"].idxmin() if grp["sum"].min() < 0 else None
+        lab = (lambda k: f"{k}시" if hview == "시간대별" else "월화수목금토일"[k] + "요일")
+        html("<div class='hour-sum'>" + (f"<span>가장 잘 번 {'시간' if hview == '시간대별' else '요일'} <b class='up'>{lab(best)} {money(grp['sum'][best])}</b></span>" if best is not None else "")
+             + (f"<span>가장 많이 잃은 {'시간' if hview == '시간대별' else '요일'} <b class='down'>{lab(worst)} {money(grp['sum'][worst])}</b></span>" if worst is not None else "")
+             + "<span>청산 시각 · KST</span></div>")
+        fig = go.Figure(go.Bar(x=xs, y=grp["sum"],
+                               marker=dict(color=[GREEN if v >= 0 else RED for v in grp["sum"]], line_width=0, cornerradius=4 if hview == "시간대별" else 8),
+                               customdata=grp["size"], hovertemplate="<b>%{x}</b><br>%{y:,.2f} USDT · %{customdata}건<extra></extra>"))
+        fig = style_fig(fig, height=260, ticks=ticks_h)
         fig.update_layout(hovermode="closest")
         st.plotly_chart(no_zoom(fig), width="stretch", config=PLOT_CFG)
     else:

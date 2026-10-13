@@ -326,6 +326,50 @@ div[class*="st-key-pnl_card"], div[class*="st-key-chart_card_"] {
     background-color: var(--mg-card) !important; border-radius: 20px !important;
     box-shadow: 0 2px 14px rgba(15,23,42,0.05) !important; padding: 22px 24px !important;
 }
+/* PNL 캘린더 */
+div[class*="st-key-cal_card"] { background-color: var(--mg-card) !important; border-radius: 20px !important; box-shadow: var(--mg-shadow) !important; padding: 20px 24px 22px !important; }
+div[class*="st-key-cal_head"] { justify-content: space-between !important; }
+div[class*="st-key-cal_head"] [data-testid="stMarkdownContainer"] { margin: 0 !important; }
+div[class*="st-key-cal_nav"] { gap: 4px !important; }
+div[class*="st-key-cal_nav"] button { width: 32px !important; height: 32px !important; min-height: 32px !important; padding: 0 !important; border-radius: 10px !important; background: var(--mg-soft) !important; border: 0 !important; }
+div[class*="st-key-cal_nav"] button:disabled { opacity: .35; }
+.cal-title { font-size: 17px; font-weight: 800; color: var(--mg-text); letter-spacing: -0.02em; line-height: 36px; }
+.cal-ym { font-size: 14.5px; font-weight: 800; color: var(--mg-text); min-width: 64px; text-align: center; font-variant-numeric: tabular-nums; }
+.cal-sum { display: flex; align-items: baseline; gap: 10px; margin: 6px 0 14px; }
+.cal-sum span { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; color: var(--mg-text); }
+.cal-sum span.up { color: #089981; } .cal-sum span.down { color: #F04452; }
+.cal-sum small { font-size: 12.5px; color: var(--mg-sub); font-weight: 600; }
+.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.cal-h { font-size: 11.5px; font-weight: 700; color: var(--mg-sub); text-align: center; padding-bottom: 2px; }
+.cal-h.sun { color: #F04452; } .cal-h.sat { color: #3182F6; }
+.cal-c { position: relative; min-height: 64px; border-radius: 12px; background: var(--mg-tile); padding: 7px 8px; display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
+.cal-c.empty { background: transparent; }
+.cal-c.off { opacity: .45; }
+.cal-c.today { box-shadow: inset 0 0 0 2px var(--mg-accent); }
+.cal-c span { font-size: 11.5px; font-weight: 700; color: var(--mg-sub); }
+.cal-c b { font-size: 13px; font-weight: 800; color: var(--mg-text); margin-top: auto; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; white-space: nowrap; }
+.cal-c.pos b, .cal-c.neg b, .cal-c.pos span, .cal-c.neg span { color: #fff; }
+.cal-c.pos-lt b { color: #067A67; } .cal-c.neg-lt b { color: #D23343; }
+html[data-mg-theme="dark"] .cal-c.pos-lt b { color: #3DDBB8; } html[data-mg-theme="dark"] .cal-c.neg-lt b { color: #FF7A86; }
+@media (prefers-color-scheme: dark) { html:not([data-mg-theme="light"]) .cal-c.pos-lt b { color: #3DDBB8; } html:not([data-mg-theme="light"]) .cal-c.neg-lt b { color: #FF7A86; } }
+.cal-c.pos-lt i, .cal-c.neg-lt i { color: var(--mg-sub); }
+/* 언제 잘 벌까 카드 */
+div[class*="st-key-hour_head"] { justify-content: space-between !important; }
+div[class*="st-key-hour_head"] [data-testid="stMarkdownContainer"] { margin: 0 !important; }
+div[class*="st-key-hour_view_box"] div[role="radiogroup"] { background: var(--mg-soft); border-radius: 12px; padding: 4px; gap: 2px !important; }
+div[class*="st-key-hour_view_box"] button[data-variant="segmented_control"] { border: 0 !important; background: transparent !important; border-radius: 9px !important; min-height: 32px !important; height: 32px; padding: 0 14px !important; box-shadow: none !important; }
+div[class*="st-key-hour_view_box"] button[data-variant="segmented_control"] p { font-size: 13.5px !important; font-weight: 600 !important; color: var(--mg-mid2) !important; }
+div[class*="st-key-hour_view_box"] button[aria-checked="true"] { background: var(--mg-raise) !important; box-shadow: 0 1px 4px rgba(15,23,42,0.08) !important; }
+div[class*="st-key-hour_view_box"] button[aria-checked="true"] p { color: var(--mg-text) !important; font-weight: 800 !important; }
+.hour-sum { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12.5px; color: var(--mg-sub); margin: 4px 0 2px; }
+.hour-sum b { font-weight: 800; margin-left: 4px; } .hour-sum .up { color: #089981; } .hour-sum .down { color: #F04452; }
+.cal-c i { font-style: normal; font-size: 10px; color: rgba(255,255,255,.85); font-weight: 600; }
+@media (max-width: 768px) {
+  div[class*="st-key-cal_card"] { padding: 16px 14px 16px !important; }
+  .cal { gap: 4px; } .cal-c { min-height: 48px; padding: 5px 4px; border-radius: 9px; align-items: center; }
+  .cal-c span { font-size: 10.5px; } .cal-c b { font-size: 10.5px; } .cal-c i { display: none; }
+  .cal-sum span { font-size: 21px; }
+}
 div[class*="st-key-pos_container_"] {
     background-color: var(--mg-card) !important; border-radius: 20px !important;
     box-shadow: 0 2px 14px rgba(15,23,42,0.05) !important; padding: 14px 24px 14px !important; margin-bottom: 18px !important;
@@ -336,6 +380,7 @@ button[data-baseweb="tab"][aria-selected="true"] p { color: #3182F6 !important; 
 div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
 
 .pos-box { padding: 4px 14px; flex: 1 1 190px; }
+.tcard { height: 320px; }
 .pos-divider { border-left: 1px solid var(--mg-border); }
 
 .stButton>button { height: 38px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--mg-border); background-color: var(--mg-card); color: var(--mg-text); font-weight: 600; white-space: nowrap; box-shadow:none; }
@@ -383,6 +428,30 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
     .ph-title { font-size: 21px; }
     .pos-divider { border-left: none !important; border-top: 1px solid var(--mg-border) !important; padding-top: 14px !important; margin-top: 6px !important; }
     .hide-on-mobile { display: none !important; }
+    /* 보유 포지션: 휴대폰에서는 2칸 격자로 촘촘하게 (종목 → 미실현 손익 → 가격 | 증거금) */
+    .pos-wrap { display: grid !important; grid-template-columns: 1fr 1fr; gap: 12px 10px; }
+    .pos-wrap .pos-box { padding: 0 !important; border: 0 !important; margin: 0 !important; }
+    .pos-wrap .pb-sym { grid-column: 1 / -1; order: 1; }
+    .pos-wrap .pb-pnl { grid-column: 1 / -1; order: 2; background: var(--mg-tile); border-radius: 14px; padding: 12px 14px !important; }
+    .pos-wrap .pb-pnl > div:first-child { margin-bottom: 6px !important; }
+    .pos-wrap .pb-px { order: 3; } .pos-wrap .pb-mg { order: 4; }
+    .pos-wrap .pb-px > div:first-child, .pos-wrap .pb-mg > div:first-child { margin-bottom: 8px !important; font-size: 11.5px !important; }
+    .pos-wrap .pb-px span[style*="width:42px"], .pos-wrap .pb-mg span[style*="width:42px"] { width: 34px !important; font-size: 11px !important; }
+    .pos-wrap .pb-px span[style*="font-size:17px"], .pos-wrap .pb-mg span[style*="font-size:17px"] { font-size: 14.5px !important; }
+    .pos-wrap .pb-sym div[style*="font-size:22px"] { font-size: 19px !important; }
+    .pos-wrap .pb-mg span[style*="font-size:13px"] { display: none; }
+    div[class*="st-key-pos_container_"] { padding: 14px 16px 12px !important; }
+    /* 상단 PNL 카드: 오늘 · 이번 달은 나란히, 미실현은 아래 한 줄 */
+    div[data-testid="stHorizontalBlock"]:has(.topc) { flex-wrap: wrap !important; gap: 10px !important; flex-direction: row !important; }
+    div[data-testid="stHorizontalBlock"]:has(.topc) > div[data-testid="stColumn"] { flex: 1 1 calc(50% - 5px) !important; min-width: calc(50% - 5px) !important; width: calc(50% - 5px) !important; }
+    div[data-testid="stHorizontalBlock"]:has(.topc) > div[data-testid="stColumn"]:nth-child(3) { flex-basis: 100% !important; width: 100% !important; }
+    .topc { padding: 14px 15px !important; border-radius: 16px !important; }
+    .topc-h { flex-direction: column; align-items: flex-start; gap: 6px; }
+    .topc-t { font-size: 13px; } .topc-chip { font-size: 10.5px; padding: 3px 8px; }
+    .topc-v { font-size: 22px !important; margin-top: 8px; } .topc-k { font-size: 12px; }
+    div[data-testid="stHorizontalBlock"]:has(.topc) > div[data-testid="stColumn"]:nth-child(3) .topc-h { flex-direction: row; align-items: center; }
+    /* 주문 횟수 · 롱숏 · 승률 카드: 높이 자동 */
+    .tcard { height: auto !important; gap: 14px; }
     /* 상세 매매 내역: 휴대폰에서는 날짜 / 수량·가격, 손익 / 수수료를 줄을 나눠서 깔끔하게 */
     .log-row { padding: 13px 2px; align-items: flex-start; }
     .log-left { gap: 10px; align-items: flex-start; }
