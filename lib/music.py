@@ -154,6 +154,7 @@ _CSS = r"""
 @keyframes mg-pulse { 0%,100% { transform: scale(.92); } 50% { transform: scale(1.08); } }
 @media (max-width: 768px) {
   #mg-music { bottom: 14px; }
+  body.mg-on-chart #mg-music { bottom: 100px; }  /* 차트 화면 아래 탭 바 위로 */
   #mg-music.in { transform: translateX(-27px); } #mg-music.in.open { transform: translateX(10px); }
   #mg-music .disc { width: 52px; height: 52px; } #mg-music .label { inset: 16px; }
   #mg-music.open .np { width: min(290px, calc(100vw - 84px)); padding: 0 8px 0 14px; }

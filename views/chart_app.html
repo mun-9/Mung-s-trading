@@ -204,6 +204,7 @@ svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-widt
 .rbtn:hover { background: var(--hover); color: var(--strong); }
 .rbtn.on { background: rgba(41,98,255,0.16); color: #8CAEFF; }
 .rail-bottom { margin-top: auto; }
+.m-only { display: none !important; }
 #panelToggle.on { background: transparent; color: var(--mid); }
 #panelToggle.on:hover { background: var(--hover); color: var(--strong); }
 
@@ -222,7 +223,17 @@ svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-widt
 @media (max-width: 1250px) { .hide-lg { display: none !important; } }
 @media (max-width: 1000px) { .hide-md { display: none !important; } }
 @media (max-width: 860px) {
-  #panel, #rail { display: none !important; }
+  /* 휴대폰: 오른쪽 세로 메뉴 → 아래 탭 바, 패널은 차트 위를 덮는 전체 화면 */
+  #main { position: relative; flex-direction: column; }
+  #grid { order: 1; }
+  #rail { order: 2; display: flex !important; width: 100%; height: 54px; flex-direction: row; justify-content: space-around; align-items: stretch; padding: 0 4px; gap: 0; border-left: 0; border-top: 1px solid var(--line2); }
+  #rail .rbtn { flex: 1; width: auto; height: 100%; border-radius: 0; font-size: 10.5px; gap: 3px; }
+  #rail .rbtn.on { background: transparent; color: #8CAEFF; }
+  #rail .m-only { display: flex !important; }
+  #panelToggle { display: none !important; }
+  #panel { display: none !important; }
+  #app:not(.panel-off) #panel { display: flex !important; position: absolute; left: 0; right: 0; top: 0; bottom: 54px; width: auto; z-index: 5; border-left: 0; }
+  #panel .x { display: none; }
   #grid.l2, #grid.l3, #grid.l4 { grid-template: 1fr / 1fr; }
   #grid .cell:not(.active) { display: none; }
   #grid.l3 .cell:first-child { grid-row: auto; }
@@ -284,6 +295,7 @@ svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-widt
     <div id="grid"></div>
     <div id="panel"></div>
     <div id="rail">
+      <button class="rbtn m-only" id="mChart"><svg class="i" viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 15l3-4 3 2 5-6"/></svg>차트</button>
       <button class="rbtn" data-v="watch"><svg class="i" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>와치</button>
       <button class="rbtn" data-v="book"><svg class="i" viewBox="0 0 24 24"><path d="M4 6h10M4 10h7M4 14h12M4 18h8"/><path d="M19 5v14"/></svg>호가</button>
       <button class="rbtn" data-v="liq"><svg class="i" viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>청산</button>
@@ -489,7 +501,8 @@ function setActive(i) { if (i === state.active) return; state.active = i; save()
 function selectSym(sym) {
   $('pop').classList.remove('open');
   const p = panes[state.active]; if (sym === p.sym) return;
-  p.sym = sym; save(); refreshHeads(); renderBar(); renderPanel(); buildPane(state.active);
+  p.sym = sym; if (isMobile()) state.panel = false; // 휴대폰: 종목을 고르면 바로 차트로
+  save(); refreshHeads(); renderBar(); renderPanel(); buildPane(state.active);
 }
 
 // ---------- 실시간 차트 (체결마다 바로 갱신) ----------
@@ -666,7 +679,10 @@ function renderRail() {
   document.querySelectorAll('.rbtn[data-v]').forEach(b => b.classList.toggle('on', state.panel && b.dataset.v === state.view));
   $('panelToggle').classList.toggle('on', state.panel);
   $('app').classList.toggle('panel-off', !state.panel);
+  $('mChart').classList.toggle('on', !state.panel);
 }
+const isMobile = () => matchMedia('(max-width: 860px)').matches;
+$('mChart').onclick = () => { state.panel = false; renderPanel(); };
 document.querySelectorAll('.rbtn[data-v]').forEach(b => b.onclick = () => {
   if (state.panel && state.view === b.dataset.v) { state.panel = false; save(); renderPanel(); return; }
   showView(b.dataset.v);
@@ -1042,6 +1058,8 @@ setTimeout(hideSplash, 6000);
 // ---------- 시작 ----------
 fitHeight(); setTimeout(fitHeight, 400);
 $('spTxt').textContent = X.name + ' 실시간 시세 연결 중';
+if (isMobile()) state.panel = false; // 휴대폰은 차트부터
+try { window.parent.document.body.classList.add('mg-on-chart'); window.addEventListener('pagehide', () => window.parent.document.body.classList.remove('mg-on-chart')); } catch (e) {}
 renderTabs(); renderEngine(); renderBar(); renderPanel(); renderStatus(); tickClock();
 setInterval(tickClock, 1000);
 buildGrid();
