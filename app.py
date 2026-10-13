@@ -35,4 +35,7 @@ pages = [
     st.Page("views/coins.py", title="코인", url_path="coins"),
     st.Page("views/tools.py", title="도구", url_path="tools"),
 ]
-st.navigation(pages, position="hidden").run()
+_pg = st.navigation(pages, position="hidden")
+_pg.run()
+if _pg.url_path != "chart":  # 차트 화면은 꽉 찬 화면이라 제외
+    lib.ui.footer()

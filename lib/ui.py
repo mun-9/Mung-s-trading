@@ -333,6 +333,9 @@ div[data-testid="stButtonGroup"] button[data-variant="segmented_control"] { bord
 div[data-testid="stButtonGroup"] button[data-variant="segmented_control"] p { font-size: 13.5px !important; font-weight: 600 !important; color: var(--mg-mid2) !important; }
 div[data-testid="stButtonGroup"] button[data-variant="segmented_control"][aria-checked="true"] { background: var(--mg-raise) !important; box-shadow: 0 1px 4px rgba(15,23,42,0.08) !important; }
 div[data-testid="stButtonGroup"] button[data-variant="segmented_control"][aria-checked="true"] p { color: var(--mg-text) !important; font-weight: 800 !important; }
+/* 맨 아래 안내 */
+.mg-foot { margin: 40px 0 10px; padding: 22px 4px 90px; border-top: 1px solid var(--mg-line); display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--mg-faint); text-align: center; }
+.mg-foot b { color: var(--mg-sub); font-weight: 800; }
 /* 바로가기 칩 */
 .jumps { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 10px 0 14px; padding-bottom: 2px; }
 .jumps::-webkit-scrollbar { display: none; }
@@ -525,6 +528,13 @@ def nav(current, dark=False):
                 with st.container(key=f"navlink_{key}_{'on' if key == current else 'off'}", width="content"):
                     st.page_link(path, label=label, icon=icon)
         html("<div class='mg-theme-slot'></div>")
+
+
+def footer():
+    """모든 화면 맨 아래: 데이터 출처 · 안내."""
+    html("<div class='mg-foot'><div><b>Mung9_</b> Trading Journal</div>"
+         "<div>데이터 Bitget · CoinGecko · Upbit · Binance · Bybit · OKX · TradingView</div>"
+         "<div>정보 제공용이며 투자 판단과 책임은 본인에게 있어요</div></div>")
 
 
 def title_row(title, right_html, on_refresh):
