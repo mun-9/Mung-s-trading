@@ -574,8 +574,29 @@ if not rows:
     html(f"<div class='card' style='text-align:center;color:{SUB};padding:32px;'>표시할 내역이 없습니다</div>")
 else:
     out = []
+    # 날짜별로 묶어서 '10월 13일 (화) · 그날 순손익' 머리줄을 넣음
+    def _amt(typ, r):
+        if typ == "trade":
+            return float(r.net) if (r.bucket == "축소" and r.has_pnl) else 0.0
+        if typ == "event":
+            return float(r.amount)
+        return 0.0
+    day_sum = {}
     for typ, dt, r in rows[:150]:
-        dt_str = pd.Timestamp(dt).strftime("%m.%d %H:%M")
+        k = pd.Timestamp(dt).strftime("%Y-%m-%d")
+        day_sum[k] = day_sum.get(k, 0.0) + _amt(typ, r)
+    prev_day = None
+    for typ, dt, r in rows[:150]:
+        ts_ = pd.Timestamp(dt)
+        k = ts_.strftime("%Y-%m-%d")
+        if k != prev_day:
+            prev_day = k
+            v = day_sum.get(k, 0.0)
+            wd_ = "월화수목금토일"[ts_.weekday()]
+            lab = "오늘" if k == today_str else ("어제" if k == (now - timedelta(days=1)).strftime("%Y-%m-%d") else f"{ts_.month}월 {ts_.day}일")
+            out.append(f"<div class='log-day'><span>{lab} <small>({wd_})</small></span>"
+                       f"<b style='color:{pnl_color(v)};'>{money(v) if v else ''}</b></div>")
+        dt_str = ts_.strftime("%H:%M")
         if typ == "transfer":
             label, tag, c, icon = {"principal": ("원금 입금", "원금", BLUE, "🏦"), "payback": ("수수료 페이백", "페이백", GREEN, "💰"),
                                    "withdraw": ("출금", "출금", RED, "↗")}[r["kind"]]
@@ -612,7 +633,7 @@ else:
                    f"<div><div class='row-title'>{r.symbol} <span class='pill' style='background:{ss};color:{sc};'>{r.side}</span></div>"
                    f"<div class='row-sub'><span>{dt_str}</span><span class='rs-sep'> · </span><span class='rs-d'>{'진입' if r.bucket == '증가' else '청산'} {qty_txt} @ {price}</span></div></div></div>"
                    f"<div class='row-right'>{right}</div></div>")
-    html("<div class='card' style='padding:6px 20px;max-height:620px;overflow-y:auto;'>" + "".join(out) + "</div>")
+    html("<div class='card log-card' style='padding:0 20px 6px;max-height:680px;overflow-y:auto;'>" + "".join(out) + "</div>")
     if len(rows) > 150:
         html(f"<div class='note-text'>최근 150건만 표시 (전체 {len(rows)}건)</div>")
 

@@ -53,10 +53,10 @@ html[data-mg-theme="dark"] { --mg-bg:#0D1015; --mg-card:#171B22; --mg-raise:#2A3
 html[data-mg-theme="dark"] .stApp, html[data-mg-theme="dark"] .stApp p, html[data-mg-theme="dark"] .stMarkdown { color: var(--mg-text); }
 html[data-mg-theme="dark"] [data-testid="stCaptionContainer"], html[data-mg-theme="dark"] .stCaption { color: var(--mg-sub) !important; }
 html[data-mg-theme="dark"] .card, html[data-mg-theme="dark"] div[class*="st-key-pnl_card"], html[data-mg-theme="dark"] div[class*="st-key-chart_card_"], html[data-mg-theme="dark"] div[class*="st-key-pos_container_"], html[data-mg-theme="dark"] .mg-load, html[data-mg-theme="dark"] .psk { box-shadow: var(--mg-shadow) !important; }
-html[data-mg-theme="dark"] div[data-testid="stButtonGroup"] button { background: var(--mg-card) !important; border-color: var(--mg-border) !important; }
+html[data-mg-theme="dark"] div[data-testid="stButtonGroup"] button { border-color: var(--mg-border) !important; }
 html[data-mg-theme="dark"] div[data-testid="stButtonGroup"] button p { color: var(--mg-mid2) !important; }
-html[data-mg-theme="dark"] div[data-testid="stButtonGroup"] button[aria-checked="true"] { background: var(--mg-sel) !important; border-color: rgba(91,141,255,0.45) !important; }
-html[data-mg-theme="dark"] div[data-testid="stButtonGroup"] button[aria-checked="true"] p { color: var(--mg-accent) !important; }
+html[data-mg-theme="dark"] div[data-testid="stButtonGroup"] button[aria-checked="true"] { background: var(--mg-raise) !important; }
+html[data-mg-theme="dark"] div[data-testid="stButtonGroup"] button[aria-checked="true"] p { color: var(--mg-text) !important; }
 html[data-mg-theme="dark"] div[class*="st-key-range_row"] button[data-variant="segmented_control"], html[data-mg-theme="dark"] div[class*="st-key-pnl_view_box"] button[data-variant="segmented_control"] { background: transparent !important; border: 0 !important; }
 html[data-mg-theme="dark"] div[class*="st-key-pnl_view_box"] button[aria-checked="true"] { background: var(--mg-raise) !important; }
 html[data-mg-theme="dark"] div[class*="st-key-pnl_view_box"] button[aria-checked="true"] p { color: var(--mg-text) !important; }
@@ -76,10 +76,10 @@ html[data-mg-theme="dark"] ::-webkit-scrollbar-thumb { background: #2A303A; }
 html:not([data-mg-theme="light"]) .stApp, html:not([data-mg-theme="light"]) .stApp p, html:not([data-mg-theme="light"]) .stMarkdown { color: var(--mg-text); }
 html:not([data-mg-theme="light"]) [data-testid="stCaptionContainer"], html:not([data-mg-theme="light"]) .stCaption { color: var(--mg-sub) !important; }
 html:not([data-mg-theme="light"]) .card, html:not([data-mg-theme="light"]) div[class*="st-key-pnl_card"], html:not([data-mg-theme="light"]) div[class*="st-key-chart_card_"], html:not([data-mg-theme="light"]) div[class*="st-key-pos_container_"], html:not([data-mg-theme="light"]) .mg-load, html:not([data-mg-theme="light"]) .psk { box-shadow: var(--mg-shadow) !important; }
-html:not([data-mg-theme="light"]) div[data-testid="stButtonGroup"] button { background: var(--mg-card) !important; border-color: var(--mg-border) !important; }
+html:not([data-mg-theme="light"]) div[data-testid="stButtonGroup"] button { border-color: var(--mg-border) !important; }
 html:not([data-mg-theme="light"]) div[data-testid="stButtonGroup"] button p { color: var(--mg-mid2) !important; }
-html:not([data-mg-theme="light"]) div[data-testid="stButtonGroup"] button[aria-checked="true"] { background: var(--mg-sel) !important; border-color: rgba(91,141,255,0.45) !important; }
-html:not([data-mg-theme="light"]) div[data-testid="stButtonGroup"] button[aria-checked="true"] p { color: var(--mg-accent) !important; }
+html:not([data-mg-theme="light"]) div[data-testid="stButtonGroup"] button[aria-checked="true"] { background: var(--mg-raise) !important; }
+html:not([data-mg-theme="light"]) div[data-testid="stButtonGroup"] button[aria-checked="true"] p { color: var(--mg-text) !important; }
 html:not([data-mg-theme="light"]) div[class*="st-key-range_row"] button[data-variant="segmented_control"], html:not([data-mg-theme="light"]) div[class*="st-key-pnl_view_box"] button[data-variant="segmented_control"] { background: transparent !important; border: 0 !important; }
 html:not([data-mg-theme="light"]) div[class*="st-key-pnl_view_box"] button[aria-checked="true"] { background: var(--mg-raise) !important; }
 html:not([data-mg-theme="light"]) div[class*="st-key-pnl_view_box"] button[aria-checked="true"] p { color: var(--mg-text) !important; }
@@ -326,6 +326,12 @@ div[class*="st-key-pnl_card"], div[class*="st-key-chart_card_"] {
     background-color: var(--mg-card) !important; border-radius: 20px !important;
     box-shadow: 0 2px 14px rgba(15,23,42,0.05) !important; padding: 22px 24px !important;
 }
+/* 기본 선택 버튼(분봉 · 내역 종류 등)도 알약 모양으로 통일 */
+div[data-testid="stButtonGroup"] div[role="radiogroup"] { background: var(--mg-soft); border-radius: 12px; padding: 4px; gap: 2px !important; width: fit-content; }
+div[data-testid="stButtonGroup"] button[data-variant="segmented_control"] { border: 0 !important; background: transparent !important; border-radius: 9px !important; min-height: 32px !important; height: 32px; padding: 0 13px !important; box-shadow: none !important; }
+div[data-testid="stButtonGroup"] button[data-variant="segmented_control"] p { font-size: 13.5px !important; font-weight: 600 !important; color: var(--mg-mid2) !important; }
+div[data-testid="stButtonGroup"] button[data-variant="segmented_control"][aria-checked="true"] { background: var(--mg-raise) !important; box-shadow: 0 1px 4px rgba(15,23,42,0.08) !important; }
+div[data-testid="stButtonGroup"] button[data-variant="segmented_control"][aria-checked="true"] p { color: var(--mg-text) !important; font-weight: 800 !important; }
 /* PNL 캘린더 */
 div[class*="st-key-cal_card"] { background-color: var(--mg-card) !important; border-radius: 20px !important; box-shadow: var(--mg-shadow) !important; padding: 20px 24px 22px !important; }
 div[class*="st-key-cal_head"] { justify-content: space-between !important; }
@@ -390,6 +396,10 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
 .note-text { font-size:11.5px; line-height:1.7; color:var(--mg-faint); margin:6px 2px 0; }
 .err-box { background:var(--mg-errbg); border:1px solid rgba(240,68,82,0.25); color:#C0303D; border-radius:14px; padding:12px 16px; font-size:13px; margin-bottom:14px; line-height:1.6; }
 
+.log-day { position: sticky; top: 0; z-index: 1; display: flex; justify-content: space-between; align-items: baseline; padding: 14px 4px 8px; background: var(--mg-card); border-bottom: 1px solid var(--mg-line); }
+.log-day span { font-size: 13.5px; font-weight: 800; color: var(--mg-text); } .log-day small { font-size: 12px; color: var(--mg-sub); font-weight: 600; }
+.log-day b { font-size: 13.5px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.log-day + .log-row { padding-top: 12px; }
 .log-row { display:flex; justify-content:space-between; align-items:center; padding:15px 6px; border-bottom:1px solid var(--mg-soft); }
 .log-row:last-child { border-bottom:none; }
 .log-left { display:flex; align-items:center; gap:13px; }
@@ -436,10 +446,10 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
     .pos-wrap .pb-pnl > div:first-child { margin-bottom: 6px !important; }
     .pos-wrap .pb-px { order: 3; } .pos-wrap .pb-mg { order: 4; }
     .pos-wrap .pb-px > div:first-child, .pos-wrap .pb-mg > div:first-child { margin-bottom: 8px !important; font-size: 11.5px !important; }
-    .pos-wrap .pb-px span[style*="width:42px"], .pos-wrap .pb-mg span[style*="width:42px"] { width: 34px !important; font-size: 11px !important; }
-    .pos-wrap .pb-px span[style*="font-size:17px"], .pos-wrap .pb-mg span[style*="font-size:17px"] { font-size: 14.5px !important; }
-    .pos-wrap .pb-sym div[style*="font-size:22px"] { font-size: 19px !important; }
-    .pos-wrap .pb-mg span[style*="font-size:13px"] { display: none; }
+    .pos-wrap .pb-px span[style*="width: 42px"], .pos-wrap .pb-mg span[style*="width: 42px"] { width: 34px !important; font-size: 11px !important; }
+    .pos-wrap .pb-px span[style*="font-size: 17px"], .pos-wrap .pb-mg span[style*="font-size: 17px"] { font-size: 14.5px !important; }
+    .pos-wrap .pb-sym div[style*="font-size: 22px"] { font-size: 19px !important; }
+    .pos-wrap .pb-mg span[style*="font-size: 13px"] { display: none; }
     div[class*="st-key-pos_container_"] { padding: 14px 16px 12px !important; }
     /* 상단 PNL 카드: 오늘 · 이번 달은 나란히, 미실현은 아래 한 줄 */
     div[data-testid="stHorizontalBlock"]:has(.topc) { flex-wrap: wrap !important; gap: 10px !important; flex-direction: row !important; }
