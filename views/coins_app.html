@@ -92,14 +92,14 @@ td.st { width: 30px; padding-right: 0; }
 .nw .nt { font-size: 14.5px; font-weight: 650; line-height: 1.45; transition: color .15s; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .nw .nd { font-size: 12.5px; color: var(--sub); margin-top: 4px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
 
-.hide-sm { }
+.hide-sm { } .only-sm { display: none; } .mseg { display: none; }
 @media (max-width: 1000px) { .pulse { grid-template-columns: repeat(2, minmax(0, 1fr)); } .tri { grid-template-columns: 1fr; }
   /* 뜨는 코인 · 상승 · 하락: 휴대폰에서는 탭으로 하나씩 */
   .trisel { display: flex; width: 100%; margin-bottom: -8px; } .trisel button { flex: 1; }
   .tri .mini { display: none; } .tri .mini.act { display: flex; } .news { grid-template-columns: 1fr; } .hide-md { display: none; } }
 @media (max-width: 640px) {
   .card { padding: 18px 16px; border-radius: 18px; }
-  .hide-sm { display: none; }
+  .hide-sm { display: none; } .only-sm { display: table-cell; } .mseg { display: flex; margin-bottom: 6px; } .mseg button { padding: 6px 10px; font-size: 12px; }
   td { padding: 11px 6px; font-size: 13.5px; } th { padding: 9px 6px; }
   .coin small { display: none; }
   .search { min-width: 0; flex: 1; }
@@ -125,11 +125,12 @@ td.st { width: 30px; padding-right: 0; }
       <div class="seg" id="tabs"><button data-t="all" class="on">전체</button><button data-t="fav">★ 즐겨찾기</button><button data-t="bitget">Bitget 선물</button><button data-t="up">상승</button><button data-t="down">하락</button></div>
       <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="q" placeholder="코인 이름·심볼 검색"></label>
     </div>
+    <div class="seg mseg" id="mseg"><button data-m="h24" class="on">24시간</button><button data-m="d7">7일</button><button data-m="kimp">김프</button><button data-m="fund">펀딩비</button><button data-m="mcap">시총</button></div>
     <div style="overflow-x:auto;">
       <table>
         <thead><tr>
           <th class="c"></th><th data-k="rank" class="c hide-sm">#</th><th data-k="name" class="l">코인</th><th data-k="price">가격</th>
-          <th data-k="h1" class="hide-md">1시간</th><th data-k="h24">24시간</th><th data-k="d7" class="hide-sm">7일</th>
+          <th data-k="h1" class="hide-md">1시간</th><th data-k="h24" class="hide-sm">24시간</th><th class="only-sm" id="mcHead" data-k="h24">24시간</th><th data-k="d7" class="hide-sm">7일</th>
           <th class="c hide-md">7일 차트</th><th data-k="mcap" class="hide-sm">시가총액</th><th data-k="vol" class="hide-md">거래량(24h)</th>
           <th data-k="fund" class="hide-md">펀딩비</th><th data-k="kimp" class="hide-sm">김프</th>
         </tr></thead>
@@ -270,7 +271,8 @@ function rowHtml(c) {
     <td class="l"><div class="coin">${c.img ? `<img class="logo" src="${esc(c.img)}" loading="lazy">` : '<span class="logo"></span>'}<div><b>${esc(c.sym)}</b><small>${esc(c.name)}</small>${c.bitget ? '' : ''}</div></div></td>
     <td class="px num" data-px="${esc(c.sym)}"><b>${fmtP(c.price)}</b><small>${fmtKrw(c.krw)}</small></td>
     <td class="pct num hide-md">${pc(c.h1)}</td>
-    <td class="pct num" data-pc="${esc(c.sym)}">${pc(c.h24)}</td>
+    <td class="pct num hide-sm" data-pc="${esc(c.sym)}">${pc(c.h24)}</td>
+    <td class="pct num only-sm" data-mc="${esc(c.sym)}">${mcell(c)}</td>
     <td class="pct num hide-sm">${pc(c.d7)}</td>
     <td class="hide-md">${sp}</td>
     <td class="num hide-sm">${fmtBig(c.mcap)}</td>
@@ -279,6 +281,20 @@ function rowHtml(c) {
     <td class="kimp num hide-sm">${c.kimp == null ? '<span class="flat">-</span>' : `<span class="${cls(c.kimp)}">${c.kimp > 0 ? '+' : ''}${c.kimp.toFixed(2)}%</span>`}</td>
   </tr>`;
 }
+// 휴대폰: 셋째 칸에 무엇을 보여줄지 고름 (24시간 · 7일 · 김프 · 펀딩비 · 시총)
+let mcol = 'h24';
+const MC = { h24: '24시간', d7: '7일', kimp: '김프', fund: '펀딩비', mcap: '시총' };
+function mcell(c) {
+  if (mcol === 'h24') return pc(c.h24); if (mcol === 'd7') return pc(c.d7);
+  if (mcol === 'kimp') return c.kimp == null ? '<span class="flat">-</span>' : `<span class="${cls(c.kimp)}">${c.kimp > 0 ? '+' : ''}${c.kimp.toFixed(2)}%</span>`;
+  if (mcol === 'fund') return c.fund == null ? '<span class="flat">-</span>' : `<span class="${cls(c.fund)}">${(c.fund * 100).toFixed(4)}%</span>`;
+  return `<span style="color:var(--mid)">${fmtBig(c.mcap)}</span>`;
+}
+$('mseg').querySelectorAll('button').forEach(b => b.onclick = () => {
+  mcol = b.dataset.m; $('mseg').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+  const h = $('mcHead'); h.dataset.k = mcol; h.firstChild ? (h.childNodes[0].nodeValue = MC[mcol]) : (h.textContent = MC[mcol]);
+  sortK = mcol; sortD = -1; renderTable();
+});
 function renderTable() {
   const a = list();
   $('tb').innerHTML = a.length ? a.slice(0, shown).map(rowHtml).join('') : `<tr><td colspan="12" class="c" style="padding:40px 0;color:var(--sub)">${tab === 'fav' ? '별(★)을 눌러 즐겨찾기를 추가해 보세요' : '찾는 코인이 없어요'}</td></tr>`;
@@ -339,6 +355,7 @@ function connectLive() {
         if (old && px !== old) { cell.classList.remove('flash-up', 'flash-down'); void cell.offsetWidth; cell.classList.add(px > old ? 'flash-up' : 'flash-down'); }
       }
       const pcell = document.querySelector(`td[data-pc="${CSS.escape(sym)}"]`); if (pcell) pcell.innerHTML = pc(c.h24);
+      const mcl = document.querySelector(`td[data-mc="${CSS.escape(sym)}"]`); if (mcl && (mcol === 'h24' || mcol === 'kimp')) mcl.innerHTML = mcell(c);
       if (sym === 'BTC' && $('pzBtc')) $('pzBtc').textContent = fmtP(px);
       if (drawer.sym === sym) updateDrawerPrice(c);
     }
