@@ -515,7 +515,7 @@ async function buildLive(i, body) {
   chart.priceScale('vol').applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
   const st = LC[i] = { chart, candle, vol, sym, ms, iv, last: null, ready: false, buf: [], rows: [], loading: false, done: false };
   // 왼쪽 끝 가까이 가면 더 옛날 봉을 이어서 불러옴
-  chart.timeScale().subscribeVisibleLogicalRangeChange(r => { if (r && r.from < 40 && st.ready) loadOlder(st); });
+  chart.timeScale().subscribeVisibleLogicalRangeChange(r => { if (r && r.from < 150 && st.ready) loadOlder(st); });
   // 내 포지션 진입가 · 청산가 표시
   for (const p of DATA.positions.filter(p => p.symbol === sym)) {
     const c = p.side === 'LONG' ? '#089981' : '#F23645';
@@ -531,6 +531,7 @@ async function buildLive(i, body) {
     st.last = st.rows.length ? st.rows[st.rows.length - 1] : null;
     st.ready = true;
     for (const t of st.buf) applyTrade(st, t); st.buf = [];
+    setTimeout(() => loadOlder(st), 800); // 처음부터 과거 봉을 미리 더 받아둠
   } catch (e) {
     el.innerHTML = `<div class="empty">${X.name} 차트 데이터를 불러오지 못했어요</div>`;
   }
@@ -543,10 +544,15 @@ async function loadOlder(st) {
   if (st.loading || st.done || !st.rows.length || !X.older) return;
   st.loading = true;
   try {
-    const first = st.rows[0].ms;
-    const got = (await X.older(st.sym, st.iv, first)).filter(r => r.ms < first);
+    // 한 번에 최대 5묶음(약 1000봉)씩 이어서 받아옴
+    let first = st.rows[0].ms, got = [];
+    for (let k = 0; k < 5; k++) {
+      const part = (await X.older(st.sym, st.iv, first)).filter(r => r.ms < first);
+      if (!part.length) { st.done = true; break; }
+      got = part.concat(got); first = part[0].ms;
+    }
     if (!Object.values(LC).includes(st)) return;
-    if (!got.length) { st.done = true; return; }
+    if (!got.length) return;
     const add = got.map(r => ({ ...r, time: r.ms / 1000 + KST_OFF }));
     const ts = st.chart.timeScale(), vr = ts.getVisibleLogicalRange();
     st.rows = add.concat(st.rows);
