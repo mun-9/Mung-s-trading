@@ -178,6 +178,7 @@ div[data-testid="stElementContainer"]:has(> div[data-testid="stButtonGroup"]) { 
 div[data-stale="true"], [data-stale="true"] { opacity: 1 !important; transition: none !important; filter: none !important; }
 
 /* 상단 헤더 (전체 폭, 스크롤해도 위에 고정) */
+[data-testid="stLayoutWrapper"]:has(> div[class*="st-key-topnav_"]) { position: sticky; top: 0; z-index: 999; }
 div[class*="st-key-topnav_"] {
     position: sticky; top: 0; z-index: 999; height: 72px; gap: 30px !important;
     margin-left: calc(50% - 50vw) !important; margin-right: calc(50% - 50vw) !important;
@@ -445,6 +446,8 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
     div[class*="st-key-navtabs"] > [data-testid="stLayoutWrapper"] > div[class*="st-key-navlink_"] { width: 100% !important; }
     div[class*="st-key-navlink_"] a { width: 100%; }
     div[class*="st-key-navlink_"] a { justify-content: center; }
+    body.mg-scrolled div[class*="st-key-topnav_"] > [data-testid="stElementContainer"] { display: none !important; }
+    body.mg-scrolled div[class*="st-key-topnav_"] { padding: 8px 14px !important; row-gap: 0 !important; }
     .nav-logo .word { font-size: 16.5px !important; }
     .nav-logo svg { width: 18px; height: 18px; }
     .mg-theme-btn { width: 34px; height: 34px; border-radius: 10px; }

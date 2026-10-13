@@ -27,6 +27,11 @@ _JS = r"""
       if (b.dataset.icon !== (isDark() ? 'sun' : 'moon')) { b.innerHTML = icon; b.dataset.icon = isDark() ? 'sun' : 'moon'; b.title = title; b.setAttribute('aria-label', title); }
     });
   }
+  // 휴대폰: 아래로 스크롤하면 메뉴 윗줄(로고·다크모드)을 접어서 화면을 넓게
+  d.addEventListener('scroll', e => {
+    const t = e.target; if (!t || !t.getAttribute || t.getAttribute('data-testid') !== 'stMain') return;
+    const on = t.scrollTop > 80; if (d.body.classList.contains('mg-scrolled') !== on) d.body.classList.toggle('mg-scrolled', on);
+  }, true);
   // 히스토리 화면 '바로가기' 칩: 누르면 그 카드로 부드럽게 스크롤
   d.addEventListener('click', e => {
     const j = e.target.closest('[data-mg-jump]'); if (!j) return;
