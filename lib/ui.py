@@ -332,6 +332,11 @@ div[data-testid="stButtonGroup"] button[data-variant="segmented_control"] { bord
 div[data-testid="stButtonGroup"] button[data-variant="segmented_control"] p { font-size: 13.5px !important; font-weight: 600 !important; color: var(--mg-mid2) !important; }
 div[data-testid="stButtonGroup"] button[data-variant="segmented_control"][aria-checked="true"] { background: var(--mg-raise) !important; box-shadow: 0 1px 4px rgba(15,23,42,0.08) !important; }
 div[data-testid="stButtonGroup"] button[data-variant="segmented_control"][aria-checked="true"] p { color: var(--mg-text) !important; font-weight: 800 !important; }
+/* 바로가기 칩 */
+.jumps { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 10px 0 14px; padding-bottom: 2px; }
+.jumps::-webkit-scrollbar { display: none; }
+.jump { flex-shrink: 0; border: 1px solid var(--mg-border); background: var(--mg-card); color: var(--mg-mid); font-family: inherit; font-size: 12.5px; font-weight: 700; padding: 7px 12px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+.jump:hover { color: var(--mg-accent); border-color: var(--mg-accent); }
 /* 매매 습관 리포트 */
 .ins-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
 .ins { display: flex; gap: 12px; padding: 14px 16px; border-radius: 14px; background: var(--mg-tile); border-left: 3px solid transparent; }

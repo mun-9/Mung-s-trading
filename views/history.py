@@ -242,7 +242,7 @@ f_trades, f_events, f_ledger = D.period_slice(hist, start_str, end_str)
 bd = D.breakdown(f_trades, f_events)
 perf = D.performance(f_trades)
 
-st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
+html("""<div class='jumps'><button class='jump' data-mg-jump='div[class*="st-key-pnl_card"]'>손익 그래프</button><button class='jump' data-mg-jump='div[class*="st-key-cal_card"]'>캘린더</button><button class='jump' data-mg-jump='.pt-grid'>성과 지표</button><button class='jump' data-mg-jump='.ins-list'>습관 리포트</button><button class='jump' data-mg-jump='div[class*="st-key-share_box"]'>수익 카드</button><button class='jump' data-mg-jump='div[class*="st-key-chart_card_hour"]'>시간대</button><button class='jump' data-mg-jump='.log-card'>상세 내역</button></div>""")
 
 # -----------------------------------------------------------------------------
 # 주문 횟수 · 롱숏 · 승률 추이
@@ -580,7 +580,8 @@ _share = {
 from pathlib import Path as _Path
 import json as _json
 import streamlit.components.v1 as _components
-_components.html((_Path(__file__).parent / "share_card.html").read_text(encoding="utf-8").replace("__DATA__", _json.dumps(_share)), height=560)
+with st.container(key="share_box"):
+    _components.html((_Path(__file__).parent / "share_card.html").read_text(encoding="utf-8").replace("__DATA__", _json.dumps(_share)), height=560)
 st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------

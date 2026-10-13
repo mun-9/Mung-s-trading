@@ -27,6 +27,16 @@ _JS = r"""
       if (b.dataset.icon !== (isDark() ? 'sun' : 'moon')) { b.innerHTML = icon; b.dataset.icon = isDark() ? 'sun' : 'moon'; b.title = title; b.setAttribute('aria-label', title); }
     });
   }
+  // 히스토리 화면 '바로가기' 칩: 누르면 그 카드로 부드럽게 스크롤
+  d.addEventListener('click', e => {
+    const j = e.target.closest('[data-mg-jump]'); if (!j) return;
+    const el = d.querySelector(j.getAttribute('data-mg-jump')); if (!el) return;
+    const box = el.closest('.card, [class*="st-key-"]') || el;
+    const main = d.querySelector('[data-testid="stMain"]');
+    const navH = (d.querySelector('[class*="st-key-topnav_"]') || { offsetHeight: 70 }).offsetHeight;
+    if (main) main.scrollTo({ top: main.scrollTop + box.getBoundingClientRect().top - navH - 12, behavior: 'smooth' });
+    else box.scrollIntoView({ behavior: 'smooth' });
+  });
   d.addEventListener('click', e => {
     if (!e.target.closest('.mg-theme-btn')) return;
     const t = isDark() ? 'light' : 'dark';
