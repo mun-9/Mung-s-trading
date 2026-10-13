@@ -608,7 +608,7 @@ def title_row(title, right_html, on_refresh):
 # 처음 거래 내역을 불러올 때 보여주는 로딩 화면
 # 로딩 화면 가운데 영상/움짤 자리.
 # Streamlit Secrets에 LOADER_MEDIA = "https://....gif" (또는 .mp4 / .webm) 를 넣으면 그걸 보여줌.
-# 없으면 기본: 캔들이 하나씩 그려지는 짧은 애니메이션.
+# 없으면 static/loader.gif, 그것도 없으면 캔들이 하나씩 그려지는 짧은 애니메이션.
 _CANDLES = [(30, 18, 1), (40, 22, 1), (34, 16, 0), (48, 26, 1), (44, 14, 0), (58, 30, 1), (52, 18, 0),
             (66, 28, 1), (60, 16, 0), (74, 30, 1), (70, 14, 0), (84, 26, 1)]
 
@@ -618,6 +618,11 @@ def _loader_media():
         url = str(st.secrets.get("LOADER_MEDIA", "") or "").strip()
     except Exception:
         url = ""
+    if not url:
+        # 사이트에 넣어둔 로딩 움짤 (static/loader.gif) 이 있으면 그걸 씀
+        from pathlib import Path as _P
+        if (_P(__file__).parent.parent / "static" / "loader.gif").exists():
+            return '<img src="app/static/loader.gif" alt="" style="aspect-ratio:540/316">'
     if url:
         u = url.split("?")[0].lower()
         if u.endswith((".mp4", ".webm", ".mov")):
