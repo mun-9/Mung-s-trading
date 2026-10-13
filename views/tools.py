@@ -29,7 +29,7 @@ components.html(page.replace("__DATA__", json.dumps(_fx())), height=1800)
 # 테더 가격은 브라우저에서 업비트를 직접 못 읽어서, 서버가 20초마다 받아서 계산기에 넘겨줌
 @st.fragment(run_every=20)
 def _fx_feed():
-    components.html(f"<script>try{{const P=window.parent;P.__mgFx={json.dumps({**_fx(), "ts": int(time.time())})};P.dispatchEvent(new P.CustomEvent('mg-fx'));}}catch(e){{}}</script>", height=0)
+    components.html(f"<script>try{{const P=window.parent;P.__mgFx={json.dumps({**_fx(), 'ts': int(time.time())})};P.dispatchEvent(new P.CustomEvent('mg-fx'));}}catch(e){{}}</script>", height=0)
 
 
 with st.container(key="mg_hidden_fx"):
