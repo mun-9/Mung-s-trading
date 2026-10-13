@@ -46,7 +46,10 @@ def _tracks():
     out = []
     for t in TRACKS:
         m = _meta(t["id"])
-        out.append({"id": t["id"], "title": t.get("title") or _clean(m["title"]) or "Untitled", "author": t.get("author") or m["author"]})
+        title = t.get("title") or _clean(m["title"]) or "Untitled"
+        # '가수 - 곡명' → 곡명은 크게, 가수는 아래 작게 (유튜브 채널명은 안 씀)
+        artist, song = (title.split(" - ", 1) + [""])[:2] if " - " in title else ("", title)
+        out.append({"id": t["id"], "song": song.strip(), "artist": artist.strip()})
     return out
 
 
@@ -111,25 +114,32 @@ _CSS = r"""
   backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4);
   transform: translateY(8px); transition: max-height .4s ease, opacity .25s ease, transform .3s ease; pointer-events: none; }
 #mg-music.list .pl { max-height: 380px; opacity: 1; transform: none; pointer-events: auto; }
-#mg-music .pl-h { display: flex; align-items: baseline; justify-content: space-between; padding: 14px 16px 8px; }
-#mg-music .pl-h b { font-size: 14px; font-weight: 800; letter-spacing: -.01em; }
-#mg-music .pl-h span { font-size: 11.5px; color: var(--mp-sub); }
-#mg-music .pl-ul { max-height: 320px; overflow-y: auto; padding: 0 6px 8px; scrollbar-width: thin; }
-#mg-music .pl-li { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 12px; cursor: pointer; transition: background .15s; }
-#mg-music .pl-li:hover { background: rgba(255,255,255,.07); }
-#mg-music .pl-li.cur { background: rgba(91,141,255,.16); }
-#mg-music .pl-th { position: relative; width: 40px; height: 40px; border-radius: 9px; background: #222 center/cover; flex-shrink: 0; }
-#mg-music .pl-li.cur .pl-th::after { content: ''; position: absolute; inset: 0; border-radius: 9px; background: rgba(0,0,0,.45); }
-#mg-music .eq { position: absolute; inset: 0; display: none; align-items: flex-end; justify-content: center; gap: 2px; padding-bottom: 11px; z-index: 1; }
-#mg-music .pl-li.cur .eq { display: flex; }
-#mg-music .eq i { width: 3px; height: 14px; border-radius: 1px; background: #fff; transform-origin: bottom; transform: scaleY(.3); }
+#mg-music .pl-h { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px 10px; }
+#mg-music .pl-h b { font-size: 11px; font-weight: 800; letter-spacing: .14em; color: var(--mp-sub); }
+#mg-music .pl-h span { font-size: 11px; font-weight: 700; color: #9DB8FF; background: rgba(91,141,255,.14); padding: 3px 8px; border-radius: 999px; }
+#mg-music .pl-ul { max-height: 318px; overflow-y: auto; padding: 0 8px 10px; scrollbar-width: none; }
+#mg-music .pl-ul::-webkit-scrollbar { display: none; }
+#mg-music .pl-li { position: relative; display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; cursor: pointer; transition: background .15s; }
+#mg-music .pl-li + .pl-li::before { content: ''; position: absolute; left: 46px; right: 12px; top: 0; height: 1px; background: rgba(255,255,255,.05); }
+#mg-music .pl-li:hover { background: rgba(255,255,255,.06); }
+#mg-music .pl-li.cur { background: linear-gradient(90deg, rgba(91,141,255,.22), rgba(91,141,255,.06)); }
+#mg-music .pl-li.cur::before, #mg-music .pl-li.cur + .pl-li::before { display: none; }
+#mg-music .pl-li.cur::after { content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 2px; background: #5B8DFF; }
+/* 왼쪽 칸: 번호 → 마우스 올리면 재생 아이콘 → 지금 곡이면 움직이는 막대 */
+#mg-music .pl-k { position: relative; width: 22px; height: 22px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+#mg-music .pl-n { font-size: 12px; font-weight: 600; color: var(--mp-sub); font-variant-numeric: tabular-nums; }
+#mg-music .pl-p { display: none; color: #fff; } #mg-music .pl-p svg { width: 13px; height: 13px; }
+#mg-music .pl-li:not(.cur):hover .pl-n { display: none; } #mg-music .pl-li:not(.cur):hover .pl-p { display: flex; }
+#mg-music .eq { display: none; align-items: flex-end; gap: 2px; height: 13px; }
+#mg-music .pl-li.cur .pl-n { display: none; } #mg-music .pl-li.cur .eq { display: flex; }
+#mg-music .eq i { width: 3px; height: 13px; border-radius: 1px; background: #7FA3FF; transform-origin: bottom; transform: scaleY(.35); }
 #mg-music.playing .pl-li.cur .eq i { animation: mg-eq .9s ease-in-out infinite; }
-#mg-music .eq i:nth-child(2) { animation-delay: .2s !important; } #mg-music .eq i:nth-child(3) { animation-delay: .4s !important; }
+#mg-music .eq i:nth-child(2) { animation-delay: .25s !important; } #mg-music .eq i:nth-child(3) { animation-delay: .5s !important; }
 #mg-music .pl-tx { flex: 1; min-width: 0; }
-#mg-music .pl-t { font-size: 13px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#mg-music .pl-li.cur .pl-t { color: #9DB8FF; }
-#mg-music .pl-a { font-size: 11px; color: var(--mp-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
-#mg-music .pl-n { font-size: 11px; color: var(--mp-sub); width: 16px; text-align: center; font-variant-numeric: tabular-nums; }
+#mg-music .pl-t { font-size: 13.5px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.01em; }
+#mg-music .pl-li.cur .pl-t { color: #fff; font-weight: 750; }
+#mg-music .pl-a { font-size: 11.5px; color: var(--mp-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+#mg-music .pl-li.cur .pl-a { color: #9DB8FF; }
 
 #mg-music .yt { position: fixed; left: -9999px; top: 0; width: 200px; height: 200px; }
 /* 인스타·카톡 같은 앱 안 브라우저: 유튜브 플레이어를 LP 위에 투명하게 겹쳐서, 손가락이 플레이어를 직접 누르게 함 */
@@ -177,9 +187,9 @@ _JS = r"""
       <div class="np-ctl">${TRACKS.length > 1 ? `<button class="pv" title="이전 곡">${I.prev}</button>` : ''}<button class="pp" title="재생">${I.play}</button>${TRACKS.length > 1 ? `<button class="nx" title="다음 곡">${I.next}</button>` : ''}
         <span class="cur">0:00</span><div class="np-bar"><i></i></div><span class="dur">0:00</span></div>
     </div>
-    <div class="pl"><div class="pl-h"><b>플레이리스트</b><span>${TRACKS.length}곡</span></div><div class="pl-ul">${TRACKS.map((t, i) => `
-      <div class="pl-li" data-i="${i}"><span class="pl-n">${i + 1}</span><div class="pl-th" style="background-image:url(${thumb(t.id)})"><div class="eq"><i></i><i></i><i></i></div></div>
-        <div class="pl-tx"><div class="pl-t">${esc(t.title)}</div><div class="pl-a">${esc(t.author)}</div></div></div>`).join('')}</div></div>
+    <div class="pl"><div class="pl-h"><b>PLAYLIST</b><span>${TRACKS.length}곡</span></div><div class="pl-ul">${TRACKS.map((t, i) => `
+      <div class="pl-li" data-i="${i}"><div class="pl-k"><span class="pl-n">${String(i + 1).padStart(2, '0')}</span><span class="pl-p">${I.play}</span><span class="eq"><i></i><i></i><i></i></span></div>
+        <div class="pl-tx"><div class="pl-t">${esc(t.song)}</div>${t.artist ? `<div class="pl-a">${esc(t.artist)}</div>` : ''}</div></div>`).join('')}</div></div>
     <div class="yt"><div id="mg-yt"></div></div><div class="tip">인스타·카톡 앱 안에서는 노래가 막힐 수 있어요.<br>오른쪽 위 <b>⋮</b> → <b>외부 브라우저로 열기</b>로 들어와 주세요.</div>`;
   document.body.appendChild(root);
   const INAPP = /Instagram|FBAN|FBAV|FB_IAB|KAKAOTALK|NAVER\(inapp|DaumApps|Line\/|; wv\)/i.test(navigator.userAgent);
@@ -190,7 +200,7 @@ _JS = r"""
   function show() {
     const t = TRACKS[idx];
     $('.label').style.backgroundImage = `url(${thumb(t.id)})`;
-    $('.np-t').textContent = t.title; $('.np-a').textContent = t.author || 'YouTube';
+    $('.np-t').textContent = t.song; $('.np-a').textContent = t.artist || '';
     root.querySelectorAll('.pl-li').forEach(li => li.classList.toggle('cur', +li.dataset.i === idx));
     $('.np-bar i').style.width = '0%'; $('.cur').textContent = '0:00'; $('.dur').textContent = '0:00';
   }
