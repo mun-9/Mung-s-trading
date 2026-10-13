@@ -1,6 +1,6 @@
 import streamlit as st
 
-st.set_page_config(page_title="Mung's Trading", page_icon="📈", layout="wide")
+st.set_page_config(page_title="Mung9_ Trading", page_icon="static/favicon.png", layout="wide")
 
 # 새 코드가 올라왔는데 서버가 예전 lib 모듈을 메모리에 들고 있으면 ImportError/AttributeError가 남.
 # 파일 수정 시각이 바뀌었으면 다시 불러와서 항상 최신 코드로 실행되게 함.

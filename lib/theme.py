@@ -38,6 +38,25 @@ _JS = r"""
   new MutationObserver(() => { if (q) return; q = true; requestAnimationFrame(() => { q = false; fill(); }); })
     .observe(d.body, { childList: true, subtree: true });
   fill();
+
+  // 휴대폰 '홈 화면에 추가' 하면 앱처럼 열리게 (아이콘 · 이름 · 상단 색)
+  try {
+    const base = location.pathname.includes('/~/+/') ? location.origin + location.pathname.split('/~/+/')[0] + '/~/+/' : location.origin + '/';
+    const st = base + 'app/static/';
+    const docs = [d]; try { if (window.top !== window && window.top.document) docs.push(window.top.document); } catch (e) {}
+    for (const doc of docs) {
+      if (doc.getElementById('mg-pwa')) continue;
+      const add = (tag, attrs) => { const el = doc.createElement(tag); for (const k in attrs) el.setAttribute(k, attrs[k]); doc.head.appendChild(el); return el; };
+      add('link', { id: 'mg-pwa', rel: 'manifest', href: st + 'manifest.json' });
+      add('link', { rel: 'apple-touch-icon', href: st + 'apple-touch-icon.png' });
+      add('meta', { name: 'apple-mobile-web-app-capable', content: 'yes' });
+      add('meta', { name: 'mobile-web-app-capable', content: 'yes' });
+      add('meta', { name: 'apple-mobile-web-app-title', content: 'Mung9_' });
+      add('meta', { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' });
+      const tc = add('meta', { name: 'theme-color', content: isDark() ? '#0D1015' : '#FFFFFF' });
+      new MutationObserver(() => tc.setAttribute('content', isDark() ? '#0D1015' : '#FFFFFF')).observe(root, { attributes: true, attributeFilter: ['data-mg-theme'] });
+    }
+  } catch (e) {}
 })();
 """
 

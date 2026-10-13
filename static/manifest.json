@@ -1,0 +1,27 @@
+{
+  "name": "Mung9_ Trading",
+  "short_name": "Mung9_",
+  "description": "매매 기록 · 실시간 차트 · 코인 시장 정보",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0D1015",
+  "theme_color": "#0D1015",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
