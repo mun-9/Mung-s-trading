@@ -1,7 +1,7 @@
 """거래 기록 백업 (GitHub 비공개 저장소).
 
 Bitget은 체결·장부 기록을 최근 90일 정도까지만 내줌 → 그보다 오래된 기록이 사라지지 않게
-불러온 원본 기록(체결 · 장부 · 입금 · 출금)을 '비공개' GitHub 저장소에 월별 파일로 쌓아 둠.
+불러온 원본 기록(체결 · 선물/현물 장부 · 입금 · 출금)을 '비공개' GitHub 저장소에 월별 파일로 쌓아 둠.
 
 - Streamlit Secrets
     ARCHIVE_TOKEN = "github_pat_..."   (그 저장소 하나만 Contents 읽기/쓰기 권한)
@@ -22,7 +22,7 @@ KST = timezone(timedelta(hours=9))
 DEFAULT_REPO = "mun-9/mung-trading-data"
 BRANCH = "main"
 DIR = "archive"
-KINDS = ("fills", "bills", "deposits", "withdrawals")
+KINDS = ("fills", "bills", "spot_bills", "deposits", "withdrawals")
 
 
 def _cfg():
@@ -62,7 +62,7 @@ def _month_of_ms(ms):
 def _ts(kind, rec):
     if kind == "fills":
         return rec["ts"]
-    if kind == "bills":
+    if kind in ("bills", "spot_bills"):
         return int(rec.get("cTime") or 0)
     return int(rec.get("timestamp") or 0)
 

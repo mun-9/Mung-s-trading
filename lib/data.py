@@ -23,7 +23,7 @@ KST = timezone(timedelta(hours=9))
 UTC = timezone.utc
 
 # 대시보드 기준 날짜 (이전 데이터는 표시하지 않음)
-DASHBOARD_START_DATE = "2026-09-20"
+DASHBOARD_START_DATE = "2026-09-19"
 
 # 원금으로 직접 넣은 입금액 (이 금액과 맞는 입금만 원금, 나머지 입금은 전부 페이백)
 PRINCIPAL_DEPOSITS = [10520, 302, 250, 229.25]
@@ -51,6 +51,11 @@ FUNDING_BILL_TYPE = "contract_settle_fee"
 VOUCHER_PREFIXES = ("cash_gift", "bonus")   # 선물 장부의 바우처·보너스 항목 (지급 issue / 회수 recycle·expired)
 TRANSFER_PREFIXES = ("trans_", "transfer_")
 MARGIN_BILL_TYPES = {"append_margin", "adjust_down_lever_append_margin", "reduce_margin", "auto_append_margin"}
+# 거래소가 주는 보상(수수료 할인 이벤트 바우처 → USDT, 리베이트, 에어드랍 등)으로 보는 이름
+REWARD_WORDS = ("reward", "rebate", "coupon", "voucher", "airdrop", "activity", "cashback", "gift", "bonus", "card")
+# 현물 장부에서 보상이 아닌 것 (입출금 · 계좌 이동 · 매매 · 환전 · 잠금 · 예치 상품 등)
+SPOT_NOT_REWARD = ("deposit", "withdraw", "transfer", "trans_", "buy", "sell", "trade", "transaction", "exchange", "convert",
+                   "lock", "freeze", "earn", "saving", "redeem", "subscribe", "loan", "borrow", "repay", "margin", "fee", "otc", "p2p", "strategy")
 
 TRADE_COLS = [
     "order_id", "datetime", "date", "symbol", "side", "bucket", "has_pnl",
@@ -324,6 +329,50 @@ def fetch_bills(ex, since_ms, now_ms):
     return list(uniq.values())
 
 
+def fetch_spot_bills(ex, since_ms, now_ms):
+    """현물 계좌 USDT 장부 (수수료 할인 이벤트 바우처 등 보상이 현물로 들어오는 경우 찾기용)."""
+    bills, window = [], 30 * 24 * 60 * 60 * 1000
+    start = since_ms
+    while start < now_ms:
+        end = min(start + window, now_ms)
+        id_less = None
+        for _ in range(50):
+            req = {"coin": "USDT", "startTime": str(start), "endTime": str(end), "limit": "500"}
+            if id_less:
+                req["idLessThan"] = id_less
+            page = (ex.privateSpotGetV2SpotAccountBills(req) or {}).get("data") or []
+            bills.extend(page)
+            if len(page) < 500:
+                break
+            nid = page[-1].get("billId")
+            if not nid or nid == id_less:
+                break
+            id_less = nid
+        start = end
+    return list({b.get("billId"): b for b in bills if b.get("billId")}.values())
+
+
+def spot_rewards(spot_bills, since_ms):
+    """현물 장부 중 보상으로 들어온 USDT (입금·이동·매매·환전 등이 아닌 + 금액) → 페이백 이벤트 + 종류별 요약."""
+    out, kinds = [], {}
+    for b in spot_bills:
+        if str(b.get("coin", "USDT")).upper() != "USDT" or int(b.get("cTime") or 0) < since_ms:
+            continue
+        gt, bt = str(b.get("groupType", "")).lower(), str(b.get("businessType", "")).lower()
+        amt = float(b.get("size") or b.get("amount") or 0)
+        name = f"{gt}/{bt}"
+        is_reward = amt > 0 and (any(w in bt for w in REWARD_WORDS) or
+                                 (gt not in ("deposit", "withdraw", "transfer", "transaction") and not any(w in bt for w in SPOT_NOT_REWARD)))
+        if not is_reward:
+            continue
+        dt = _to_kst(b["cTime"])
+        out.append({"datetime": dt.replace(tzinfo=None), "date": dt.strftime("%Y-%m-%d"), "symbol": "바우처", "kind": "payback", "amount": amt})
+        k = kinds.setdefault(name, {"count": 0, "sum": 0.0})
+        k["count"] += 1
+        k["sum"] += amt
+    return out, kinds
+
+
 def parse_bills(ex, bills):
     """→ (펀딩비 이벤트, 장부 일별 순손익 DataFrame, 거래한 종목 set, 바우처 항목 list, 기타 항목 요약 dict)"""
     events, ledger, symbols, vouchers, others = [], [], set(), [], {}
@@ -347,6 +396,10 @@ def parse_bills(ex, bills):
             vouchers.append({"datetime": dt.replace(tzinfo=None), "date": dt.strftime("%Y-%m-%d"),
                              "type": bt, "family": "bonus" if bt.startswith("bonus") else "cash_gift",
                              "symbol": sym, "amount": amount + fee})
+        elif not bt.startswith(TRANSFER_PREFIXES) and bt not in MARGIN_BILL_TYPES and any(w in bt.lower() for w in REWARD_WORDS):
+            # 이름에 보상·리베이트·쿠폰 등이 들어간 장부 = 출금 가능한 보상 → 회수 안 되는 바우처처럼 처리
+            vouchers.append({"datetime": dt.replace(tzinfo=None), "date": dt.strftime("%Y-%m-%d"),
+                             "type": bt, "family": "reward", "symbol": "", "amount": amount + fee})
         elif not bt.startswith(TRANSFER_PREFIXES) and bt not in MARGIN_BILL_TYPES:
             o = others.setdefault(bt or "unknown", {"count": 0, "sum": 0.0})
             o["count"] += 1
@@ -366,9 +419,12 @@ def settle_vouchers(vouchers, open_syms=()):
       단, 지금 그 종목 포지션이 열려 있고 지급 기록에 종목이 붙어 있으면 '사용 중인 포지션 바우처'일 수 있어
       포지션이 닫힐 때까지 보류(닫히면서 회수되면 상쇄, 회수 안 되면 그때 페이백으로 반영).
     """
-    rows = sorted(vouchers, key=lambda v: v["datetime"])
-    issues = [{"v": v, "left": v["amount"], "used": False} for v in rows if v["amount"] > 0]
     out, pending = [], []
+    for v in vouchers:  # 이름부터 보상인 항목은 회수가 없음 → 바로 페이백
+        if v["family"] == "reward" and v["amount"] > 0:
+            out.append({"datetime": v["datetime"], "date": v["date"], "symbol": "바우처", "kind": "payback", "amount": v["amount"]})
+    rows = sorted((v for v in vouchers if v["family"] != "reward"), key=lambda v: v["datetime"])
+    issues = [{"v": v, "left": v["amount"], "used": False} for v in rows if v["amount"] > 0]
     for v in rows:
         if v["amount"] >= 0:
             continue
@@ -414,7 +470,7 @@ def _finish(fills, events, ledger, errors, demo):
 
 
 @st.cache_data(ttl=1800, show_spinner=False)
-def fetch_history(keys, _format=4):
+def fetch_history(keys, _format=5):
     if is_demo(keys):
         return _demo_history()
 
@@ -448,7 +504,7 @@ def fetch_history(keys, _format=4):
     def _from(kind, base):
         last = _last(kind)
         start = max(base, last - 3 * day) if last else base
-        return max(start, api_floor) if kind in ("bills", "fills") else start
+        return max(start, api_floor) if kind in ("bills", "fills", "spot_bills") else start
 
     changed = set()
 
@@ -565,6 +621,16 @@ def fetch_history(keys, _format=4):
     v_events, v_pending = settle_vouchers(vouchers, open_syms)
     events.extend(v_events)
 
+    # 4-2) 현물 계좌로 들어온 보상 (수수료 할인 이벤트 바우처가 USDT로 바뀌어 들어오는 경우 등)
+    spot_kinds = {}
+    try:
+        fresh = fetch_spot_bills(ex, _from("spot_bills", since_ms), now_ms)
+        changed |= AR.merge(store, "spot_bills", fresh, lambda b: str(b.get("billId") or ""))
+    except Exception as e:
+        errors.append(f"현물 장부(보상) 조회 실패 — 현물로 들어온 바우처 미반영: {type(e).__name__}: {e}")
+    r_events, spot_kinds = spot_rewards(store["spot_bills"].values(), since_ms)
+    events.extend(r_events)
+
     # 5) 새로 생긴 기록을 백업에 저장 (90일이 지나 거래소에서 사라져도 남도록)
     backup = {"on": AR.enabled(), "ok": arc_ok, "saved": 0,
               "count": sum(len(v) for v in store.values()), "first": None}
@@ -582,6 +648,7 @@ def fetch_history(keys, _format=4):
     out["vouchers"] = sorted(vouchers, key=lambda x: x["datetime"], reverse=True)
     out["voucher_pending"] = v_pending
     out["bill_others"] = others
+    out["spot_rewards"] = spot_kinds
     out["backup"] = backup
     return out
 
