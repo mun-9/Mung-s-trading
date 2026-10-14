@@ -93,7 +93,9 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
   .ckeys button { height: 34px; font-size: 14.5px; border-radius: 9px; }
   .ckeys .op { font-size: 16px; } .ckeys .fn { font-size: 13px; }
 }
-.ccopy { font-size: 11.5px; color: var(--sub); text-align: right; margin-top: 6px; min-height: 16px; }
+.ccopy { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 11.5px; color: var(--sub); margin-top: 8px; min-height: 22px; }
+.ccopy button { border: 0; background: var(--soft); color: var(--mid); font-family: inherit; font-size: 11.5px; font-weight: 700; padding: 4px 9px; border-radius: 7px; cursor: pointer; }
+.ccopy span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* 테더 · 원화 계산기 */
 .fx { min-width: 0; align-self: stretch; }
 .fxrow { display: grid; grid-template-columns: 1fr 40px 1fr; gap: 10px; align-items: end; }
@@ -180,7 +182,7 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
         <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button><button class="op" data-k="+">+</button>
         <button class="z" data-k="0">0</button><button data-k=".">.</button><button class="eq" data-k="=">=</button>
       </div>
-      <div class="ccopy" id="cCopy"></div>
+      <div class="ccopy"><button id="cPaste" title="복사해둔 숫자·식 붙여넣기 (Ctrl+V도 돼요)">📋 붙여넣기</button><span id="cCopy"></span></div>
     </div>
     </div>
     <!-- 0. 가격 알림 -->
@@ -555,6 +557,22 @@ alDraw();
     if (last === '%') exp += '*';
     exp += k; render();
   }
+  // 붙여넣기: 쉼표·$·₩·공백은 빼고, × ÷ − 기호는 계산용으로 바꿔서 넣음
+  function pasteText(t) {
+    const clean = String(t || '').replace(/[,\s$₩원]|USDT/gi, '').replace(/[×xX]/g, '*').replace(/÷/g, '/').replace(/[−–—]/g, '-');
+    if (!/^[0-9+\-*/.%()]*$/.test(clean) || !clean) { $('cCopy').textContent = '숫자나 식만 붙여넣을 수 있어요'; return; }
+    if (done) { exp = ''; done = false; }
+    for (const ch of clean.replace(/[()]/g, '')) press(ch);
+    $('cCopy').textContent = '붙여넣었어요';
+  }
+  document.addEventListener('paste', e => {
+    const a = document.activeElement; if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA')) return;
+    e.preventDefault(); pasteText((e.clipboardData || window.clipboardData).getData('text'));
+  });
+  $('cPaste').onclick = async () => {
+    try { pasteText(await navigator.clipboard.readText()); }
+    catch (err) { $('cCopy').textContent = '계산기를 한 번 누르고 Ctrl+V 해주세요'; }
+  };
   $('cKeys').onclick = e => { const b = e.target.closest('button'); if (b) press(b.dataset.k); };
   $('cRes').onclick = () => { const t = $('cRes').textContent.replace(/,/g, ''); if (!t || t === '오류') return;
     try { navigator.clipboard.writeText(t); $('cCopy').textContent = '복사했어요: ' + t; } catch (e) {} };
