@@ -273,6 +273,17 @@ div[class*="st-key-refresh_btn"] button span { color: var(--mg-text) !important;
 .bar > div { height: 100%; border-radius: 4px; }
 .streak { display: flex; gap: 5px; flex-wrap: wrap; margin-top: auto; }
 .streak .sd { width: 14px; height: 14px; border-radius: 4px; }
+/* 상세 매매 내역: 주문 종류 배지 (시장가 / 지정가 / 익절·손절 주문) */
+.ot { display:inline-flex; align-items:center; gap:4px; }
+.ot b { display:inline-block; font-size:10.5px; font-weight:800; letter-spacing:.04em; padding:3px 7px; border-radius:6px; line-height:1.1; }
+.ot .m { background:rgba(245,158,11,.16); color:#D97706; }
+.ot .l { background:rgba(49,130,246,.14); color:#3182F6; }
+.ot .tp { background:rgba(8,153,129,.14); color:#089981; }
+.ot .sl { background:rgba(240,68,82,.13); color:#F04452; }
+.ot .lq { background:rgba(240,68,82,.9); color:#fff; }
+.ot small { font-size:11.5px; color:var(--mg-sub); font-weight:600; margin-left:2px; }
+html[data-mg-theme="dark"] .ot .m { color:#FBBF24; } html[data-mg-theme="dark"] .ot .l { color:#7FA8FF; }
+@media (prefers-color-scheme: dark) { html:not([data-mg-theme="light"]) .ot .m { color:#FBBF24; } html:not([data-mg-theme="light"]) .ot .l { color:#7FA8FF; } }
 /* 계좌 점검 */
 .acc-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-top: 16px; }
 .acc-t { background: var(--mg-tile); border-radius: 14px; padding: 14px 16px; min-width: 0; }

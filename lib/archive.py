@@ -22,7 +22,7 @@ KST = timezone(timedelta(hours=9))
 DEFAULT_REPO = "mun-9/mung-trading-data"
 BRANCH = "main"
 DIR = "archive"
-KINDS = ("fills", "bills", "spot_bills", "deposits", "withdrawals")
+KINDS = ("fills", "bills", "spot_bills", "deposits", "withdrawals", "orders")
 
 
 def _cfg():
@@ -62,7 +62,7 @@ def _month_of_ms(ms):
 def _ts(kind, rec):
     if kind == "fills":
         return rec["ts"]
-    if kind in ("bills", "spot_bills"):
+    if kind in ("bills", "spot_bills", "orders"):
         return int(rec.get("cTime") or 0)
     return int(rec.get("timestamp") or 0)
 

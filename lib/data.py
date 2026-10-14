@@ -329,6 +329,42 @@ def fetch_bills(ex, since_ms, now_ms):
     return list(uniq.values())
 
 
+def fetch_orders(ex, since_ms, now_ms):
+    """선물 주문 기록 → 주문마다 시장가/지정가(orderType)와 주문 출처(익절·손절 등) 확인용."""
+    out, window = [], 7 * 24 * 60 * 60 * 1000
+    start = since_ms
+    while start < now_ms:
+        end = min(start + window, now_ms)
+        id_less = None
+        for _ in range(60):
+            req = {"productType": PRODUCT_TYPE, "startTime": str(start), "endTime": str(end), "limit": "100"}
+            if id_less:
+                req["idLessThan"] = id_less
+            data = (ex.privateMixGetV2MixOrderOrdersHistory(req) or {}).get("data") or {}
+            page = data.get("entrustedList") or []
+            out.extend({"orderId": str(o.get("orderId")), "orderType": str(o.get("orderType") or "").lower(),
+                        "orderSource": str(o.get("orderSource") or "").lower(), "cTime": int(o.get("cTime") or o.get("uTime") or 0)}
+                       for o in page if o.get("orderId"))
+            if len(page) < 100:
+                break
+            nid = data.get("endId") or page[-1].get("orderId")
+            if not nid or nid == id_less:
+                break
+            id_less = nid
+        start = end
+    return out
+
+
+def order_kind(o):
+    """주문 기록 → 화면 표시용 ('MARKET'/'LIMIT', 'TP'/'SL'/'청산'/'')."""
+    if not o:
+        return "", ""
+    t = "MARKET" if o.get("orderType") == "market" else "LIMIT" if o.get("orderType") == "limit" else ""
+    src = o.get("orderSource", "")
+    tag = "TP" if "profit" in src else "SL" if "loss" in src else "청산" if ("liquid" in src or "burst" in src or "force" in src) else ""
+    return t, tag
+
+
 def fetch_spot_bills(ex, since_ms, now_ms):
     """현물 계좌 USDT 장부 (수수료 할인 이벤트 바우처 등 보상이 현물로 들어오는 경우 찾기용)."""
     bills, window = [], 30 * 24 * 60 * 60 * 1000
@@ -476,7 +512,7 @@ def _mem_store():
 
 
 @st.cache_data(ttl=1800, show_spinner=False)
-def fetch_history(keys, _format=5):
+def fetch_history(keys, _format=6):
     if is_demo(keys):
         return _demo_history()
 
@@ -511,7 +547,7 @@ def fetch_history(keys, _format=5):
         mem.update(store=store, shas=shas, arc_ok=arc_ok)
     store, shas, arc_ok = mem["store"], mem["shas"], mem["arc_ok"]
 
-    for k in ("fills", "bills", "spot_bills", "deposits", "withdrawals"):  # 예전 백업 형식에 없는 종류도 빈 칸으로
+    for k in ("fills", "bills", "spot_bills", "deposits", "withdrawals", "orders"):  # 예전 백업 형식에 없는 종류도 빈 칸으로
         store.setdefault(k, {})
 
     def _last(kind):
@@ -523,7 +559,7 @@ def fetch_history(keys, _format=5):
     def _from(kind, base):
         last = fetched.get(kind) or _last(kind)
         start = max(base, last - 3 * day) if last else base
-        return max(start, api_floor) if kind in ("bills", "fills", "spot_bills") else start
+        return max(start, api_floor) if kind in ("bills", "fills", "spot_bills", "orders") else start
 
     changed = set()
 
@@ -668,7 +704,19 @@ def fetch_history(keys, _format=5):
     if store["fills"]:
         backup["first"] = _to_kst(min(f["ts"] for f in store["fills"].values())).strftime("%Y-%m-%d")
 
+    # 4-3) 주문 종류 (시장가 · 지정가 · 익절/손절 주문)
+    try:
+        fresh = fetch_orders(ex, _from("orders", since_ms), now_ms)
+        changed |= AR.merge(store, "orders", fresh, lambda o: o["orderId"])
+        fetched["orders"] = now_ms
+    except Exception as e:
+        errors.append(f"주문 종류(시장가/지정가) 조회 실패: {type(e).__name__}: {e}")
+
     out = _finish(fills, events, ledger, errors, demo=False)
+    if not out["trades"].empty:
+        kinds = [order_kind(store["orders"].get(str(oid))) for oid in out["trades"]["order_id"]]
+        out["trades"]["otype"] = [k[0] for k in kinds]
+        out["trades"]["otag"] = [k[1] for k in kinds]
     out["transfers"] = sorted(transfers, key=lambda x: x["datetime"], reverse=True)
     out["vouchers"] = sorted(vouchers, key=lambda x: x["datetime"], reverse=True)
     out["voucher_pending"] = v_pending
@@ -748,6 +796,10 @@ def _demo_history():
 
     ledger_df = pd.DataFrame([{"date": k, "net": v} for k, v in ledger.items()])
     out = _finish(fills, events, ledger_df, [], demo=True)
+    if not out["trades"].empty:
+        r2 = random.Random(3)
+        out["trades"]["otype"] = [r2.choice(["MARKET", "LIMIT", "LIMIT"]) for _ in range(len(out["trades"]))]
+        out["trades"]["otag"] = [r2.choice(["", "", "", "TP", "SL"]) if b == "축소" else "" for b in out["trades"]["bucket"]]
     principal_dt = (start - timedelta(days=3)).replace(tzinfo=None)
     out["transfers"] = sorted(
         [{"datetime": principal_dt, "date": principal_dt.strftime("%Y-%m-%d"), "kind": "principal", "amount": 10000.0}]

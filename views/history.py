@@ -729,13 +729,22 @@ def detail_log():
             coin = r.symbol.split("/")[0]
             qty_txt = f"{r.amount:,.6g} {coin}"
             notional = r.amount * r.price
+            _ot, _tg = getattr(r, "otype", "") or "", getattr(r, "otag", "") or ""
+            _ot = _ot if isinstance(_ot, str) else ""
+            _tg = _tg if isinstance(_tg, str) else ""
+            badge = ("<span class='ot'>"
+                     + (f"<b class='{'m' if _ot == 'MARKET' else 'l'}'>{_ot}</b>" if _ot else "")
+                     + (f"<b class='{ {'TP': 'tp', 'SL': 'sl'}.get(_tg, 'lq') }'>{_tg}</b>" if _tg else ""))
             if r.bucket == "증가":
-                right = (f"<div class='row-price'>≈ ${notional:,.2f}</div>"
+                right = (f"<div class='row-price'>{badge}<small>≈ ${notional:,.0f}</small></span></div>"
                          f"<div class='row-pnl' style='color:{TEXT};font-weight:600;font-size:14px;'>{qty_txt}<span class='chip' style='background:{ss};color:{sc};'>진입</span></div>")
             else:
                 c = pnl_color(r.net) if r.result in ("익절", "손절") else SUB
                 chip_bg = GREEN_SOFT if r.result == "익절" else (RED_SOFT if r.result == "손절" else GRAY_SOFT)
-                right = (f"<div class='row-price'><span>손익 {money(r.gross)}</span><span class='rs-sep'> · </span><span class='rs-d'>수수료 -${r.fee:,.2f}</span></div>"
+                _tip = f"손익 {money(r.gross)} · 수수료 -${r.fee:,.2f}"
+                top = (f"<div class='row-price' title='{_tip}'>{badge}</span></div>" if (_ot or _tg) else
+                       f"<div class='row-price'><span>손익 {money(r.gross)}</span><span class='rs-sep'> · </span><span class='rs-d'>수수료 -${r.fee:,.2f}</span></div>")
+                right = (top +
                          f"<div class='row-pnl' style='color:{c};'>{money(r.net) if r.has_pnl else '-'}<span class='chip' style='background:{chip_bg};color:{c};'>{r.result}</span></div>")
             out.append(f"<div class='log-row'><div class='log-left'><div class='sym-badge' style='background:{ss};color:{sc};'>{coin[:1]}</div>"
                        f"<div><div class='row-title'>{r.symbol} <span class='pill' style='background:{ss};color:{sc};'>{r.side}</span></div>"
