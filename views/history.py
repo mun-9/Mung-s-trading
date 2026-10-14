@@ -477,7 +477,7 @@ cal_card()
 st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
 
 
-def perf_html(p):
+def perf_html(p, bd):
     pf = p["profit_factor"]
     pf_txt = f"{pf:.2f}" if pf is not None else "∞"
     pf_col = GREEN if (pf is None or pf >= 1) else RED
@@ -487,6 +487,12 @@ def perf_html(p):
     streak = p["max_loss_streak"]
     n_dots = min(max(streak, 6), 12)
     dots = "".join(f"<span class='sd' style='background:{RED if i < streak else 'var(--mg-line)'};'></span>" for i in range(n_dots))
+    fee, pay = float(bd.get("fee") or 0), float(bd.get("payback") or 0)
+    back_pct = min(100.0, pay / fee * 100) if fee > 0 else 0.0
+    base = sum(D.principal_list()) + max(0.0, p.get("peak", 0.0))
+    mdd_pct = (p["mdd"] / base * 100) if base > 0 else 0.0
+    cur = p.get("cur_dd", 0.0)
+    cur_txt = "지금 고점 갱신 중" if cur > -0.005 else f"지금 고점 대비 <b style='color:{RED};'>{money(cur)}</b>"
     dd = p["dd"]
     spark = ""
     if len(dd) > 1:
@@ -503,16 +509,16 @@ def perf_html(p):
 <div class="pt"><div class="pt-label">손익비</div><div class="pt-value">{rr_txt}</div>
   <div class="bar-row"><span>평균 익절</span><div class="bar"><div style="width:{p['avg_win'] / mx * 100:.0f}%;background:{GREEN};"></div></div><b style="color:{GREEN};">{money(p['avg_win'])}</b></div>
   <div class="bar-row"><span>평균 손절</span><div class="bar"><div style="width:{p['avg_loss'] / mx * 100:.0f}%;background:{RED};"></div></div><b style="color:{RED};">{money(-p['avg_loss'])}</b></div></div>
-<div class="pt"><div class="pt-label">최대 연속 손절</div><div class="pt-value">{streak}<span class="pt-unit">회</span></div>
-  <div class="streak">{dots}</div>
-  <div class="pt-foot"><span>최고 <b style="color:{GREEN};">{money(p['best'])}</b></span><span>최악 <b style="color:{RED};">{money(p['worst'])}</b></span></div></div>
-<div class="pt"><div class="pt-label">최대 낙폭</div><div class="pt-value" style="color:{RED if p['mdd'] < 0 else TEXT};">{money(p['mdd'])}</div>
-  {spark}<div class="pt-foot"><span class="d-only">누적 순손익 고점 대비 하락폭</span><span class="m-only">고점 대비 하락폭</span></div></div>
+<div class="pt"><div class="pt-label">수수료</div><div class="pt-value">{money(-fee)}</div>
+  <div class="gauge"><div class="gauge-fill" style="width:{back_pct:.0f}%;background:{GREEN};"></div></div>
+  <div class="pt-foot"><span>페이백 <b style="color:{GREEN};">{money(pay)}</b></span><span>실부담 <b>{money(-(fee - pay))}</b></span></div></div>
+<div class="pt"><div class="pt-label">MDD <span class="pt-unit" style="font-size:12px;margin-left:2px;">자산 대비 {mdd_pct:.1f}%</span></div><div class="pt-value" style="color:{RED if p['mdd'] < 0 else TEXT};">{money(p['mdd'])}</div>
+  {spark}<div class="pt-foot"><span>{cur_txt}</span></div></div>
 </div></div>"""
 
 
 if perf:
-    html(perf_html(perf))
+    html(perf_html(perf, bd))
 else:
     html("<div class='card es-card'>" + _ui.empty_state("📊", "선택한 기간에 청산한 거래가 없어요", "기간을 넓히면 성과 지표와 습관 리포트가 나와요") + "</div>")
 st.markdown("<div style='height:18px;'></div>", unsafe_allow_html=True)

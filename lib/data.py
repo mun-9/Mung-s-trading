@@ -862,6 +862,7 @@ def performance(trades):
         "expectancy": float(c["net"].mean()), "max_loss_streak": worst, "mdd": mdd,
         "best": float(c["net"].max()), "worst": float(c["net"].min()),
         "dd": (eq - eq.cummax()).round(2).tolist(),
+        "peak": float(eq.cummax().max()), "cur_dd": float((eq - eq.cummax()).iloc[-1]),
     }
 
 
