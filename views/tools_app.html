@@ -67,6 +67,9 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 .add { margin-top: 8px; width: 100%; height: 38px; border: 1px dashed var(--border); border-radius: 11px; background: transparent; color: var(--mid); font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 .add:hover { border-color: var(--blue); color: var(--blue); }
 .alc { grid-column: 1 / -1; }
+/* 테더 계산기 7 : 계산기 3 */
+.pair { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 3fr); gap: 18px; align-items: stretch; }
+@media (max-width: 900px) { .pair { grid-template-columns: minmax(0, 1fr); } }
 /* 간단 계산기 */
 .calc { display: flex; flex-direction: column; min-width: 0; align-self: stretch; }
 .cdisp { background: var(--tile); border-radius: 14px; padding: 12px 16px; text-align: right; margin-bottom: 10px; min-height: 76px; display: flex; flex-direction: column; justify-content: flex-end; }
@@ -147,6 +150,7 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
   </div>
 
   <div class="grid">
+    <div class="pair">
     <!-- 테더 · 원화 계산기 -->
     <div class="card fx" id="cfx">
       <div class="ct"><b>💱 테더 · 원화 계산기</b></div>
@@ -167,7 +171,7 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
     <!-- 간단 계산기 -->
     <div class="card calc" id="ccalc">
       <div class="ct"><b>🧮 계산기</b></div>
-      <div class="desc">키보드로도 돼요 (숫자 · + − * / · Enter · Backspace · Esc). 결과를 누르면 복사돼요.</div>
+      <div class="desc">키보드 입력 가능 · 결과를 누르면 복사</div>
       <div class="cdisp"><div class="cexp" id="cExp"></div><div class="cres" id="cRes" title="눌러서 복사">0</div></div>
       <div class="ckeys" id="cKeys">
         <button class="fn" data-k="C">C</button><button class="fn" data-k="⌫">⌫</button><button class="fn" data-k="%">%</button><button class="op" data-k="/">÷</button>
@@ -177,6 +181,7 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
         <button class="z" data-k="0">0</button><button data-k=".">.</button><button class="eq" data-k="=">=</button>
       </div>
       <div class="ccopy" id="cCopy"></div>
+    </div>
     </div>
     <!-- 0. 가격 알림 -->
     <div class="card alc" id="c0">
