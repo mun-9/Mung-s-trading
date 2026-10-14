@@ -67,8 +67,22 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 .add { margin-top: 8px; width: 100%; height: 38px; border: 1px dashed var(--border); border-radius: 11px; background: transparent; color: var(--mid); font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 .add:hover { border-color: var(--blue); color: var(--blue); }
 .alc { grid-column: 1 / -1; }
+/* 간단 계산기 */
+.calc { display: flex; flex-direction: column; min-width: 0; align-self: stretch; }
+.cdisp { background: var(--tile); border-radius: 14px; padding: 12px 16px; text-align: right; margin-bottom: 10px; min-height: 76px; display: flex; flex-direction: column; justify-content: flex-end; }
+.cexp { font-size: 13px; color: var(--sub); min-height: 18px; word-break: break-all; font-variant-numeric: tabular-nums; }
+.cres { font-size: 28px; font-weight: 800; letter-spacing: -.02em; margin-top: 2px; word-break: break-all; font-variant-numeric: tabular-nums; cursor: pointer; }
+.cres.pre { color: var(--sub); font-size: 22px; }
+.ckeys { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; flex: 1; }
+.ckeys button { height: 42px; border: 0; border-radius: 12px; background: var(--soft); color: var(--text); font-family: inherit; font-size: 17px; font-weight: 700; cursor: pointer; transition: transform .06s, filter .15s; font-variant-numeric: tabular-nums; }
+.ckeys button:hover { filter: brightness(.96); } .ckeys button:active { transform: scale(.96); }
+.ckeys .op { background: var(--sel); color: var(--blue); font-size: 19px; }
+.ckeys .fn { color: var(--mid); font-size: 15px; }
+.ckeys .eq { background: var(--blue); color: #fff; }
+.ckeys .z { grid-column: span 2; }
+.ccopy { font-size: 11.5px; color: var(--sub); text-align: right; margin-top: 6px; min-height: 16px; }
 /* 테더 · 원화 계산기 */
-.fx { grid-column: 1 / -1; }
+.fx { min-width: 0; align-self: stretch; }
 .fxrow { display: grid; grid-template-columns: 1fr 40px 1fr; gap: 10px; align-items: end; }
 .fxsw { width: 40px; height: 42px; border: 0; border-radius: 11px; background: var(--soft); color: var(--mid); cursor: pointer; display: flex; align-items: center; justify-content: center; }
 .fxsw svg { width: 18px; height: 18px; }
@@ -139,6 +153,20 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
         <div class="fxk"><span>테더 프리미엄</span><b id="fxPrem">-</b></div>
         <div class="fxt" id="fxTime"></div>
       </div>
+    </div>
+    <!-- 간단 계산기 -->
+    <div class="card calc" id="ccalc">
+      <div class="ct"><b>🧮 계산기</b></div>
+      <div class="desc">키보드로도 돼요 (숫자 · + − * / · Enter · Backspace · Esc). 결과를 누르면 복사돼요.</div>
+      <div class="cdisp"><div class="cexp" id="cExp"></div><div class="cres" id="cRes" title="눌러서 복사">0</div></div>
+      <div class="ckeys" id="cKeys">
+        <button class="fn" data-k="C">C</button><button class="fn" data-k="⌫">⌫</button><button class="fn" data-k="%">%</button><button class="op" data-k="/">÷</button>
+        <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button><button class="op" data-k="*">×</button>
+        <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button><button class="op" data-k="-">−</button>
+        <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button><button class="op" data-k="+">+</button>
+        <button class="z" data-k="0">0</button><button data-k=".">.</button><button class="eq" data-k="=">=</button>
+      </div>
+      <div class="ccopy" id="cCopy"></div>
     </div>
     <!-- 0. 가격 알림 -->
     <div class="card alc" id="c0">
@@ -465,6 +493,63 @@ alDraw();
   try { window.parent.addEventListener('mg-fx', pull); } catch (e) {}
   setInterval(tick, 1000);
   info();
+})();
+
+// ---------- 간단 계산기 ----------
+(function () {
+  let exp = '', done = false;
+  const OPS = '+-*/';
+  const show = v => { if (!isFinite(v)) return '오류'; const r = Math.round(v * 1e10) / 1e10; return Math.abs(r) >= 1e15 ? r.toExponential(6) : r.toLocaleString('en-US', { maximumFractionDigits: 10 }); };
+  const pretty = e => e.replace(/\*/g, ' × ').replace(/\//g, ' ÷ ').replace(/(\d)-/g, '$1 − ').replace(/\+/g, ' + ');
+  // 안전한 계산 (eval 안 씀): 숫자 · + − × ÷ · % 만
+  function calc(e) {
+    const t = e.match(/(\d+\.?\d*|\.\d+)%?|[+\-*/]/g); if (!t) return NaN;
+    const nums = [], ops = [];
+    let neg = false, expectNum = true;
+    for (const x of t) {
+      if (expectNum) {
+        if (x === '-') { neg = !neg; continue; }
+        if (OPS.includes(x)) return NaN;
+        let v = parseFloat(x); if (x.endsWith('%')) v /= 100;
+        nums.push(neg ? -v : v); neg = false; expectNum = false;
+      } else { ops.push(x); expectNum = true; }
+    }
+    if (expectNum) ops.pop();
+    // × ÷ 먼저
+    const n2 = [nums[0]], o2 = [];
+    ops.forEach((o, i) => { const b = nums[i + 1]; if (b === undefined) return; if (o === '*') n2.push(n2.pop() * b); else if (o === '/') n2.push(n2.pop() / b); else { o2.push(o); n2.push(b); } });
+    return o2.reduce((acc, o, i) => o === '+' ? acc + n2[i + 1] : acc - n2[i + 1], n2[0]);
+  }
+  function render(final) {
+    const v = calc(exp);
+    if (final) { $('cExp').textContent = exp ? pretty(exp) + ' =' : ''; $('cRes').textContent = exp ? show(v) : '0'; $('cRes').classList.remove('pre'); }
+    else { $('cExp').textContent = pretty(exp); $('cRes').textContent = exp && isFinite(v) ? show(v) : (exp ? '' : '0'); $('cRes').classList.toggle('pre', !!exp); }
+    try { fit(); } catch (e) {}
+  }
+  function press(k) {
+    $('cCopy').textContent = '';
+    if (k === 'C') { exp = ''; done = false; return render(); }
+    if (k === '⌫') { if (done) { exp = ''; done = false; } else exp = exp.slice(0, -1); return render(); }
+    if (k === '=') { const v = calc(exp); if (!exp || !isFinite(v)) return render(true); render(true); exp = String(Math.round(v * 1e10) / 1e10); done = true; return; }
+    if (done && !OPS.includes(k) && k !== '%') exp = '';
+    done = false;
+    const last = exp.slice(-1);
+    if (OPS.includes(k)) { if (!exp && k !== '-') return; if (OPS.includes(last)) exp = exp.slice(0, -1); exp += k; return render(); }
+    if (k === '%') { if (/\d$/.test(exp)) exp += '%'; return render(); }
+    if (k === '.') { const cur = exp.split(/[+\-*/]/).pop(); if (cur.includes('.') || cur.includes('%')) return; exp += (/\d$/.test(exp) ? '' : '0') + '.'; return render(); }
+    if (last === '%') exp += '*';
+    exp += k; render();
+  }
+  $('cKeys').onclick = e => { const b = e.target.closest('button'); if (b) press(b.dataset.k); };
+  $('cRes').onclick = () => { const t = $('cRes').textContent.replace(/,/g, ''); if (!t || t === '오류') return;
+    try { navigator.clipboard.writeText(t); $('cCopy').textContent = '복사했어요: ' + t; } catch (e) {} };
+  document.addEventListener('keydown', e => {
+    const a = document.activeElement; if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA')) return;
+    const map = { Enter: '=', '=': '=', Backspace: '⌫', Escape: 'C', Delete: 'C', x: '*', X: '*' };
+    const k = map[e.key] || e.key;
+    if (/^[0-9]$/.test(k) || '+-*/.%'.includes(k) && k.length === 1 || ['=', '⌫', 'C'].includes(k)) { e.preventDefault(); press(k); }
+  });
+  render();
 })();
 </script>
 </body>
