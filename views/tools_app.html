@@ -136,7 +136,7 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 .ale { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--mid); padding: 14px 14px; margin-top: 4px; background: var(--tile); border-radius: 12px; line-height: 1.5; }
 .ale::before { content: '🔔'; font-size: 18px; }
 #alList { margin-top: 12px; }
-.alset { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; }
+.alset { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 6px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 24px; }
 .as { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 2px; }
 .as b { display: block; font-size: 14px; font-weight: 800; } .as span { display: block; font-size: 12px; color: var(--sub); margin-top: 3px; line-height: 1.5; }
 .sw { position: relative; width: 44px; height: 26px; border-radius: 13px; background: rgba(139,149,161,.4); cursor: pointer; transition: background .2s; flex-shrink: 0; }
@@ -207,6 +207,7 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
       <div class="alset">
         <div class="as"><div><b>📰 중요 뉴스 알림</b><span>‘속보·ETF 승인·FOMC·해킹·상장폐지’처럼 시장을 흔드는 뉴스가 새로 뜨면 바로 알려줘요</span></div><div class="sw" id="swNews"></div></div>
         <div class="as"><div><b>⚡ 급변 알림</b><span>5분 안에 BTC ±1% · ETH ±1.5% · SOL·XRP ±2.5% 움직이면 같은 시간대 뉴스와 함께 알려줘요 (기록은 차트 화면 ‘이슈’ 탭)</span></div><div class="sw" id="swMoves"></div></div>
+        <div class="as"><div><b>🔔 체결 알림</b><span>내 포지션이 진입·청산되면 소리와 함께 바로 알려줘요 (켠 브라우저에서만 · 히스토리 위 종 버튼으로도 켜고 꺼요)</span></div><div class="sw" id="swFills"></div></div>
       </div>
     </div>
     <!-- 1. 포지션 크기 -->
@@ -475,9 +476,11 @@ function permPaint() { const b = $('perm'); try { const p = PW.Notification ? PW
   if (p === 'granted') { b.textContent = '✓ 알림 허용됨'; b.classList.add('done'); } else if (p === 'denied') { b.textContent = '알림이 차단돼 있어요 (브라우저 설정)'; b.classList.add('done'); } else if (p === 'unsupported') { b.style.display = 'none'; } } catch (e) { b.style.display = 'none'; } }
 $('perm').onclick = () => { try { PW.Notification.requestPermission().then(permPaint); } catch (e) {} };
 permPaint();
-function cfgPaint() { const F = PW.mgFeed; if (!F) { document.querySelector('.alset').style.display = 'none'; return; } const c = F.cfg(); $('swNews').classList.toggle('on', !!c.news); $('swMoves').classList.toggle('on', !!c.moves); }
+function cfgPaint() { const F = PW.mgFeed; if (!F) { document.querySelector('.alset').style.display = 'none'; return; } const c = F.cfg(); $('swNews').classList.toggle('on', !!c.news); $('swMoves').classList.toggle('on', !!c.moves); $('swFills').classList.toggle('on', !!c.fills); }
 $('swNews').onclick = () => { const F = PW.mgFeed; if (F) { F.setCfg('news', !F.cfg().news); cfgPaint(); } };
 $('swMoves').onclick = () => { const F = PW.mgFeed; if (F) { F.setCfg('moves', !F.cfg().moves); cfgPaint(); } };
+try { PW.addEventListener('mg-moves-changed', cfgPaint); } catch (e) {}
+$('swFills').onclick = () => { const F = PW.mgFeed; if (F && F.setFills) { F.setFills(!F.cfg().fills); cfgPaint(); } };
 cfgPaint();
 try { PW.addEventListener('mg-alerts-changed', alDraw); } catch (e) {}
 setInterval(alDraw, 5000);

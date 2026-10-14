@@ -54,7 +54,7 @@ _JS = r"""
   let ws = null, subs = new Set(), retry = 0;
   // ---------- 설정 (도구 화면에서 켜고 끔) ----------
   const CFG_KEY = 'mung_alert_cfg';
-  const cfg = () => { let c = {}; try { c = JSON.parse(localStorage.getItem(CFG_KEY) || '{}'); } catch (e) {} return Object.assign({ news: true, moves: true }, c); };
+  const cfg = () => { let c = {}; try { c = JSON.parse(localStorage.getItem(CFG_KEY) || '{}'); } catch (e) {} return Object.assign({ news: true, moves: true, fills: false }, c); };
   const MOVE_SYMS = ['BTC', 'ETH', 'SOL', 'XRP'];
   const TH = { BTC: 1.0, ETH: 1.5, SOL: 2.5, XRP: 2.5 };  // 5분 안에 이만큼(%) 움직이면 '급변'
   function wanted() { const w = new Set(load().map(a => a.sym)); if (cfg().moves) MOVE_SYMS.forEach(s => w.add(s)); return w; }
@@ -145,7 +145,47 @@ _JS = r"""
   }
   W.mgNews = { update: updateNews, list: () => NEWS, isImportant };
   if (W.__mgNewsPending) { updateNews(W.__mgNewsPending); W.__mgNewsPending = null; }
-  W.mgFeed = { cfg, setCfg(k, v) { const c = cfg(); c[k] = v; try { localStorage.setItem(CFG_KEY, JSON.stringify(c)); } catch (e) {} connect(); W.dispatchEvent(new Event('mg-moves-changed')); },
+  // ---------- 내 체결 알림 (서버가 10초마다 최근 체결을 넘겨줌) ----------
+  const FKEY = 'mung_fill_seen';
+  const money = v => (v >= 0 ? '+' : '-') + '$' + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const pxf = v => '$' + (+v).toLocaleString('en-US', { maximumFractionDigits: v >= 100 ? 2 : v >= 1 ? 4 : 6 });
+  function updateFills(items) {
+    if (!Array.isArray(items)) return;
+    let seen; try { seen = JSON.parse(localStorage.getItem(FKEY) || 'null'); } catch (e) { seen = null; }
+    const first = !Array.isArray(seen); seen = new Set(seen || []);
+    const fresh = items.filter(o => !seen.has(o.id));
+    items.forEach(o => seen.add(o.id));
+    try { localStorage.setItem(FKEY, JSON.stringify([...seen].slice(-300))); } catch (e) {}
+    if (first || !cfg().fills) return;  // 처음엔 예전 체결로 알림이 쏟아지지 않게 표시만 해둠
+    fresh.filter(o => Date.now() - o.ts < 10 * 60 * 1000).slice(-4).forEach(o => {
+      const side = o.side === 'LONG' ? '롱' : '숏', kind = o.liq ? '강제청산' : o.close ? '청산' : '진입';
+      const qty = (+o.qty).toLocaleString('en-US', { maximumFractionDigits: 6 }) + ' ' + o.sym;
+      const how = o.maker ? '지정가' : '시장가';
+      let title, body, dir, icon;
+      if (o.close) {
+        const net = o.pnl - o.fee;
+        title = `${o.sym} ${side} ${kind} ${money(net)}`; body = `${qty} @ ${pxf(o.px)} · ${how} · 수수료 -$${o.fee.toFixed(2)}`;
+        dir = net >= 0 ? 'above' : 'below'; icon = o.liq ? '💥' : net >= 0 ? '✅' : '🔻';
+      } else {
+        title = `${o.sym} ${side} ${kind}`; body = `${qty} @ ${pxf(o.px)} · ${how} · 약 $${Math.round(o.qty * o.px).toLocaleString('en-US')}`;
+        dir = null; icon = o.side === 'LONG' ? '🟢' : '🔴';
+      }
+      toast(title, body, dir, icon); notify(icon + ' ' + title, body); beep();
+    });
+  }
+  W.mgFills = { update: updateFills };
+  if (W.__mgFillsPending) { updateFills(W.__mgFillsPending); W.__mgFillsPending = null; }
+  // 히스토리 화면 위 종 버튼 (어디서든 data-mg-fillbell 버튼을 누르면 켜고 끔)
+  function paintBells() { const on = !!cfg().fills; d.querySelectorAll('[data-mg-fillbell]').forEach(b => { b.classList.toggle('on', on); b.title = on ? '체결 알림 켜짐 (누르면 끄기)' : '체결 알림 꺼짐 (누르면 켜기)'; }); }
+  function setFills(v) {
+    const c = cfg(); c.fills = v; try { localStorage.setItem(CFG_KEY, JSON.stringify(c)); } catch (e) {}
+    if (v && 'Notification' in W && Notification.permission === 'default') { try { Notification.requestPermission(); } catch (e) {} }
+    paintBells(); W.dispatchEvent(new Event('mg-moves-changed'));
+    toast(v ? '체결 알림 켰어요' : '체결 알림 껐어요', v ? '포지션이 체결되면 소리와 함께 알려줘요 (이 브라우저에서만)' : '이 브라우저에서 체결 알림이 더 이상 안 떠요', null, v ? '🔔' : '🔕');
+  }
+  d.addEventListener('click', e => { const b = e.target.closest('[data-mg-fillbell]'); if (!b) return; e.preventDefault(); setFills(!cfg().fills); });
+  new MutationObserver(() => { if (d.querySelector('[data-mg-fillbell]:not([data-p])')) { d.querySelectorAll('[data-mg-fillbell]').forEach(b => b.dataset.p = 1); paintBells(); } }).observe(d.body, { childList: true, subtree: true });
+  W.mgFeed = { cfg, setFills, setCfg(k, v) { const c = cfg(); c[k] = v; try { localStorage.setItem(CFG_KEY, JSON.stringify(c)); } catch (e) {} connect(); W.dispatchEvent(new Event('mg-moves-changed')); },
     moves: loadMoves, clearMoves() { try { localStorage.removeItem(MKEY); } catch (e) {} W.dispatchEvent(new Event('mg-moves-changed')); }, TH, MOVE_SYMS };
 
   // 다른 화면(코인 상세 · 도구)이 쓰는 함수

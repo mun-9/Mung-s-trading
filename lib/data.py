@@ -365,6 +365,51 @@ def order_kind(o):
     return t, tag
 
 
+@st.cache_data(ttl=8, show_spinner=False)
+def fetch_recent_fills(keys, minutes=30):
+    """최근 체결 (체결 알림용) → 주문 단위로 묶은 list. 키가 없거나 실패하면 []."""
+    if is_demo(keys):
+        return []
+    try:
+        ex = _exchange(keys)
+        now = int(datetime.now(UTC).timestamp() * 1000)
+        data = (ex.privateMixGetV2MixOrderFills({"productType": PRODUCT_TYPE, "startTime": str(now - minutes * 60 * 1000),
+                                                  "endTime": str(now), "limit": "100"}) or {}).get("data") or {}
+        fills = data.get("fillList") or []
+    except Exception:
+        return []
+    orders = {}
+    for f in fills:
+        oid = str(f.get("orderId") or f.get("tradeId"))
+        ts = str(f.get("tradeSide", "")).lower()
+        buy = str(f.get("side", "")).lower() == "buy"
+        close = "close" in ts or "burst" in ts or "offset" in ts
+        if "long" in ts:
+            side = "LONG"
+        elif "short" in ts:
+            side = "SHORT"
+        elif str(f.get("posMode", "")).lower() == "hedge_mode" or ts in ("open", "close"):
+            side = "LONG" if buy else "SHORT"
+        else:
+            side = ("LONG" if buy else "SHORT") if not close else ("SHORT" if buy else "LONG")
+        qty, px = float(f.get("baseVolume") or 0), float(f.get("price") or 0)
+        fee = sum(abs(float(d.get("totalFee") or 0)) for d in (f.get("feeDetail") or []))
+        o = orders.setdefault(oid, {"id": oid, "sym": str(f.get("symbol", "")).replace("USDT", ""), "side": side, "close": close,
+                                    "qty": 0.0, "cost": 0.0, "pnl": 0.0, "fee": 0.0, "ts": 0,
+                                    "maker": str(f.get("tradeScope", "")).lower() == "maker", "liq": "burst" in ts})
+        o["qty"] += qty
+        o["cost"] += qty * px
+        o["pnl"] += float(f.get("profit") or 0)
+        o["fee"] += fee
+        o["ts"] = max(o["ts"], int(f.get("cTime") or 0))
+    out = []
+    for o in orders.values():
+        o["px"] = o["cost"] / o["qty"] if o["qty"] else 0.0
+        o.pop("cost")
+        out.append(o)
+    return sorted(out, key=lambda o: o["ts"])
+
+
 def fetch_spot_bills(ex, since_ms, now_ms):
     """현물 계좌 USDT 장부 (수수료 할인 이벤트 바우처 등 보상이 현물로 들어오는 경우 찾기용)."""
     bills, window = [], 30 * 24 * 60 * 60 * 1000

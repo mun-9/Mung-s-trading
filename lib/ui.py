@@ -284,6 +284,14 @@ div[class*="st-key-refresh_btn"] button span { color: var(--mg-text) !important;
 .ot small { font-size:11.5px; color:var(--mg-sub); font-weight:600; margin-left:2px; }
 html[data-mg-theme="dark"] .ot .m { color:#FBBF24; } html[data-mg-theme="dark"] .ot .l { color:#7FA8FF; }
 @media (prefers-color-scheme: dark) { html:not([data-mg-theme="light"]) .ot .m { color:#FBBF24; } html:not([data-mg-theme="light"]) .ot .l { color:#7FA8FF; } }
+/* 체결 알림 종 버튼 (보유 포지션 제목 줄) */
+.mg-fillbell { display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:10px; cursor:pointer;
+  border:1px solid var(--mg-border); background:var(--mg-card); color:var(--mg-sub); transition:all .15s; vertical-align:middle; }
+.mg-fillbell svg { width:17px; height:17px; }
+.mg-fillbell:hover { color:var(--mg-text); }
+.mg-fillbell.on { color:#fff; background:var(--mg-accent); border-color:var(--mg-accent); }
+.mg-fillbell.on svg { animation: mg-ring 1.6s ease-in-out 1; transform-origin: 50% 10%; }
+@keyframes mg-ring { 0%,100% { transform: rotate(0); } 15% { transform: rotate(14deg); } 30% { transform: rotate(-12deg); } 45% { transform: rotate(8deg); } 60% { transform: rotate(-4deg); } }
 /* 계좌 점검 */
 .acc-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-top: 16px; }
 .acc-t { background: var(--mg-tile); border-radius: 14px; padding: 14px 16px; min-width: 0; }

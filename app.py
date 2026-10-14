@@ -14,8 +14,9 @@ import lib.music  # noqa: E402
 import lib.theme  # noqa: E402
 import lib.alerts  # noqa: E402
 import lib.newsfeed  # noqa: E402
+import lib.fillfeed  # noqa: E402
 
-for _m in (lib.archive, lib.data, lib.ui, lib.music, lib.theme, lib.alerts, lib.newsfeed):
+for _m in (lib.archive, lib.data, lib.ui, lib.music, lib.theme, lib.alerts, lib.newsfeed, lib.fillfeed):
     _mt = os.path.getmtime(_m.__file__)
     if getattr(_m, "_loaded_mtime", _mt) != _mt:
         importlib.reload(_m)
@@ -29,6 +30,7 @@ with st.container(key="mg_music_host"):
     lib.theme.inject()
     lib.alerts.inject()
     lib.newsfeed.feed()
+    lib.fillfeed.feed()
     lib.music.inject()
 
 pages = [
