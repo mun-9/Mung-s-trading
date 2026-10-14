@@ -601,8 +601,8 @@ def title_row(title, right_html, on_refresh):
         with st.container(horizontal=True, vertical_alignment="center", width="content", gap="small"):
             html(right_html)
             with st.container(key="refresh_btn", width="content"):
-                if st.button("", icon=":material/refresh:", help="모든 데이터 새로고침"):
-                    on_refresh()
+                # 누르는 순간(화면을 그리기 전에) 실행 → 예전 화면을 한 번 더 그리지 않고 바로 로딩 화면으로
+                st.button("", icon=":material/refresh:", help="모든 데이터 새로고침", on_click=on_refresh)
 
 
 # 처음 거래 내역을 불러올 때 보여주는 로딩 화면

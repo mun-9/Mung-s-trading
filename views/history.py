@@ -39,10 +39,14 @@ _loader.empty()
 trades_all, events_all = hist["trades"], hist["events"]
 
 def clear_all():
+    """모든 데이터 새로고침: 캐시 + 서버가 기억하던 거래 기록까지 비우고 거래소에서 처음부터 다시 받음."""
     D.fetch_positions.clear(); D.fetch_history.clear(); D.fetch_usdt_krw.clear(); D.fetch_live_ohlcv.clear()
+    try:
+        D._mem_store().clear()
+    except Exception:
+        pass
     st.session_state["_full_reload"] = True
     st.session_state["_pos_ready"] = False
-    st.rerun()
 
 
 if hist["errors"]:

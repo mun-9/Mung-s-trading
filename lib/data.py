@@ -518,8 +518,10 @@ def fetch_history(keys, _format=5):
         ts = [AR._ts(kind, r) for r in store[kind].values()]
         return max(ts) if ts else None
 
+    fetched = mem.setdefault("fetched", {})  # 종류별로 마지막으로 거래소에 물어본 시각
+
     def _from(kind, base):
-        last = _last(kind)
+        last = fetched.get(kind) or _last(kind)
         start = max(base, last - 3 * day) if last else base
         return max(start, api_floor) if kind in ("bills", "fills", "spot_bills") else start
 
@@ -532,6 +534,7 @@ def fetch_history(keys, _format=5):
         fresh = fetch_bills(ex, _from("bills", since_ms), now_ms)
         _, _, fresh_traded, _, _ = parse_bills(ex, fresh)
         changed |= AR.merge(store, "bills", fresh, lambda b: str(b.get("billId") or ""))
+        fetched["bills"] = now_ms
     except Exception as e:
         errors.append(f"장부(펀딩비) 조회 실패 — 펀딩비 미반영: {type(e).__name__}: {e}")
     all_bills = [b for b in store["bills"].values() if int(b.get("cTime") or 0) >= since_ms]
@@ -577,6 +580,8 @@ def fetch_history(keys, _format=5):
                 end = oldest
             cur = until
     changed |= AR.merge(store, "fills", new_fills, lambda f: f["trade_id"])
+    if not any("체결 조회 실패" in e for e in errors):
+        fetched["fills"] = now_ms
     fills = [{**f, "datetime": datetime.fromisoformat(f["datetime"])} for f in store["fills"].values() if f["ts"] >= since_ms]
     for f in fills:
         f.pop("ts", None)
@@ -594,6 +599,7 @@ def fetch_history(keys, _format=5):
             got.extend(_slim(w) for w in ex.fetch_withdrawals(code="USDT", since=cur, limit=100, params={"until": until}) if w.get("timestamp"))
             cur = until
         changed |= AR.merge(store, "withdrawals", got, lambda w: w["id"])
+        fetched["withdrawals"] = now_ms
     except Exception as e:
         errors.append(f"출금 내역 조회 실패: {type(e).__name__}: {e}")
     for w in store["withdrawals"].values():
@@ -609,6 +615,7 @@ def fetch_history(keys, _format=5):
             got.extend(_slim(d) for d in ex.fetch_deposits(code="USDT", since=cur, limit=100, params={"until": until}) if d.get("timestamp"))
             cur = until
         changed |= AR.merge(store, "deposits", got, lambda d: d["id"])
+        fetched["deposits"] = now_ms
     except Exception as e:
         errors.append(f"입금(페이백) 조회 실패: {type(e).__name__}: {e}")
     #    원금 목록(PRINCIPAL_DEPOSITS)과 금액이 맞는 입금 = 원금, 나머지 시작일 이후 입금 = 페이백
@@ -643,6 +650,7 @@ def fetch_history(keys, _format=5):
     try:
         fresh = fetch_spot_bills(ex, _from("spot_bills", since_ms), now_ms)
         changed |= AR.merge(store, "spot_bills", fresh, lambda b: str(b.get("billId") or ""))
+        fetched["spot_bills"] = now_ms
     except Exception as e:
         errors.append(f"현물 장부(보상) 조회 실패 — 현물로 들어온 바우처 미반영: {type(e).__name__}: {e}")
     r_events, spot_kinds = spot_rewards(store["spot_bills"].values(), since_ms)
