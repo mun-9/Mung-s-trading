@@ -294,7 +294,7 @@ html[data-mg-theme="dark"] .ot .m { color:#FBBF24; } html[data-mg-theme="dark"] 
 .mg-fillbell.on svg { fill: currentColor; fill-opacity: .18; }
 /* 포지션 있을 때: 메뉴 바로 밑에 딱 붙는 긴급 띠 (배경 줄무늬가 계속 흐르고, 빛이 지나감) */
 .mg-brk { position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; gap:12px; height:38px;
-  width:100vw; margin:-16px calc(50% - 50vw) 14px; color:#fff;
+  width:100vw; margin:-22px calc(50% - 50vw) 14px; color:#fff;
   background-color:#FF0000;
   background-image:linear-gradient(135deg, rgba(0,0,0,.12) 25%, transparent 25%, transparent 50%, rgba(0,0,0,.12) 50%, rgba(0,0,0,.12) 75%, transparent 75%);
   background-size:38px 38px; animation: mg-stripe .8s linear infinite; box-shadow: 0 6px 18px rgba(255,0,0,.35); }
@@ -310,7 +310,7 @@ html[data-mg-theme="dark"] .ot .m { color:#FBBF24; } html[data-mg-theme="dark"] 
 .mg-brk .sir { position:relative; z-index:1; font-size:16px; line-height:1; animation: mg-siren .9s steps(2, start) infinite; }
 @keyframes mg-siren { to { opacity:.15; } }
 .mg-brk .msg em { font-style:normal; font-weight:700; font-size:12.5px; opacity:.85; margin-left:8px; }
-@media (max-width:768px) { .mg-brk { height:34px; margin-top:-36px; gap:9px; } .mg-brk .msg { font-size:13.5px; } .mg-brk .msg em { font-size:11.5px; } }
+@media (max-width:768px) { .mg-brk { height:34px; margin-top:-42px; gap:9px; } .mg-brk .msg { font-size:13.5px; } .mg-brk .msg em { font-size:11.5px; } }
 @media (prefers-reduced-motion: reduce) { .mg-brk, .mg-brk::after { animation-duration: 4s; } }
 .mg-fillbell.on svg { animation: mg-ring 1.6s ease-in-out 1; transform-origin: 50% 10%; }
 @keyframes mg-ring { 0%,100% { transform: rotate(0); } 15% { transform: rotate(14deg); } 30% { transform: rotate(-12deg); } 45% { transform: rotate(8deg); } 60% { transform: rotate(-4deg); } }
