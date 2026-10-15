@@ -295,9 +295,9 @@ html[data-mg-theme="dark"] .ot .m { color:#FBBF24; } html[data-mg-theme="dark"] 
 /* 포지션 있을 때: 메뉴 바로 밑에 딱 붙는 긴급 띠 (배경 줄무늬가 계속 흐르고, 빛이 지나감) */
 .mg-brk { position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; gap:12px; height:38px;
   width:100vw; margin:-16px calc(50% - 50vw) 14px; color:#fff;
-  background-color:#E00B0B;
-  background-image:linear-gradient(135deg, rgba(0,0,0,.16) 25%, transparent 25%, transparent 50%, rgba(0,0,0,.16) 50%, rgba(0,0,0,.16) 75%, transparent 75%);
-  background-size:38px 38px; animation: mg-stripe .8s linear infinite; box-shadow: 0 6px 18px rgba(224,11,11,.32); }
+  background-color:#FF0000;
+  background-image:linear-gradient(135deg, rgba(0,0,0,.12) 25%, transparent 25%, transparent 50%, rgba(0,0,0,.12) 50%, rgba(0,0,0,.12) 75%, transparent 75%);
+  background-size:38px 38px; animation: mg-stripe .8s linear infinite; box-shadow: 0 6px 18px rgba(255,0,0,.35); }
 .mg-brk::after { content:''; position:absolute; top:0; bottom:0; left:-30%; width:30%; pointer-events:none;
   background:linear-gradient(90deg, transparent, rgba(255,255,255,.28), transparent); animation: mg-sweep 2.4s ease-in-out infinite; }
 @keyframes mg-stripe { from { background-position: 0 0; } to { background-position: 38px 0; } }
