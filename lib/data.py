@@ -365,13 +365,19 @@ def order_kind(o):
     return t, tag
 
 
-@st.cache_data(ttl=8, show_spinner=False)
+@st.cache_resource(show_spinner=False)
+def _ex_cached(keys):
+    """자주 부르는 조회(체결 알림)용 거래소 연결을 재사용 → 매번 새로 만드는 시간 절약."""
+    return _exchange(keys)
+
+
+@st.cache_data(ttl=2, show_spinner=False)
 def fetch_recent_fills(keys, minutes=30):
     """최근 체결 (체결 알림용) → 주문 단위로 묶은 list. 키가 없거나 실패하면 []."""
     if is_demo(keys):
         return []
     try:
-        ex = _exchange(keys)
+        ex = _ex_cached(keys)
         now = int(datetime.now(UTC).timestamp() * 1000)
         data = (ex.privateMixGetV2MixOrderFills({"productType": PRODUCT_TYPE, "startTime": str(now - minutes * 60 * 1000),
                                                   "endTime": str(now), "limit": "100"}) or {}).get("data") or {}

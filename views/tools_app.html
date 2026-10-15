@@ -207,7 +207,7 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
       <div class="alset">
         <div class="as"><div><b>📰 중요 뉴스 알림</b><span>‘속보·ETF 승인·FOMC·해킹·상장폐지’처럼 시장을 흔드는 뉴스가 새로 뜨면 바로 알려줘요</span></div><div class="sw" id="swNews"></div></div>
         <div class="as"><div><b>⚡ 급변 알림</b><span>5분 안에 BTC ±1% · ETH ±1.5% · SOL·XRP ±2.5% 움직이면 같은 시간대 뉴스와 함께 알려줘요 (기록은 차트 화면 ‘이슈’ 탭)</span></div><div class="sw" id="swMoves"></div></div>
-        <div class="as"><div><b>🔔 체결 알림</b><span>내 포지션이 진입·청산되면 소리와 함께 바로 알려줘요 (켠 브라우저에서만 · 히스토리 위 종 버튼으로도 켜고 꺼요)</span></div><div class="sw" id="swFills"></div></div>
+        <div class="as"><div><b>🔔 체결 알림</b><span>내 포지션이 진입·청산되면 소리와 함께 바로 알려줘요 (켠 브라우저에서만 · 히스토리 위 종 버튼으로도 켜고 꺼요) <a href="#" id="fillTest" style="color:var(--blue);font-weight:700;text-decoration:none;white-space:nowrap;">🔊 소리 듣기</a></span></div><div class="sw" id="swFills"></div></div>
       </div>
     </div>
     <!-- 1. 포지션 크기 -->
@@ -480,6 +480,7 @@ function cfgPaint() { const F = PW.mgFeed; if (!F) { document.querySelector('.al
 $('swNews').onclick = () => { const F = PW.mgFeed; if (F) { F.setCfg('news', !F.cfg().news); cfgPaint(); } };
 $('swMoves').onclick = () => { const F = PW.mgFeed; if (F) { F.setCfg('moves', !F.cfg().moves); cfgPaint(); } };
 try { PW.addEventListener('mg-moves-changed', cfgPaint); } catch (e) {}
+$('fillTest').onclick = e => { e.preventDefault(); const F = PW.mgFeed; if (F && F.chime) { F.chime('in'); setTimeout(() => F.chime('up'), 900); setTimeout(() => F.chime('down'), 1900); } };
 $('swFills').onclick = () => { const F = PW.mgFeed; if (F && F.setFills) { F.setFills(!F.cfg().fills); cfgPaint(); } };
 cfgPaint();
 try { PW.addEventListener('mg-alerts-changed', alDraw); } catch (e) {}
