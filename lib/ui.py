@@ -292,23 +292,24 @@ html[data-mg-theme="dark"] .ot .m { color:#FBBF24; } html[data-mg-theme="dark"] 
 .mg-fillbell:hover { border-color: var(--mg-accent); }
 .mg-fillbell.on { color:var(--mg-accent); background:var(--mg-card); border-color:var(--mg-border); }
 .mg-fillbell.on svg { fill: currentColor; fill-opacity: .18; }
-/* 포지션 있을 때: 긴급 속보 띠 (메뉴 바로 아래, 글자가 오른쪽→왼쪽으로 계속 흐름) */
-.mg-brk { display:flex; align-items:stretch; height:40px; margin:-6px 0 16px; border-radius:12px; overflow:hidden;
-  background:linear-gradient(90deg, rgba(240,68,82,.16), rgba(240,68,82,.07)); border:1px solid rgba(240,68,82,.35); }
-.mg-brk .tag { flex:none; display:flex; align-items:center; gap:7px; padding:0 14px 0 13px; background:#E5303F; color:#fff;
-  font-size:13px; font-weight:900; letter-spacing:.08em; position:relative; }
-.mg-brk .tag::after { content:''; position:absolute; right:-10px; top:0; bottom:0; width:10px; background:#E5303F; clip-path:polygon(0 0, 100% 50%, 0 100%); }
-.mg-brk .tag i { width:8px; height:8px; border-radius:50%; background:#fff; animation: mg-blink 1s steps(2, start) infinite; }
+/* 포지션 있을 때: 메뉴 바로 밑에 딱 붙는 긴급 띠 (배경 줄무늬가 계속 흐르고, 빛이 지나감) */
+.mg-brk { position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; gap:12px; height:38px;
+  width:100vw; margin:-16px calc(50% - 50vw) 14px; color:#fff;
+  background-color:#D7263A;
+  background-image:linear-gradient(135deg, rgba(0,0,0,.16) 25%, transparent 25%, transparent 50%, rgba(0,0,0,.16) 50%, rgba(0,0,0,.16) 75%, transparent 75%);
+  background-size:38px 38px; animation: mg-stripe .8s linear infinite; box-shadow: 0 6px 18px rgba(215,38,58,.28); }
+.mg-brk::after { content:''; position:absolute; top:0; bottom:0; left:-30%; width:30%; pointer-events:none;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,.28), transparent); animation: mg-sweep 2.4s ease-in-out infinite; }
+@keyframes mg-stripe { from { background-position: 0 0; } to { background-position: 38px 0; } }
+@keyframes mg-sweep { 0% { left:-30%; } 60%, 100% { left:110%; } }
+.mg-brk .tag { display:flex; align-items:center; gap:6px; padding:3px 9px; border-radius:6px; background:#fff; color:#D7263A;
+  font-size:11.5px; font-weight:900; letter-spacing:.1em; position:relative; z-index:1; }
+.mg-brk .tag i { width:7px; height:7px; border-radius:50%; background:#D7263A; animation: mg-blink 1s steps(2, start) infinite; }
 @keyframes mg-blink { to { visibility:hidden; } }
-.mg-brk .rail { flex:1; min-width:0; overflow:hidden; display:flex; align-items:center; padding-left:16px;
-  -webkit-mask-image:linear-gradient(90deg, transparent 0, #000 22px, #000 calc(100% - 30px), transparent 100%); mask-image:linear-gradient(90deg, transparent 0, #000 22px, #000 calc(100% - 30px), transparent 100%); }
-.mg-brk .track { display:flex; flex:none; white-space:nowrap; animation: mg-mq 16s linear infinite; }
-.mg-brk .track span { font-size:14.5px; font-weight:900; color:#E5303F; letter-spacing:-.01em; padding-right:34px; }
-.mg-brk .track span b { color:var(--mg-text); font-weight:900; }
-.mg-brk .track span em { font-style:normal; color:var(--mg-sub); font-weight:700; font-size:12.5px; margin-left:8px; }
-@keyframes mg-mq { from { transform:translateX(0); } to { transform:translateX(-50%); } }
-@media (prefers-reduced-motion: reduce) { .mg-brk .track { animation-duration: 40s; } }
-@media (max-width:768px) { .mg-brk { height:36px; margin:-8px 0 14px; } .mg-brk .tag { font-size:12px; padding:0 11px; } .mg-brk .track span { font-size:13.5px; } }
+.mg-brk .msg { position:relative; z-index:1; font-size:15px; font-weight:900; letter-spacing:-.01em; text-shadow:0 1px 2px rgba(0,0,0,.25); white-space:nowrap; }
+.mg-brk .msg em { font-style:normal; font-weight:700; font-size:12.5px; opacity:.85; margin-left:8px; }
+@media (max-width:768px) { .mg-brk { height:34px; margin-top:-36px; gap:9px; } .mg-brk .msg { font-size:13.5px; } .mg-brk .msg em { font-size:11.5px; } }
+@media (prefers-reduced-motion: reduce) { .mg-brk, .mg-brk::after { animation-duration: 4s; } }
 .mg-fillbell.on svg { animation: mg-ring 1.6s ease-in-out 1; transform-origin: 50% 10%; }
 @keyframes mg-ring { 0%,100% { transform: rotate(0); } 15% { transform: rotate(14deg); } 30% { transform: rotate(-12deg); } 45% { transform: rotate(8deg); } 60% { transform: rotate(-4deg); } }
 /* 계좌 점검 */
@@ -633,9 +634,9 @@ def footer():
 
 
 def breaking_html(n_pos):
-    """긴급 속보 띠: 같은 문구를 두 벌 이어 붙여서 끊김 없이 계속 흐르게."""
-    one = "".join(f"<span>🚨 <b>인생배팅</b> / 승부 보는 중<em>포지션 {n_pos}개</em></span>" for _ in range(4))
-    return f"<div class='mg-brk'><div class='tag'><i></i>LIVE</div><div class='rail'><div class='track'>{one}{one}</div></div></div>"
+    """긴급 띠: 글씨는 가만히, 뒤 배경 줄무늬가 계속 흐름."""
+    return (f"<div class='mg-brk'><div class='tag'><i></i>LIVE</div>"
+            f"<div class='msg'>🚨 인생배팅 / 승부 보는 중<em>포지션 {n_pos}개</em></div></div>")
 
 
 def title_row(title, right_html, on_refresh):
