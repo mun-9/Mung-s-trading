@@ -292,13 +292,23 @@ html[data-mg-theme="dark"] .ot .m { color:#FBBF24; } html[data-mg-theme="dark"] 
 .mg-fillbell:hover { border-color: var(--mg-accent); }
 .mg-fillbell.on { color:var(--mg-accent); background:var(--mg-card); border-color:var(--mg-border); }
 .mg-fillbell.on svg { fill: currentColor; fill-opacity: .18; }
-/* 포지션 있을 때 뜨는 한 줄 상태 배너 */
-.mg-bet { display:flex; align-items:center; gap:10px; padding:12px 16px; margin:0 0 14px; border-radius:14px;
-  background:var(--mg-tile); border:1px solid var(--mg-border); font-size:14px; font-weight:800; color:var(--mg-text); letter-spacing:-0.01em; }
-.mg-bet .live { width:8px; height:8px; border-radius:50%; background:#F04452; flex:none; }
-@media (prefers-reduced-motion: no-preference) { .mg-bet .live { animation: mg-pulse 1.4s ease-in-out infinite; } }
-@keyframes mg-pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.35; transform:scale(.75); } }
-.mg-bet small { margin-left:auto; font-size:12px; font-weight:600; color:var(--mg-sub); }
+/* 포지션 있을 때: 긴급 속보 띠 (메뉴 바로 아래, 글자가 오른쪽→왼쪽으로 계속 흐름) */
+.mg-brk { display:flex; align-items:stretch; height:40px; margin:-6px 0 16px; border-radius:12px; overflow:hidden;
+  background:linear-gradient(90deg, rgba(240,68,82,.16), rgba(240,68,82,.07)); border:1px solid rgba(240,68,82,.35); }
+.mg-brk .tag { flex:none; display:flex; align-items:center; gap:7px; padding:0 14px 0 13px; background:#E5303F; color:#fff;
+  font-size:13px; font-weight:900; letter-spacing:.08em; position:relative; }
+.mg-brk .tag::after { content:''; position:absolute; right:-10px; top:0; bottom:0; width:10px; background:#E5303F; clip-path:polygon(0 0, 100% 50%, 0 100%); }
+.mg-brk .tag i { width:8px; height:8px; border-radius:50%; background:#fff; animation: mg-blink 1s steps(2, start) infinite; }
+@keyframes mg-blink { to { visibility:hidden; } }
+.mg-brk .rail { flex:1; min-width:0; overflow:hidden; display:flex; align-items:center; padding-left:16px;
+  -webkit-mask-image:linear-gradient(90deg, transparent 0, #000 22px, #000 calc(100% - 30px), transparent 100%); mask-image:linear-gradient(90deg, transparent 0, #000 22px, #000 calc(100% - 30px), transparent 100%); }
+.mg-brk .track { display:flex; flex:none; white-space:nowrap; animation: mg-mq 16s linear infinite; }
+.mg-brk .track span { font-size:14.5px; font-weight:900; color:#E5303F; letter-spacing:-.01em; padding-right:34px; }
+.mg-brk .track span b { color:var(--mg-text); font-weight:900; }
+.mg-brk .track span em { font-style:normal; color:var(--mg-sub); font-weight:700; font-size:12.5px; margin-left:8px; }
+@keyframes mg-mq { from { transform:translateX(0); } to { transform:translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) { .mg-brk .track { animation-duration: 40s; } }
+@media (max-width:768px) { .mg-brk { height:36px; margin:-8px 0 14px; } .mg-brk .tag { font-size:12px; padding:0 11px; } .mg-brk .track span { font-size:13.5px; } }
 .mg-fillbell.on svg { animation: mg-ring 1.6s ease-in-out 1; transform-origin: 50% 10%; }
 @keyframes mg-ring { 0%,100% { transform: rotate(0); } 15% { transform: rotate(14deg); } 30% { transform: rotate(-12deg); } 45% { transform: rotate(8deg); } 60% { transform: rotate(-4deg); } }
 /* 계좌 점검 */
@@ -620,6 +630,12 @@ def footer():
     html("<div class='mg-foot'><div><b>Mung9_</b> Trading Journal</div>"
          "<div>데이터 Bitget · CoinGecko · Upbit · Binance · Bybit · OKX · TradingView</div>"
          "<div>정보 제공용이며 투자 판단과 책임은 본인에게 있어요</div></div>")
+
+
+def breaking_html(n_pos):
+    """긴급 속보 띠: 같은 문구를 두 벌 이어 붙여서 끊김 없이 계속 흐르게."""
+    one = "".join(f"<span>🚨 <b>인생배팅</b> / 승부 보는 중<em>포지션 {n_pos}개</em></span>" for _ in range(4))
+    return f"<div class='mg-brk'><div class='tag'><i></i>LIVE</div><div class='rail'><div class='track'>{one}{one}</div></div></div>"
 
 
 def title_row(title, right_html, on_refresh):

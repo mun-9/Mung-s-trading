@@ -58,6 +58,18 @@ if hist["demo"]:
 else:
     badge = (f"<span class='dot' style='background:{GREEN};'></span><span style='font-size:13px;font-weight:700;color:{TEXT};'>Bitget</span>"
              f"<span class='hide-on-mobile' style='font-size:12px;color:{SUB};'>{hist['loaded_at'].strftime('%H:%M')} 기준</span>")
+# 포지션이 있을 때만: 메뉴 바로 아래 긴급 속보처럼 흘러가는 띠
+@st.fragment(run_every=10)
+def breaking_banner():
+    if hist["demo"]:
+        return
+    pos, _, _ = D.fetch_positions(keys)
+    if pos:
+        html(_ui.breaking_html(len(pos)))
+
+
+breaking_banner()
+
 title_row("보유 포지션", f"<span class='badge'>{badge}</span>" + ("" if hist["demo"] else "<span class='mg-fillbell' role='button' data-mg-fillbell title='체결 알림'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9'/><path d='M10.3 21a1.94 1.94 0 0 0 3.4 0'/></svg></span>"), clear_all)
 
 
@@ -70,8 +82,6 @@ def live_positions():
     if not positions:
         html("<div class='card es-card' style='margin-bottom:18px;'>" + _ui.empty_state("💼", "지금 보유 중인 포지션이 없어요", "Bitget에서 포지션을 열면 여기에 실시간 손익이 바로 떠요") + "</div>")
         return
-
-    html(f"<div class='mg-bet'><span class='live'></span>인생 베팅 / 승부 보는 중 ㅅㅂ<small>포지션 {len(positions)}개</small></div>")
 
     groups = {}
     for p in positions:
