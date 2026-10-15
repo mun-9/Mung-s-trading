@@ -71,7 +71,7 @@ def live_positions():
         html("<div class='card es-card' style='margin-bottom:18px;'>" + _ui.empty_state("💼", "지금 보유 중인 포지션이 없어요", "Bitget에서 포지션을 열면 여기에 실시간 손익이 바로 떠요") + "</div>")
         return
 
-    html(f"<div class='mg-bet'><span class='live'></span>🔥 인생베팅 승부보는중<small>포지션 {len(positions)}개</small></div>")
+    html(f"<div class='mg-bet'><span class='live'></span>인생 베팅 / 승부 보는 중<small>포지션 {len(positions)}개</small></div>")
 
     groups = {}
     for p in positions:
