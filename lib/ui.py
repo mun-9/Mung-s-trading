@@ -307,6 +307,8 @@ html[data-mg-theme="dark"] .ot .m { color:#FBBF24; } html[data-mg-theme="dark"] 
 .mg-brk .tag i { width:7px; height:7px; border-radius:50%; background:#D7263A; animation: mg-blink 1s steps(2, start) infinite; }
 @keyframes mg-blink { to { visibility:hidden; } }
 .mg-brk .msg { position:relative; z-index:1; font-size:15px; font-weight:900; letter-spacing:-.01em; text-shadow:0 1px 2px rgba(0,0,0,.25); white-space:nowrap; }
+.mg-brk .sir { position:relative; z-index:1; font-size:16px; line-height:1; animation: mg-siren .9s steps(2, start) infinite; }
+@keyframes mg-siren { to { opacity:.15; } }
 .mg-brk .msg em { font-style:normal; font-weight:700; font-size:12.5px; opacity:.85; margin-left:8px; }
 @media (max-width:768px) { .mg-brk { height:34px; margin-top:-36px; gap:9px; } .mg-brk .msg { font-size:13.5px; } .mg-brk .msg em { font-size:11.5px; } }
 @media (prefers-reduced-motion: reduce) { .mg-brk, .mg-brk::after { animation-duration: 4s; } }
@@ -635,7 +637,7 @@ def footer():
 
 def breaking_html(n_pos):
     """긴급 띠: 글씨는 가만히, 뒤 배경 줄무늬가 계속 흐름."""
-    return "<div class='mg-brk'><div class='msg'>인생배팅 / 승부 보는 중</div></div>"
+    return "<div class='mg-brk'><span class='sir'>🚨</span><div class='msg'>인생배팅 / 승부 보는 중</div><span class='sir'>🚨</span></div>"
 
 
 def title_row(title, right_html, on_refresh):
