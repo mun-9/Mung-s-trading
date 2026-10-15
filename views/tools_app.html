@@ -13,8 +13,7 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 .num { font-variant-numeric: tabular-nums; }
 .up { color: var(--up) !important; } .down { color: var(--down) !important; }
 .wrap { display: flex; flex-direction: column; gap: 18px; padding: 2px 2px 30px; }
-.top { display: flex; align-items: center; gap: 14px 18px; flex-wrap: wrap; background: var(--card); border-radius: 20px; box-shadow: var(--shadow); padding: 16px 20px; position: relative; overflow: hidden; }
-.top::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--blue); }
+.top { display: flex; align-items: center; gap: 14px 18px; flex-wrap: wrap; background: var(--card); border-radius: 20px; box-shadow: var(--shadow), inset 4px 0 0 var(--blue); padding: 16px 20px; position: relative; z-index: 5; }
 .coin { display: flex; align-items: center; gap: 12px; }
 .cico { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 900; color: #fff; background: linear-gradient(135deg, #F7931A, #F5B800); flex-shrink: 0; }
 .cname { display: flex; flex-direction: column; gap: 2px; }
@@ -104,6 +103,20 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 .ccopy { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 11.5px; color: var(--sub); margin-top: 8px; min-height: 22px; }
 .ccopy button { border: 0; background: var(--soft); color: var(--mid); font-family: inherit; font-size: 11.5px; font-weight: 700; padding: 4px 9px; border-radius: 7px; cursor: pointer; }
 .ccopy span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 종목 검색 */
+.ssr { position: relative; width: 190px; }
+.ssr label { display: flex; align-items: center; gap: 6px; height: 33px; padding: 0 11px; border-radius: 999px; border: 1px solid var(--border); background: transparent; cursor: text; }
+.ssr label:focus-within { border-color: var(--blue); }
+.ssr svg { width: 14px; height: 14px; color: var(--sub); flex-shrink: 0; }
+.ssr input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text); font-family: inherit; font-size: 12.5px; font-weight: 700; text-transform: uppercase; }
+.ssr input::placeholder { text-transform: none; color: var(--faint); font-weight: 600; }
+.sdd { position: absolute; right: 0; top: calc(100% + 6px); width: 260px; max-height: 320px; overflow-y: auto; background: var(--card); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 14px 34px rgba(0,0,0,.18); padding: 6px; display: none; z-index: 20; }
+.sdd.on { display: block; }
+.sdd .it { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 9px; cursor: pointer; font-size: 13px; }
+.sdd .it b { font-weight: 800; } .sdd .it span { font-variant-numeric: tabular-nums; color: var(--mid); } .sdd .it i { font-style: normal; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 56px; text-align: right; }
+.sdd .it.act, .sdd .it:hover { background: var(--soft); }
+.sdd .em { padding: 14px 10px; text-align: center; color: var(--sub); font-size: 12.5px; }
+@media (max-width: 640px) { .ssr { width: 100%; order: 9; } .sdd { left: 0; right: 0; width: auto; } }
 /* 테더 · 원화 계산기 */
 .fx { min-width: 0; align-self: stretch; }
 .fxrow { display: grid; grid-template-columns: 1fr 40px 1fr; gap: 10px; align-items: end; }
@@ -156,7 +169,8 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
       <div class="cname"><small>계산 기준 종목</small><label class="symin"><input id="sym" value="BTC" maxlength="12" spellcheck="false"><span>/USDT</span></label></div>
     </div>
     <div class="px"><span class="live num" id="livePx">-</span><span class="chg num" id="livePc"></span></div>
-    <div class="quick" id="quick"><button>BTC</button><button>ETH</button><button>SOL</button><button>XRP</button><button>DOGE</button></div>
+    <div class="quick" id="quick"><button>BTC</button><button>ETH</button><button>SOL</button></div>
+    <div class="ssr"><label><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="sq" placeholder="다른 종목 검색" maxlength="20" autocomplete="off" spellcheck="false"></label><div class="sdd" id="sdd"></div></div>
   </div>
 
   <div class="grid">
@@ -205,8 +219,8 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
       </div>
       <div id="alList"></div>
       <div class="alset">
-        <div class="as"><div><b>📰 중요 뉴스 알림</b><span>‘속보·ETF 승인·FOMC·해킹·상장폐지’처럼 시장을 흔드는 뉴스가 새로 뜨면 바로 알려줘요</span></div><div class="sw" id="swNews"></div></div>
-        <div class="as"><div><b>⚡ 급변 알림</b><span>5분 안에 BTC ±1% · ETH ±1.5% · SOL·XRP ±2.5% 움직이면 같은 시간대 뉴스와 함께 알려줘요 (기록은 차트 화면 ‘이슈’ 탭)</span></div><div class="sw" id="swMoves"></div></div>
+        <div class="as"><div><b>📰 중요 뉴스 알림</b><span>‘속보·ETF 승인·FOMC·해킹·상장폐지’처럼 시장을 흔드는 뉴스가 새로 뜨면 바로 알려줘요 <a href="#" class="sndt" data-snd="bell" style="color:var(--blue);font-weight:700;text-decoration:none;white-space:nowrap;">🔊 소리 듣기</a></span></div><div class="sw" id="swNews"></div></div>
+        <div class="as"><div><b>⚡ 급변 알림</b><span>5분 안에 BTC ±1% · ETH ±1.5% · SOL·XRP ±2.5% 움직이면 같은 시간대 뉴스와 함께 알려줘요 (기록은 차트 화면 ‘이슈’ 탭) <a href="#" class="sndt" data-snd="ping" style="color:var(--blue);font-weight:700;text-decoration:none;white-space:nowrap;">🔊 소리 듣기</a></span></div><div class="sw" id="swMoves"></div></div>
         <div class="as"><div><b>🔔 체결 알림</b><span>내 포지션이 진입·청산되면 소리와 함께 바로 알려줘요 (켠 브라우저에서만 · 히스토리 위 종 버튼으로도 켜고 꺼요) <a href="#" id="fillTest" style="color:var(--blue);font-weight:700;text-decoration:none;white-space:nowrap;">🔊 소리 듣기</a></span></div><div class="sw" id="swFills"></div></div>
       </div>
     </div>
@@ -480,6 +494,7 @@ function cfgPaint() { const F = PW.mgFeed; if (!F) { document.querySelector('.al
 $('swNews').onclick = () => { const F = PW.mgFeed; if (F) { F.setCfg('news', !F.cfg().news); cfgPaint(); } };
 $('swMoves').onclick = () => { const F = PW.mgFeed; if (F) { F.setCfg('moves', !F.cfg().moves); cfgPaint(); } };
 try { PW.addEventListener('mg-moves-changed', cfgPaint); } catch (e) {}
+document.querySelectorAll('.sndt').forEach(x => x.onclick = e => { e.preventDefault(); const F = PW.mgFeed; if (!F) return; if (x.dataset.snd === 'bell') F.bell && F.bell(); else if (F.ping) { F.ping(true); setTimeout(() => F.ping(false), 900); } });
 $('fillTest').onclick = e => { e.preventDefault(); const F = PW.mgFeed; if (F && F.chime) { F.chime('in'); setTimeout(() => F.chime('up'), 900); setTimeout(() => F.chime('down'), 1900); } };
 $('swFills').onclick = () => { const F = PW.mgFeed; if (F && F.setFills) { F.setFills(!F.cfg().fills); cfgPaint(); } };
 cfgPaint();
@@ -595,6 +610,43 @@ alDraw();
     if (/^[0-9]$/.test(k) || '+-*/.%'.includes(k) && k.length === 1 || ['=', '⌫', 'C'].includes(k)) { e.preventDefault(); press(k); }
   });
   render();
+})();
+
+// ---------- 종목 검색 (Bitget USDT 선물 전체) ----------
+(function () {
+  let ALL = null, act = 0, shown = [];
+  async function loadAll() {
+    if (ALL) return ALL;
+    try {
+      const j = await (await fetch('https://api.bitget.com/api/v2/mix/market/tickers?productType=USDT-FUTURES')).json();
+      ALL = (j.data || []).filter(t => /USDT$/.test(t.symbol)).map(t => ({ b: t.symbol.replace(/USDT$/, ''), p: +t.lastPr, c: +t.change24h * 100, v: +t.usdtVolume || 0 }))
+        .sort((a, b) => b.v - a.v);
+    } catch (e) { ALL = []; }
+    return ALL;
+  }
+  const fp = v => !v ? '-' : v >= 100 ? v.toLocaleString('en-US', { maximumFractionDigits: 2 }) : v >= 1 ? v.toFixed(4) : v.toPrecision(4);
+  async function render() {
+    const q = $('sq').value.trim().toUpperCase().replace(/USDT$|\/.*$/, '');
+    const all = await loadAll();
+    shown = (q ? all.filter(t => t.b.startsWith(q)).concat(all.filter(t => !t.b.startsWith(q) && t.b.includes(q))) : all).slice(0, 30);
+    act = 0;
+    $('sdd').innerHTML = !all.length ? '<div class="em">종목 목록을 불러오지 못했어요</div>'
+      : !shown.length ? '<div class="em">찾는 종목이 없어요</div>'
+      : shown.map((t, i) => `<div class="it${i === act ? ' act' : ''}" data-b="${t.b}"><b>${t.b}</b><span>${fp(t.p)}</span><i class="${t.c >= 0 ? 'up' : 'down'}">${t.c >= 0 ? '+' : ''}${t.c.toFixed(2)}%</i></div>`).join('');
+    $('sdd').classList.add('on');
+  }
+  function pick(b) { if (!b) return; setSym(b); $('sq').value = ''; $('sdd').classList.remove('on'); $('sq').blur(); }
+  function hl() { $('sdd').querySelectorAll('.it').forEach((el, i) => { el.classList.toggle('act', i === act); if (i === act) el.scrollIntoView({ block: 'nearest' }); }); }
+  $('sq').onfocus = render;
+  $('sq').oninput = render;
+  $('sq').onkeydown = e => {
+    if (e.key === 'ArrowDown') { act = Math.min(act + 1, shown.length - 1); hl(); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { act = Math.max(act - 1, 0); hl(); e.preventDefault(); }
+    else if (e.key === 'Enter') { pick((shown[act] || {}).b || $('sq').value.trim().toUpperCase()); e.preventDefault(); }
+    else if (e.key === 'Escape') { $('sdd').classList.remove('on'); $('sq').blur(); }
+  };
+  $('sdd').onmousedown = e => { const it = e.target.closest('.it'); if (it) { e.preventDefault(); pick(it.dataset.b); } };
+  document.addEventListener('mousedown', e => { if (!e.target.closest('.ssr')) $('sdd').classList.remove('on'); });
 })();
 </script>
 </body>

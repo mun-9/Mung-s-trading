@@ -62,7 +62,36 @@ _JS = r"""
       });
     } catch (e) {}
   }
-  const beep = () => chime();
+  // 뉴스: 맑은 종소리 (배음이 섞인 '딩-동'), 가격 알림: 짧게 '삐빅-삥' 디지털 핑 (오르면 올라가고, 내리면 내려감)
+  function bell() {
+    try {
+      AC = AC || new (W.AudioContext || W.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume();
+      const t0 = AC.currentTime + .01, m = AC.createGain(); m.gain.value = .2; m.connect(AC.destination);
+      [[783.99, 0], [1174.66, .22]].forEach(([f, dt]) => {
+        [[1, 1, 1.6], [2.76, .35, .7], [5.4, .12, .35]].forEach(([r, amp, dur]) => {
+          const o = AC.createOscillator(), g = AC.createGain(), t = t0 + dt;
+          o.type = 'sine'; o.frequency.setValueAtTime(f * r, t);
+          g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(amp, t + .006); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+          o.connect(g); g.connect(m); o.start(t); o.stop(t + dur + .05);
+        });
+      });
+    } catch (e) {}
+  }
+  function ping(up) {
+    try {
+      AC = AC || new (W.AudioContext || W.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume();
+      const t0 = AC.currentTime + .01, m = AC.createGain(); m.gain.value = .16; m.connect(AC.destination);
+      const seq = up ? [[1318.5, 0, .07], [1318.5, .1, .07], [1975.5, .2, .32]] : [[1975.5, 0, .07], [1975.5, .1, .07], [1318.5, .2, .32]];
+      seq.forEach(([f, dt, dur]) => {
+        const o = AC.createOscillator(), g = AC.createGain(), t = t0 + dt;
+        o.type = 'square'; o.frequency.setValueAtTime(f, t);
+        const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3200;
+        g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.5, t + .004); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+        o.connect(lp); lp.connect(g); g.connect(m); o.start(t); o.stop(t + dur + .05);
+      });
+    } catch (e) {}
+  }
+  const beep = () => bell();
   // 브라우저는 사용자가 한 번 화면을 눌러야 소리를 낼 수 있어서, 첫 클릭 때 미리 소리 장치를 깨워둠 → 알림이 와도 바로 울림
   d.addEventListener('pointerdown', () => { try { AC = AC || new (W.AudioContext || W.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); } catch (e) {} }, { once: true, capture: true });
   function notify(title, body) {
@@ -109,7 +138,7 @@ _JS = r"""
       hit = true;
       const title = `${sym} ${fmt(a.price)} ${a.dir === 'above' ? '돌파' : '이탈'}`;
       const body = `지금 ${fmt(px)} · ${a.dir === 'above' ? '설정한 가격 위로 올라갔어요' : '설정한 가격 아래로 내려갔어요'}${a.note ? ' · ' + a.note : ''}`;
-      toast(title, body, a.dir); notify(title, body); chime(a.dir === 'above' ? 'up' : 'down');
+      toast(title, body, a.dir); notify(title, body); ping(a.dir === 'above');
       return false; // 한 번 울리면 끝
     });
     if (hit || changed) { store(keep); W.dispatchEvent(new Event('mg-alerts-changed')); }
@@ -134,7 +163,7 @@ _JS = r"""
     W.dispatchEvent(new Event('mg-moves-changed'));
     const title = `${sym} 5분 새 ${pct > 0 ? '+' : ''}${pct.toFixed(2)}% ${pct > 0 ? '급등' : '급락'}`;
     const body = rel.length ? '같은 시간대 뉴스: ' + rel[0].title : `지금 ${fmt(px)} · 아직 관련 뉴스가 없어요 (차트 화면 '이슈' 탭에서 업데이트)`;
-    toast(title, body, pct > 0 ? 'above' : 'below', pct > 0 ? '📈' : '📉', rel.length ? rel[0].link : null); notify(title, body); chime(pct > 0 ? 'up' : 'down');
+    toast(title, body, pct > 0 ? 'above' : 'below', pct > 0 ? '📈' : '📉', rel.length ? rel[0].link : null); notify(title, body); ping(pct > 0);
   }
   // ---------- 뉴스: 서버가 90초마다 넘겨주는 최신 목록 ----------
   let NEWS = [];
@@ -203,7 +232,7 @@ _JS = r"""
   }
   d.addEventListener('click', e => { const b = e.target.closest('[data-mg-fillbell]'); if (!b) return; e.preventDefault(); setFills(!cfg().fills); });
   new MutationObserver(() => { if (d.querySelector('[data-mg-fillbell]:not([data-p])')) { d.querySelectorAll('[data-mg-fillbell]').forEach(b => b.dataset.p = 1); paintBells(); } }).observe(d.body, { childList: true, subtree: true });
-  W.mgFeed = { cfg, setFills, chime, setCfg(k, v) { const c = cfg(); c[k] = v; try { localStorage.setItem(CFG_KEY, JSON.stringify(c)); } catch (e) {} connect(); W.dispatchEvent(new Event('mg-moves-changed')); },
+  W.mgFeed = { cfg, setFills, chime, bell, ping, setCfg(k, v) { const c = cfg(); c[k] = v; try { localStorage.setItem(CFG_KEY, JSON.stringify(c)); } catch (e) {} connect(); W.dispatchEvent(new Event('mg-moves-changed')); },
     moves: loadMoves, clearMoves() { try { localStorage.removeItem(MKEY); } catch (e) {} W.dispatchEvent(new Event('mg-moves-changed')); }, TH, MOVE_SYMS };
 
   // 다른 화면(코인 상세 · 도구)이 쓰는 함수
