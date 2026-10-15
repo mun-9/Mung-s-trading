@@ -285,11 +285,20 @@ div[class*="st-key-refresh_btn"] button span { color: var(--mg-text) !important;
 html[data-mg-theme="dark"] .ot .m { color:#FBBF24; } html[data-mg-theme="dark"] .ot .l { color:#7FA8FF; }
 @media (prefers-color-scheme: dark) { html:not([data-mg-theme="light"]) .ot .m { color:#FBBF24; } html:not([data-mg-theme="light"]) .ot .l { color:#7FA8FF; } }
 /* 체결 알림 종 버튼 (보유 포지션 제목 줄) */
-.mg-fillbell { display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:10px; cursor:pointer;
-  border:1px solid var(--mg-border); background:var(--mg-card); color:var(--mg-sub); transition:all .15s; vertical-align:middle; }
+.mg-fillbell { display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:12px; cursor:pointer; box-sizing:border-box;
+  border:1px solid var(--mg-border); background:var(--mg-card); color:var(--mg-sub); box-shadow:0 2px 8px rgba(15,23,42,0.03); transition:all .15s; vertical-align:middle; }
 .mg-fillbell svg { width:17px; height:17px; }
 .mg-fillbell:hover { color:var(--mg-text); }
-.mg-fillbell.on { color:#fff; background:var(--mg-accent); border-color:var(--mg-accent); }
+.mg-fillbell:hover { border-color: var(--mg-accent); }
+.mg-fillbell.on { color:var(--mg-accent); background:var(--mg-card); border-color:var(--mg-border); }
+.mg-fillbell.on svg { fill: currentColor; fill-opacity: .18; }
+/* 포지션 있을 때 뜨는 한 줄 상태 배너 */
+.mg-bet { display:flex; align-items:center; gap:10px; padding:12px 16px; margin:0 0 14px; border-radius:14px;
+  background:var(--mg-tile); border:1px solid var(--mg-border); font-size:14px; font-weight:800; color:var(--mg-text); letter-spacing:-0.01em; }
+.mg-bet .live { width:8px; height:8px; border-radius:50%; background:#F04452; flex:none; }
+@media (prefers-reduced-motion: no-preference) { .mg-bet .live { animation: mg-pulse 1.4s ease-in-out infinite; } }
+@keyframes mg-pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.35; transform:scale(.75); } }
+.mg-bet small { margin-left:auto; font-size:12px; font-weight:600; color:var(--mg-sub); }
 .mg-fillbell.on svg { animation: mg-ring 1.6s ease-in-out 1; transform-origin: 50% 10%; }
 @keyframes mg-ring { 0%,100% { transform: rotate(0); } 15% { transform: rotate(14deg); } 30% { transform: rotate(-12deg); } 45% { transform: rotate(8deg); } 60% { transform: rotate(-4deg); } }
 /* 계좌 점검 */
