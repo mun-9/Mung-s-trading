@@ -637,7 +637,7 @@ def footer():
 
 def breaking_html(n_pos):
     """긴급 띠: 글씨는 가만히, 뒤 배경 줄무늬가 계속 흐름."""
-    return "<div class='mg-brk'><span class='sir'>🚨</span><div class='msg'>인생배팅 / 승부 보는 중</div><span class='sir'>🚨</span></div>"
+    return "<div class='mg-brk'><span class='sir'>🚨</span><div class='msg'>승부 보는 자리 / 틀릴 시 접음</div><span class='sir'>🚨</span></div>"
 
 
 def title_row(title, right_html, on_refresh):
