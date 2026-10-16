@@ -75,16 +75,16 @@ def _tracks():
 
 
 _CSS = r"""
-#mg-music { position: fixed; left: 0; bottom: 34px; z-index: 999990; display: flex; align-items: center;
+#mg-music { position: fixed; left: 0; bottom: 24px; will-change: transform; z-index: 999990; display: flex; align-items: center;
   font-family: 'Pretendard', -apple-system, sans-serif; transform: translateX(-140%); opacity: 0;
   transition: transform .7s cubic-bezier(.2,1.3,.4,1), opacity .5s ease; pointer-events: none;
   --mp-bg: rgba(18,22,30,.88); --mp-line: rgba(255,255,255,.08); --mp-sub: rgba(255,255,255,.52); --mp-acc: #5B8DFF;
-  --d: 60px; --npw: 392px; --cw: 284px; }
+  --d: 60px; --cardw: 340px; --npw: calc(var(--d) + 10px + var(--cardw)); }
 /* 컴퓨터: LP 전체가 보임 / 휴대폰(아래 @media): 왼쪽 벽에 반쯤 숨어 있다가 누르면 쏙 나옴 */
 #mg-music.in { transform: translateX(24px); opacity: 1; pointer-events: auto; }
 #mg-music.in.open { transform: translateX(24px); }
 
-/* LP — 카드 왼쪽 둥근 끝에 쏙 들어가 앉음 */
+/* LP */
 #mg-music .disc { position: relative; z-index: 2; width: var(--d); height: var(--d); border-radius: 50%; cursor: pointer; flex-shrink: 0;
   background: radial-gradient(circle, transparent 0 46%, rgba(255,255,255,.035) 46.5% 47.5%, transparent 48%),
               repeating-radial-gradient(circle, #121216 0 1.4px, #1d1d23 1.4px 2.6px);
@@ -107,56 +107,58 @@ _CSS = r"""
 #mg-music .glow { position: absolute; left: -10px; top: 50%; width: calc(var(--d) + 20px); height: calc(var(--d) + 20px); margin-top: calc(var(--d) / -2 - 10px); border-radius: 50%;
   background: radial-gradient(circle, rgba(91,141,255,.42), transparent 66%); opacity: 0; transition: opacity .6s; pointer-events: none; animation: mg-pulse 2.4s ease-in-out infinite; }
 #mg-music.playing .glow { opacity: 1; }
-#mg-music.open .glow { opacity: 0; }
 
-/* 지금 재생 카드: LP 뒤에서 오른쪽으로 펼쳐지는 알약 모양 */
-#mg-music .np { position: absolute; z-index: 1; left: -12px; top: 50%; height: calc(var(--d) + 24px); margin-top: calc(var(--d) / -2 - 12px);
-  display: flex; flex-direction: column; justify-content: center; gap: 6px; box-sizing: border-box;
-  width: 0; opacity: 0; overflow: hidden; padding: 0; border-radius: 999px; background: var(--mp-bg); color: #fff; border: 1px solid var(--mp-line);
-  backdrop-filter: blur(18px) saturate(1.5); -webkit-backdrop-filter: blur(18px) saturate(1.5);
-  box-shadow: 0 12px 32px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.05);
-  transition: width .45s cubic-bezier(.2,1,.3,1), opacity .3s ease; pointer-events: none; }
-#mg-music.open .np { width: var(--npw); opacity: 1; padding: 0 18px 0 calc(var(--d) + 26px); pointer-events: auto; }
-/* 자동으로 들어갈 때: 살짝 머뭇거리듯 천천히 줄어들다가 '쑥' 들어감 */
-#mg-music.open.tuck .np { animation: mg-tuck .95s cubic-bezier(.55,0,.85,.35) forwards; }
-@keyframes mg-tuck { 0% { width: var(--npw); opacity: 1; } 55% { width: calc(var(--npw) * .82); opacity: .95; } 100% { width: 0; opacity: 0; } }
-#mg-music.open.tuck .disc { animation: mg-spin 3.2s linear infinite, mg-nudge .95s ease-in-out; }
-@keyframes mg-nudge { 0%, 100% { margin-left: 0; } 55% { margin-left: 4px; } }
+/* 지금 재생 카드: LP 오른쪽에 같은 높이로 붙는 미니 플레이어
+   펼치고 접을 때 크기(width)를 바꾸지 않고 '가림막(clip-path)'만 움직임 → 화면을 다시 계산하지 않아 버벅임 없음 */
+#mg-music .np { position: absolute; left: calc(var(--d) + 10px); top: 50%; width: var(--cardw); height: var(--d); margin-top: calc(var(--d) / -2);
+  box-sizing: border-box; display: flex; align-items: center; gap: 4px; padding: 0 8px 0 14px; overflow: hidden;
+  border-radius: 16px; background: #141820; color: #fff; border: 1px solid var(--mp-line);
+  box-shadow: 0 10px 28px rgba(0,0,0,.36);
+  opacity: 0; transform: translateX(-10px); clip-path: inset(0 100% 0 0 round 16px); pointer-events: none; will-change: clip-path, transform, opacity;
+  transition: clip-path .55s cubic-bezier(.2,.9,.2,1), transform .55s cubic-bezier(.2,.9,.2,1), opacity .3s ease; }
+#mg-music.open .np { opacity: 1; transform: none; clip-path: inset(0 0 0 0 round 16px); pointer-events: auto; }
+/* 앨범 사진을 흐리게 깐 배경 (색만 은은하게) */
+#mg-music .np-bg { position: absolute; inset: -20px; z-index: 0; background: center/cover; filter: blur(22px) saturate(1.6); opacity: .32; pointer-events: none; }
+#mg-music .np::after { content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: linear-gradient(90deg, rgba(20,24,32,.35), rgba(20,24,32,.85) 60%); }
+#mg-music .np > *:not(.np-bg) { position: relative; z-index: 1; }
+/* 자동으로 들어갈 때: 살짝 머뭇거리다 '쑥' 들어감 */
+#mg-music.open.tuck .np { animation: mg-tuck .9s cubic-bezier(.6,0,.8,.3) forwards; }
+@keyframes mg-tuck {
+  0%   { clip-path: inset(0 0 0 0 round 16px); transform: none; opacity: 1; }
+  45%  { clip-path: inset(0 9% 0 0 round 16px); transform: translateX(-3px); opacity: 1; }
+  100% { clip-path: inset(0 100% 0 0 round 16px); transform: translateX(-10px); opacity: 0; } }
+#mg-music.open.tuck .disc { animation: mg-spin 3.2s linear infinite, mg-nudge .9s ease-in-out; }
+@keyframes mg-nudge { 0%, 100% { translate: 0; } 45% { translate: 3px 0; } }
 
-/* 윗줄: 곡명·가수 | 목록 · 접기   /  아랫줄: 이전 · 재생 · 다음 | 진행 막대 */
-#mg-music .np-top, #mg-music .np-ctl { display: flex; align-items: center; width: var(--cw); flex-shrink: 0; }
-#mg-music .np-top { gap: 2px; }
-#mg-music .np-ctl { gap: 4px; }
 #mg-music .np-tx { flex: 1; min-width: 0; padding-right: 6px; }
 #mg-music .np-t { font-size: 13.5px; font-weight: 750; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.015em; }
-#mg-music .np-a { font-size: 11px; line-height: 1.3; color: var(--mp-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
-#mg-music .np-top button { width: 26px; height: 26px; color: rgba(255,255,255,.55); }
-#mg-music .np-top button:hover { color: #fff; }
-#mg-music .np-top button svg { width: 15px; height: 15px; }
-#mg-music .np-tm { flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px; margin-left: 6px; }
-#mg-music .np-tm span { font-size: 10px; color: var(--mp-sub); font-variant-numeric: tabular-nums; flex-shrink: 0; min-width: 24px; }
-#mg-music .np-tm .dur { text-align: right; }
-#mg-music .np-bar { position: relative; flex: 1; height: 3px; border-radius: 2px; background: rgba(255,255,255,.12); cursor: pointer; transition: height .15s; }
-#mg-music .np-bar::before { content: ''; position: absolute; left: 0; right: 0; top: -8px; bottom: -8px; }
-#mg-music .np-bar:hover { height: 5px; }
-#mg-music .np-bar i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 2px; background: linear-gradient(90deg, #5B8DFF, #A9C1FF); }
-#mg-music .np-bar i::after { content: ''; position: absolute; right: -5px; top: 50%; width: 10px; height: 10px; margin-top: -5px; border-radius: 50%;
-  background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.45); opacity: 0; transition: opacity .15s; }
-#mg-music .np-bar:hover i::after { opacity: 1; }
+#mg-music .np-a { font-size: 11px; line-height: 1.3; color: var(--mp-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+#mg-music .np .sep { width: 1px; height: 20px; background: rgba(255,255,255,.1); margin: 0 3px; flex-shrink: 0; }
+#mg-music .np .ls, #mg-music .np .cl { width: 28px; height: 28px; color: rgba(255,255,255,.5); }
+#mg-music .np .ls:hover, #mg-music .np .cl:hover { color: #fff; }
+#mg-music .np .ls svg, #mg-music .np .cl svg { width: 15px; height: 15px; }
+#mg-music .np .ls.on { color: var(--mp-acc); }
+#mg-music .np .cur, #mg-music .np .dur { display: none; }
+/* 진행 막대: 카드 맨 아래 가장자리에 얇게 */
+#mg-music .np-bar { position: absolute !important; left: 0; right: 0; bottom: 0; height: 2px; z-index: 2 !important; background: rgba(255,255,255,.08); cursor: pointer; transition: height .15s; }
+#mg-music .np-bar::before { content: ''; position: absolute; left: 0; right: 0; top: -8px; bottom: 0; }
+#mg-music .np-bar:hover { height: 4px; }
+#mg-music .np-bar i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: linear-gradient(90deg, #5B8DFF, #A9C1FF); box-shadow: 0 0 8px rgba(91,141,255,.6); }
 #mg-music button { border: 0; background: transparent; color: #fff; width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
   display: flex; align-items: center; justify-content: center; padding: 0; flex-shrink: 0; transition: background .15s, color .15s, transform .12s; }
 #mg-music button:hover { background: rgba(255,255,255,.1); }
 #mg-music button:active { transform: scale(.92); }
 #mg-music button svg { width: 16px; height: 16px; }
-#mg-music .np-ctl .pv, #mg-music .np-ctl .nx { width: 26px; height: 26px; color: rgba(255,255,255,.82); }
-#mg-music .np-ctl .pv svg, #mg-music .np-ctl .nx svg { width: 14px; height: 14px; }
-#mg-music button.pp { width: 30px; height: 30px; background: #fff; color: #111; box-shadow: 0 3px 10px rgba(0,0,0,.3); }
+#mg-music .np .pv, #mg-music .np .nx { width: 28px; height: 28px; color: rgba(255,255,255,.85); }
+#mg-music .np .pv svg, #mg-music .np .nx svg { width: 14px; height: 14px; }
+#mg-music button.pp { width: 32px; height: 32px; background: #fff; color: #111; box-shadow: 0 3px 10px rgba(0,0,0,.3); }
 #mg-music button.pp svg { width: 13px; height: 13px; }
 #mg-music button.pp:hover { background: #E3EBFF; }
 #mg-music button.on { color: var(--mp-acc); }
 
 /* 플레이리스트 */
-#mg-music .pl { position: absolute; left: -12px; bottom: calc(var(--d) + 24px); width: var(--npw); box-sizing: border-box; max-height: 0; opacity: 0; overflow: hidden; border-radius: 20px;
+#mg-music .pl { position: absolute; left: 0; bottom: calc(var(--d) + 12px); width: var(--npw); box-sizing: border-box; max-height: 0; opacity: 0; overflow: hidden; border-radius: 20px;
   background: var(--mp-bg); border: 1px solid var(--mp-line); color: #fff; box-shadow: 0 16px 40px rgba(0,0,0,.35);
   backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4);
   transform: translateY(8px); transition: max-height .4s ease, opacity .25s ease, transform .3s ease; pointer-events: none;
@@ -254,10 +256,10 @@ _CSS = r"""
 @keyframes mg-pulse { 0%,100% { transform: scale(.92); } 50% { transform: scale(1.08); } }
 @media (max-width: 860px) { body.mg-on-chart #mg-music { bottom: 110px; } }  /* 차트 화면 아래 탭 바 위로 */
 @media (max-width: 768px) {
-  #mg-music { bottom: 24px; --d: 52px; --npw: min(400px, calc(100vw - 20px)); --cw: calc(var(--npw) - 52px - 24px - 14px - 2px); }
-  #mg-music.in { transform: translateX(-26px); } #mg-music.in.open { transform: translateX(22px); }
-  #mg-music.open .np { padding: 0 14px 0 calc(var(--d) + 24px); }
-  #mg-music .pl { width: calc(100vw - 20px); left: -12px; }
+  #mg-music { bottom: 20px; --d: 52px; --cardw: calc(100vw - 86px); }
+  #mg-music.in { transform: translateX(-26px); } #mg-music.in.open { transform: translateX(12px); }
+  #mg-music .np { padding: 0 4px 0 12px; gap: 2px; }
+  #mg-music .np .sep { display: none; }
   #mg-music .pl-cover { width: 64px; height: 64px; } #mg-music .pl-now b { font-size: 16px; } #mg-music .pl-t { font-size: 13.5px; }
   #mg-music.list .pl { max-height: min(560px, calc(100vh - 180px)); }
   #mg-music .pl-fav, #mg-music .pl-del { opacity: 1; }
@@ -318,11 +320,11 @@ _JS = r"""
   root.id = 'mg-music';
   root.innerHTML = `<div class="glow"></div>
     <div class="disc" title="눌러서 재생"><div class="label"></div><div class="hint">${I.play}</div></div>
-    <div class="np">
-      <div class="np-top"><div class="np-tx"><div class="np-t"></div><div class="np-a"></div></div>
-        <button class="ls" title="플레이리스트">${I.list}</button><button class="cl" title="접기">${I.close}</button></div>
-      <div class="np-ctl"><button class="pv" title="이전 곡">${I.prev}</button><button class="pp" title="재생">${I.play}</button><button class="nx" title="다음 곡">${I.next}</button>
-        <div class="np-tm"><span class="cur">0:00</span><div class="np-bar"><i></i></div><span class="dur">0:00</span></div></div>
+    <div class="np"><div class="np-bg"></div>
+      <div class="np-tx"><div class="np-t"></div><div class="np-a"></div></div>
+      <button class="pv" title="이전 곡">${I.prev}</button><button class="pp" title="재생">${I.play}</button><button class="nx" title="다음 곡">${I.next}</button>
+      <span class="sep"></span><button class="ls" title="플레이리스트">${I.list}</button><button class="cl" title="접기">${I.close}</button>
+      <span class="cur">0:00</span><span class="dur">0:00</span><div class="np-bar"><i></i></div>
     </div>
     <div class="pl">
       <div class="pl-hero"><div class="bg"></div><div class="pl-cover"></div>
@@ -388,7 +390,7 @@ _JS = r"""
 
   function show() {
     const t = curT();
-    $('.label').style.backgroundImage = `url(${thumb(t.id)})`;
+    $('.label').style.backgroundImage = $('.np-bg').style.backgroundImage = `url(${thumb(t.id)})`;
     $('.np-t').textContent = t.song; $('.np-a').textContent = t.artist || '';
     $('.np-bar i').style.width = '0%'; $('.cur').textContent = '0:00'; $('.dur').textContent = '0:00';
     $('.pl-hero .bg').style.backgroundImage = $('.pl-cover').style.backgroundImage = `url(${thumb(t.id)})`;
@@ -429,7 +431,7 @@ _JS = r"""
   function tuck() {
     if (pinned || root.classList.contains('list') || root.matches(':hover')) return peek(1800);
     root.classList.add('tuck');
-    setTimeout(() => { root.classList.remove('tuck'); if (!pinned) root.classList.remove('open'); }, 950);
+    setTimeout(() => { root.classList.remove('tuck'); if (!pinned) root.classList.remove('open'); }, 900);
   }
   function peek(ms) {
     if (pinned || root.classList.contains('list')) return;
@@ -519,7 +521,8 @@ _JS = r"""
       setTimeout(() => { if (!playing) { root.classList.add('showtip'); setTimeout(() => root.classList.remove('showtip'), 7000); } }, 3000);
     }
   }, 0));
-  setTimeout(() => { root.classList.add('in'); setTimeout(() => peek(2600), 650); }, 1200);
+  const idle = f => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 2500 }) : setTimeout(f, 300));
+  setTimeout(() => idle(() => { root.classList.add('in'); setTimeout(() => requestAnimationFrame(() => peek(2600)), 750); }), 1200);
 })();
 """
 
