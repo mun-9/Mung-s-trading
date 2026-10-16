@@ -75,69 +75,88 @@ def _tracks():
 
 
 _CSS = r"""
-#mg-music { position: fixed; left: 0; bottom: 22px; z-index: 999990; display: flex; align-items: center; gap: 10px;
+#mg-music { position: fixed; left: 0; bottom: 34px; z-index: 999990; display: flex; align-items: center;
   font-family: 'Pretendard', -apple-system, sans-serif; transform: translateX(-140%); opacity: 0;
   transition: transform .7s cubic-bezier(.2,1.3,.4,1), opacity .5s ease; pointer-events: none;
-  --mp-bg: rgba(20,24,31,.86); --mp-line: rgba(255,255,255,.08); --mp-sub: rgba(255,255,255,.55); --mp-acc: #5B8DFF; }
+  --mp-bg: rgba(18,22,30,.88); --mp-line: rgba(255,255,255,.08); --mp-sub: rgba(255,255,255,.52); --mp-acc: #5B8DFF;
+  --d: 60px; --npw: 392px; --cw: 284px; }
 /* 컴퓨터: LP 전체가 보임 / 휴대폰(아래 @media): 왼쪽 벽에 반쯤 숨어 있다가 누르면 쏙 나옴 */
-#mg-music.in { transform: translateX(18px); opacity: 1; pointer-events: auto; }
-#mg-music.in.open { transform: translateX(18px); }
+#mg-music.in { transform: translateX(24px); opacity: 1; pointer-events: auto; }
+#mg-music.in.open { transform: translateX(24px); }
 
-/* LP */
-#mg-music .disc { position: relative; width: 60px; height: 60px; border-radius: 50%; cursor: pointer; flex-shrink: 0;
-  background: repeating-radial-gradient(circle, #16161a 0 1.6px, #24242b 1.6px 3px);
-  box-shadow: 0 8px 24px rgba(0,0,0,.38), inset 0 0 0 2px rgba(255,255,255,.05); animation: mg-spin 3.2s linear infinite; animation-play-state: paused; }
+/* LP — 카드 왼쪽 둥근 끝에 쏙 들어가 앉음 */
+#mg-music .disc { position: relative; z-index: 2; width: var(--d); height: var(--d); border-radius: 50%; cursor: pointer; flex-shrink: 0;
+  background: radial-gradient(circle, transparent 0 46%, rgba(255,255,255,.035) 46.5% 47.5%, transparent 48%),
+              repeating-radial-gradient(circle, #121216 0 1.4px, #1d1d23 1.4px 2.6px);
+  box-shadow: 0 8px 22px rgba(0,0,0,.45), inset 0 0 0 1.5px rgba(255,255,255,.07), inset 0 0 0 3px #0c0c0f;
+  animation: mg-spin 3.2s linear infinite; animation-play-state: paused; transition: filter .2s; }
 #mg-music.playing .disc { animation-play-state: running; }
-#mg-music.in .disc:hover { filter: brightness(1.15); }
+#mg-music.in .disc:hover { filter: brightness(1.18); }
 #mg-music .disc::after { content: ''; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
-  background: conic-gradient(from 30deg, transparent 0 12%, rgba(255,255,255,.16) 18%, transparent 26% 62%, rgba(255,255,255,.10) 68%, transparent 76%); }
-#mg-music .label { position: absolute; inset: 19px; border-radius: 50%; background: #3182F6 center/cover; box-shadow: 0 0 0 2px #0d0d10; }
-#mg-music .label::after { content: ''; position: absolute; left: 50%; top: 50%; width: 5px; height: 5px; margin: -2.5px; border-radius: 50%; background: #0d0d10; }
+  background: conic-gradient(from 40deg, transparent 0 10%, rgba(255,255,255,.14) 16%, transparent 24% 60%, rgba(255,255,255,.09) 66%, transparent 74%); }
+#mg-music .label { position: absolute; inset: 30%; border-radius: 50%; background: #3182F6 center/cover;
+  box-shadow: 0 0 0 2px rgba(91,141,255,.55), 0 0 0 3.5px #0c0c0f; }
+#mg-music .label::after { content: ''; position: absolute; left: 50%; top: 50%; width: 5px; height: 5px; margin: -2.5px; border-radius: 50%;
+  background: #0c0c0f; box-shadow: 0 0 0 1px rgba(255,255,255,.18); }
 #mg-music .hint { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%;
-  background: rgba(0,0,0,.35); color: #fff; transition: opacity .2s; }
-#mg-music.playing .hint { opacity: 0; }
+  background: rgba(0,0,0,.42); color: #fff; transition: opacity .2s; }
+#mg-music.playing .hint, #mg-music.open .hint { opacity: 0; }
 #mg-music .disc:hover .hint { opacity: 1; }
 #mg-music .hint svg { width: 18px; height: 18px; }
 /* 재생 중일 때 LP 뒤로 은은한 빛 */
-#mg-music .glow { position: absolute; left: -6px; top: 50%; width: 72px; height: 72px; margin-top: -36px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(91,141,255,.45), transparent 65%); opacity: 0; transition: opacity .6s; pointer-events: none; animation: mg-pulse 2.4s ease-in-out infinite; }
+#mg-music .glow { position: absolute; left: -10px; top: 50%; width: calc(var(--d) + 20px); height: calc(var(--d) + 20px); margin-top: calc(var(--d) / -2 - 10px); border-radius: 50%;
+  background: radial-gradient(circle, rgba(91,141,255,.42), transparent 66%); opacity: 0; transition: opacity .6s; pointer-events: none; animation: mg-pulse 2.4s ease-in-out infinite; }
 #mg-music.playing .glow { opacity: 1; }
+#mg-music.open .glow { opacity: 0; }
 
-/* 지금 재생 카드 */
-#mg-music .np { display: flex; flex-direction: column; justify-content: center; gap: 6px; width: 0; opacity: 0; overflow: hidden;
-  height: 86px; padding: 0; border-radius: 20px; background: var(--mp-bg); color: #fff; border: 1px solid var(--mp-line);
-  backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4); box-shadow: 0 10px 30px rgba(0,0,0,.28);
-  transition: width .45s cubic-bezier(.2,1,.3,1), opacity .3s ease, padding .45s ease; }
-#mg-music.open .np { width: 340px; opacity: 1; padding: 0 12px 0 16px; }
+/* 지금 재생 카드: LP 뒤에서 오른쪽으로 펼쳐지는 알약 모양 */
+#mg-music .np { position: absolute; z-index: 1; left: -12px; top: 50%; height: calc(var(--d) + 24px); margin-top: calc(var(--d) / -2 - 12px);
+  display: flex; flex-direction: column; justify-content: center; gap: 6px; box-sizing: border-box;
+  width: 0; opacity: 0; overflow: hidden; padding: 0; border-radius: 999px; background: var(--mp-bg); color: #fff; border: 1px solid var(--mp-line);
+  backdrop-filter: blur(18px) saturate(1.5); -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  box-shadow: 0 12px 32px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.05);
+  transition: width .45s cubic-bezier(.2,1,.3,1), opacity .3s ease; pointer-events: none; }
+#mg-music.open .np { width: var(--npw); opacity: 1; padding: 0 18px 0 calc(var(--d) + 26px); pointer-events: auto; }
 /* 자동으로 들어갈 때: 살짝 머뭇거리듯 천천히 줄어들다가 '쑥' 들어감 */
 #mg-music.open.tuck .np { animation: mg-tuck .95s cubic-bezier(.55,0,.85,.35) forwards; }
-@keyframes mg-tuck { 0% { width: var(--npw, 340px); opacity: 1; } 55% { width: calc(var(--npw, 340px) * .82); opacity: .95; } 100% { width: 0; opacity: 0; padding: 0; } }
+@keyframes mg-tuck { 0% { width: var(--npw); opacity: 1; } 55% { width: calc(var(--npw) * .82); opacity: .95; } 100% { width: 0; opacity: 0; } }
 #mg-music.open.tuck .disc { animation: mg-spin 3.2s linear infinite, mg-nudge .95s ease-in-out; }
 @keyframes mg-nudge { 0%, 100% { margin-left: 0; } 55% { margin-left: 4px; } }
-/* 소리 꺼진 채로 먼저 재생될 때 안내 */
 
-#mg-music .np-top, #mg-music .np-ctl { display: flex; align-items: center; gap: 4px; width: 312px; }
-#mg-music .np-ctl { gap: 2px; }
-#mg-music .np-ctl .cur, #mg-music .np-ctl .dur { font-size: 10.5px; color: var(--mp-sub); font-variant-numeric: tabular-nums; width: 30px; text-align: center; flex-shrink: 0; }
-#mg-music .np-ctl .cur { margin-left: 4px; }
-#mg-music .np-tx { flex: 1; min-width: 0; }
-#mg-music .np-t { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.01em; }
-#mg-music .np-a { font-size: 11px; color: var(--mp-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
-#mg-music .np-bar { position: relative; flex: 1; height: 4px; border-radius: 2px; background: rgba(255,255,255,.14); cursor: pointer; }
-#mg-music .np-bar::before { content: ''; position: absolute; left: 0; right: 0; top: -6px; bottom: -6px; }
-#mg-music .np-bar i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 2px; background: linear-gradient(90deg, #5B8DFF, #9DB8FF); }
+/* 윗줄: 곡명·가수 | 목록 · 접기   /  아랫줄: 이전 · 재생 · 다음 | 진행 막대 */
+#mg-music .np-top, #mg-music .np-ctl { display: flex; align-items: center; width: var(--cw); flex-shrink: 0; }
+#mg-music .np-top { gap: 2px; }
+#mg-music .np-ctl { gap: 4px; }
+#mg-music .np-tx { flex: 1; min-width: 0; padding-right: 6px; }
+#mg-music .np-t { font-size: 13.5px; font-weight: 750; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.015em; }
+#mg-music .np-a { font-size: 11px; line-height: 1.3; color: var(--mp-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+#mg-music .np-top button { width: 26px; height: 26px; color: rgba(255,255,255,.55); }
+#mg-music .np-top button:hover { color: #fff; }
+#mg-music .np-top button svg { width: 15px; height: 15px; }
+#mg-music .np-tm { flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px; margin-left: 6px; }
+#mg-music .np-tm span { font-size: 10px; color: var(--mp-sub); font-variant-numeric: tabular-nums; flex-shrink: 0; min-width: 24px; }
+#mg-music .np-tm .dur { text-align: right; }
+#mg-music .np-bar { position: relative; flex: 1; height: 3px; border-radius: 2px; background: rgba(255,255,255,.12); cursor: pointer; transition: height .15s; }
+#mg-music .np-bar::before { content: ''; position: absolute; left: 0; right: 0; top: -8px; bottom: -8px; }
+#mg-music .np-bar:hover { height: 5px; }
+#mg-music .np-bar i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 2px; background: linear-gradient(90deg, #5B8DFF, #A9C1FF); }
+#mg-music .np-bar i::after { content: ''; position: absolute; right: -5px; top: 50%; width: 10px; height: 10px; margin-top: -5px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.45); opacity: 0; transition: opacity .15s; }
+#mg-music .np-bar:hover i::after { opacity: 1; }
 #mg-music button { border: 0; background: transparent; color: #fff; width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
-  display: flex; align-items: center; justify-content: center; padding: 0; flex-shrink: 0; transition: background .15s, color .15s; }
-#mg-music button:hover { background: rgba(255,255,255,.12); }
+  display: flex; align-items: center; justify-content: center; padding: 0; flex-shrink: 0; transition: background .15s, color .15s, transform .12s; }
+#mg-music button:hover { background: rgba(255,255,255,.1); }
+#mg-music button:active { transform: scale(.92); }
 #mg-music button svg { width: 16px; height: 16px; }
-#mg-music button.pp { width: 32px; height: 32px; background: #fff; color: #111; }
-#mg-music button.pp svg { width: 15px; height: 15px; }
-#mg-music .np-ctl button:not(.pp) svg { width: 15px; height: 15px; }
-#mg-music button.pp:hover { background: #E8EEFF; }
+#mg-music .np-ctl .pv, #mg-music .np-ctl .nx { width: 26px; height: 26px; color: rgba(255,255,255,.82); }
+#mg-music .np-ctl .pv svg, #mg-music .np-ctl .nx svg { width: 14px; height: 14px; }
+#mg-music button.pp { width: 30px; height: 30px; background: #fff; color: #111; box-shadow: 0 3px 10px rgba(0,0,0,.3); }
+#mg-music button.pp svg { width: 13px; height: 13px; }
+#mg-music button.pp:hover { background: #E3EBFF; }
 #mg-music button.on { color: var(--mp-acc); }
 
 /* 플레이리스트 */
-#mg-music .pl { position: absolute; left: 0; bottom: 98px; width: 410px; max-height: 0; opacity: 0; overflow: hidden; border-radius: 20px;
+#mg-music .pl { position: absolute; left: -12px; bottom: calc(var(--d) + 24px); width: var(--npw); box-sizing: border-box; max-height: 0; opacity: 0; overflow: hidden; border-radius: 20px;
   background: var(--mp-bg); border: 1px solid var(--mp-line); color: #fff; box-shadow: 0 16px 40px rgba(0,0,0,.35);
   backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4);
   transform: translateY(8px); transition: max-height .4s ease, opacity .25s ease, transform .3s ease; pointer-events: none;
@@ -227,21 +246,18 @@ _CSS = r"""
 #mg-music.inapp .yt { position: absolute; left: 0; top: 50%; width: 60px; height: 60px; margin-top: -30px; overflow: hidden;
   border-radius: 50%; opacity: .011; z-index: 3; }
 #mg-music.inapp .yt iframe { width: 200px; height: 200px; transform: scale(.3); transform-origin: 0 0; }
-#mg-music .tip { position: absolute; left: 0; bottom: 76px; width: 240px; padding: 10px 12px; border-radius: 12px; background: rgba(25,31,40,.94);
+#mg-music .tip { position: absolute; left: 0; bottom: calc(var(--d) + 18px); width: 240px; padding: 10px 12px; border-radius: 12px; background: rgba(25,31,40,.94);
   color: #fff; font-size: 12px; line-height: 1.5; box-shadow: 0 6px 20px rgba(0,0,0,.25); display: none; }
 #mg-music.showtip .tip { display: block; }
 @keyframes mg-spin { to { transform: rotate(360deg); } }
 @keyframes mg-eq { 0%,100% { transform: scaleY(.3); } 50% { transform: scaleY(1); } }
 @keyframes mg-pulse { 0%,100% { transform: scale(.92); } 50% { transform: scale(1.08); } }
-@media (max-width: 860px) { body.mg-on-chart #mg-music { bottom: 100px; } }  /* 차트 화면 아래 탭 바 위로 */
+@media (max-width: 860px) { body.mg-on-chart #mg-music { bottom: 110px; } }  /* 차트 화면 아래 탭 바 위로 */
 @media (max-width: 768px) {
-  #mg-music { bottom: 14px; }
-  #mg-music.in { transform: translateX(-27px); } #mg-music.in.open { transform: translateX(10px); }
-  #mg-music .disc { width: 52px; height: 52px; } #mg-music .label { inset: 16px; }
-  #mg-music.open .np { width: min(290px, calc(100vw - 84px)); padding: 0 8px 0 14px; }
-  #mg-music { --npw: min(290px, calc(100vw - 84px)); }
-  #mg-music .np-top, #mg-music .np-ctl { width: min(268px, calc(100vw - 106px)); }
-  #mg-music .pl { bottom: 96px; width: calc(100vw - 20px); }
+  #mg-music { bottom: 24px; --d: 52px; --npw: min(400px, calc(100vw - 20px)); --cw: calc(var(--npw) - 52px - 24px - 14px - 2px); }
+  #mg-music.in { transform: translateX(-26px); } #mg-music.in.open { transform: translateX(22px); }
+  #mg-music.open .np { padding: 0 14px 0 calc(var(--d) + 24px); }
+  #mg-music .pl { width: calc(100vw - 20px); left: -12px; }
   #mg-music .pl-cover { width: 64px; height: 64px; } #mg-music .pl-now b { font-size: 16px; } #mg-music .pl-t { font-size: 13.5px; }
   #mg-music.list .pl { max-height: min(560px, calc(100vh - 180px)); }
   #mg-music .pl-fav, #mg-music .pl-del { opacity: 1; }
@@ -284,7 +300,7 @@ _JS = r"""
   let ALL = [];
   const rebuild = () => { const ids = new Set(BASE.map(t => t.id)); ALL = BASE.concat(S.added.filter(t => !ids.has(t.id)).map(t => ({ ...t, mine: 1 }))); };
   rebuild();
-  const thumb = id => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+  const thumb = id => `https://i.ytimg.com/vi/${id}/mqdefault.jpg`;
   const esc = s => String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const unent = s => { const t = document.createElement('textarea'); t.innerHTML = s; return t.value; };
   // '가수 - 곡명 | NCS ...' / '곡명 (Official Video)' → 곡명 · 가수
@@ -306,7 +322,7 @@ _JS = r"""
       <div class="np-top"><div class="np-tx"><div class="np-t"></div><div class="np-a"></div></div>
         <button class="ls" title="플레이리스트">${I.list}</button><button class="cl" title="접기">${I.close}</button></div>
       <div class="np-ctl"><button class="pv" title="이전 곡">${I.prev}</button><button class="pp" title="재생">${I.play}</button><button class="nx" title="다음 곡">${I.next}</button>
-        <span class="cur">0:00</span><div class="np-bar"><i></i></div><span class="dur">0:00</span></div>
+        <div class="np-tm"><span class="cur">0:00</span><div class="np-bar"><i></i></div><span class="dur">0:00</span></div></div>
     </div>
     <div class="pl">
       <div class="pl-hero"><div class="bg"></div><div class="pl-cover"></div>
