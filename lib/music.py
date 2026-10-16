@@ -483,12 +483,18 @@ _JS = r"""
           setTimeout(() => {
             if (playing) return;
             player.mute(); root.classList.add('muted'); player.playVideo();
+            // 스크롤(화면 내리기)은 브라우저가 '누름'으로 안 쳐줘서 그때 소리를 켜면 오히려 재생이 멈춤
+            // → 진짜 탭·클릭·키 입력일 때만 소리를 켜고, 혹시 멈추면 다시 소리 끈 채로 이어서 재생
+            const EV = ['click', 'keydown', 'pointerup', 'touchend'];
             const wake = () => {
-              ['pointerdown', 'keydown', 'touchend', 'click'].forEach(ev => d0.removeEventListener(ev, wake, true));
+              const ua = navigator.userActivation;
+              if (ua && !ua.isActive) return;          // 스크롤 같은 건 무시하고 계속 기다림
+              EV.forEach(ev => d0.removeEventListener(ev, wake, true));
               try { player.unMute(); player.setVolume(S.vol); if (!playing && want) player.playVideo(); } catch (e) {}
               root.classList.remove('muted');
+              setTimeout(() => { if (want && !playing) { try { player.mute(); player.playVideo(); } catch (e) {} root.classList.add('muted'); EV.forEach(ev => d0.addEventListener(ev, wake, true)); } }, 700);
             };
-            ['pointerdown', 'keydown', 'touchend', 'click'].forEach(ev => d0.addEventListener(ev, wake, true));
+            EV.forEach(ev => d0.addEventListener(ev, wake, true));
           }, 900);
         },
         onStateChange: e => {
