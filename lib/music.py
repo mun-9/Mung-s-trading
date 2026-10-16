@@ -426,7 +426,13 @@ _JS = r"""
   function go(i, back) { const c = curT(); if (!back && c) hist.push(c.id); if (hist.length > 60) hist.shift(); tmp = null; idx = (i + ALL.length) % ALL.length; show(); load(); }
   function playTmp(r) { const c = curT(); if (c) hist.push(c.id); tmp = r; show(); load(); }
   // 숨어 있을 때 누르면: 나오면서 재생 / 나와 있을 때 누르면: 재생·일시정지
-  $('.disc').onclick = () => { if (!root.classList.contains('open')) { pinned = true; clearTimeout(peekT); root.classList.add('open'); if (!playing) play(); } else { pinned = true; clearTimeout(peekT); if (playing) pause(); else play(); } };
+  // LP 누르기: 멈춰 있으면 → 재생 (곡 이름 잠깐 보였다가 쏙) / 재생 중이고 접혀 있으면 → 조작 카드 펼치기 / 펼쳐져 있으면 → 재생·일시정지
+  $('.disc').onclick = () => {
+    const open = root.classList.contains('open') && !root.classList.contains('tuck');
+    if (!playing && !open) { play(); return; }
+    if (!open) { pinned = true; clearTimeout(peekT); root.classList.remove('tuck'); root.classList.add('open'); return; }
+    pinned = true; clearTimeout(peekT); if (playing) pause(); else play();
+  };
   $('.pp').onclick = () => playing ? pause() : play();
   $('.nx').onclick = () => go(nextI);
   $('.pv').onclick = () => {
@@ -473,30 +479,9 @@ _JS = r"""
   function init() {
     player = new YT.Player('mg-yt', {
       width: 200, height: 200, videoId: curT().id,
-      playerVars: { playsinline: 1, controls: 0, rel: 0, autoplay: 1 },
+      playerVars: { playsinline: 1, controls: 0, rel: 0 },
       events: {
-        onReady: () => {
-          ready = true; player.setVolume(S.vol); want = true;
-          // 브라우저는 소리 나는 자동재생을 막지만, 소리 끈 재생은 허용 → 일단 소리 끄고 바로 재생(LP가 돎)
-          // → 화면을 처음 누르는 순간 소리 켜기 (그 전에 이미 소리 재생이 허용된 브라우저면 바로 소리 남)
-          player.playVideo();
-          setTimeout(() => {
-            if (playing) return;
-            player.mute(); root.classList.add('muted'); player.playVideo();
-            // 스크롤(화면 내리기)은 브라우저가 '누름'으로 안 쳐줘서 그때 소리를 켜면 오히려 재생이 멈춤
-            // → 진짜 탭·클릭·키 입력일 때만 소리를 켜고, 혹시 멈추면 다시 소리 끈 채로 이어서 재생
-            const EV = ['click', 'keydown', 'pointerup', 'touchend'];
-            const wake = () => {
-              const ua = navigator.userActivation;
-              if (ua && !ua.isActive) return;          // 스크롤 같은 건 무시하고 계속 기다림
-              EV.forEach(ev => d0.removeEventListener(ev, wake, true));
-              try { player.unMute(); player.setVolume(S.vol); if (!playing && want) player.playVideo(); } catch (e) {}
-              root.classList.remove('muted');
-              setTimeout(() => { if (want && !playing) { try { player.mute(); player.playVideo(); } catch (e) {} root.classList.add('muted'); EV.forEach(ev => d0.addEventListener(ev, wake, true)); } }, 700);
-            };
-            EV.forEach(ev => d0.addEventListener(ev, wake, true));
-          }, 900);
-        },
+        onReady: () => { ready = true; player.setVolume(S.vol); if (want) player.playVideo(); },  // 자동재생 안 함 → LP나 재생 버튼을 누르면 시작
         onStateChange: e => {
           if (e.data === 1) { const was = playing; setPlaying(true); root.classList.remove('showtip'); if (!was) peek(2600); }
           else if (e.data === 2) setPlaying(false);
