@@ -115,9 +115,7 @@ _CSS = r"""
 #mg-music.open.tuck .disc { animation: mg-spin 3.2s linear infinite, mg-nudge .95s ease-in-out; }
 @keyframes mg-nudge { 0%, 100% { margin-left: 0; } 55% { margin-left: 4px; } }
 /* 소리 꺼진 채로 먼저 재생될 때 안내 */
-#mg-music .mute-tip { display: none; font-size: 10.5px; font-weight: 700; color: #9DB8FF; }
-#mg-music.muted .mute-tip { display: inline; }
-#mg-music.muted .np-a { display: none; }
+
 #mg-music .np-top, #mg-music .np-ctl { display: flex; align-items: center; gap: 4px; width: 312px; }
 #mg-music .np-ctl { gap: 2px; }
 #mg-music .np-ctl .cur, #mg-music .np-ctl .dur { font-size: 10.5px; color: var(--mp-sub); font-variant-numeric: tabular-nums; width: 30px; text-align: center; flex-shrink: 0; }
@@ -305,7 +303,7 @@ _JS = r"""
   root.innerHTML = `<div class="glow"></div>
     <div class="disc" title="눌러서 재생"><div class="label"></div><div class="hint">${I.play}</div></div>
     <div class="np">
-      <div class="np-top"><div class="np-tx"><div class="np-t"></div><div class="np-a"></div><div class="mute-tip">🔇 화면을 한 번 누르면 소리가 켜져요</div></div>
+      <div class="np-top"><div class="np-tx"><div class="np-t"></div><div class="np-a"></div></div>
         <button class="ls" title="플레이리스트">${I.list}</button><button class="cl" title="접기">${I.close}</button></div>
       <div class="np-ctl"><button class="pv" title="이전 곡">${I.prev}</button><button class="pp" title="재생">${I.play}</button><button class="nx" title="다음 곡">${I.next}</button>
         <span class="cur">0:00</span><div class="np-bar"><i></i></div><span class="dur">0:00</span></div>
