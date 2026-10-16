@@ -39,7 +39,11 @@ TRACKS = [
     {"id": "trnx5XT0cZs", "title": "Alan Walker - Play (ft. K-391, Tungevaag, Mangoo)"},
     {"id": "q1ULJ92aldE", "title": "Syn Cole - Feel Good"},
     {"id": "LHvYrn3FAgI", "title": "Unknown Brain - Superhero (feat. Chris Linton)"},
+    {"id": "GIZIwNgeEmU", "title": "K-391 & RØRY - Aurora"},
 ]
+
+# 사이트에 들어오면 항상 이 곡부터 (그 다음부터는 안 들은 곡 중에서 무작위)
+FIRST_ID = "GIZIwNgeEmU"
 
 
 @st.cache_data(ttl=86400, show_spinner=False)
@@ -265,6 +269,9 @@ _JS = r"""
   let S = { shuf: false, rep: 'all', fav: [], vol: 60, last: null, favOnly: false, added: [] };
   try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
   if (!Array.isArray(S.added)) S.added = [];
+  if (!S.v2) { S.shuf = true; S.v2 = 1; }        // 기본: 무작위 (한 바퀴 돌 때까지 안 겹치게)
+  if (!Array.isArray(S.bag)) S.bag = [];          // 이번 바퀴에서 아직 안 나온 곡들
+  const FIRST = __FIRST__;
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
   let ALL = [];
   const rebuild = () => { const ids = new Set(BASE.map(t => t.id)); ALL = BASE.concat(S.added.filter(t => !ids.has(t.id)).map(t => ({ ...t, mine: 1 }))); };
@@ -308,7 +315,7 @@ _JS = r"""
   if (INAPP) root.classList.add('inapp');
   const $ = s => root.querySelector(s);
   const fmt = t => { t = Math.max(0, Math.floor(t || 0)); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); };
-  let idx = Math.max(0, ALL.findIndex(t => t.id === S.last)), tmp = null, player = null, ready = false, playing = false, want = false;
+  let idx = Math.max(0, ALL.findIndex(t => t.id === FIRST) >= 0 ? ALL.findIndex(t => t.id === FIRST) : ALL.findIndex(t => t.id === S.last)), tmp = null, player = null, ready = false, playing = false, want = false;
   let results = [], searching = false, sErr = '', lastQ = '';
   const hist = [];  // '이전 곡'으로 돌아가기용 (곡 id)
   const curT = () => tmp || ALL[idx];
@@ -362,7 +369,7 @@ _JS = r"""
     $('.np-bar i').style.width = '0%'; $('.cur').textContent = '0:00'; $('.dur').textContent = '0:00';
     $('.pl-hero .bg').style.backgroundImage = $('.pl-cover').style.backgroundImage = `url(${thumb(t.id)})`;
     $('.pl-now b').textContent = t.song; $('.pl-now .ar').textContent = t.artist || '';
-    if (!tmp) { S.last = t.id; save(); }
+    if (!tmp) { S.last = t.id; S.bag = S.bag.filter(id => id !== t.id); save(); }
     upNext(); renderList();
   }
   // 다음 곡 미리 정해두기 (셔플이면 무작위, 좋아요만 보기 중이면 좋아요 곡 안에서)
@@ -370,7 +377,12 @@ _JS = r"""
   function pool() { const all = ALL.map((t, i) => i); const f = S.favOnly && S.fav.length ? all.filter(i => S.fav.includes(ALL[i].id)) : all; return f.length ? f : all; }
   function upNext() {
     const p = pool(), recent = hist.slice(-Math.floor(p.length / 2));
-    if (S.shuf) { const c = p.filter(i => i !== idx && !recent.includes(ALL[i].id)); const q = c.length ? c : p.filter(i => i !== idx); nextI = q.length ? q[Math.floor(Math.random() * q.length)] : idx; }
+    if (S.shuf) {
+      // 한 바퀴: 아직 안 나온 곡 중에서 무작위 → 다 나오면 다시 처음부터 무작위
+      let left = p.filter(i => i !== idx && S.bag.includes(ALL[i].id));
+      if (!left.length) { S.bag = p.map(i => ALL[i].id).filter(id => id !== (ALL[idx] || {}).id); save(); left = p.filter(i => i !== idx); }
+      nextI = left.length ? left[Math.floor(Math.random() * left.length)] : idx;
+    }
     else if (tmp) nextI = p.includes(idx) ? idx : p[0];
     else { const k = p.indexOf(idx); nextI = p[(k + 1) % p.length] ?? p[0]; }
     $('.pl-next').innerHTML = S.rep === 'one' ? '한 곡 반복 중' : `다음 곡 · <em>${esc(ALL[nextI].song)}</em>`;
@@ -388,13 +400,20 @@ _JS = r"""
     $('.pp').innerHTML = v ? I.pause : I.play; $('.hint').innerHTML = v ? I.pause : I.play;
     $('.pl-now .st').textContent = v ? 'NOW PLAYING' : 'PAUSED';
   }
-  function play() { want = true; root.classList.add('open'); if (ready) player.playVideo(); }
+  // 곡 이름을 잠깐 보여줬다가 다시 LP만 남기기 (직접 열어둔 경우는 그대로)
+  let pinned = false, peekT = null;
+  function peek(ms) {
+    if (pinned || root.classList.contains('list')) return;
+    root.classList.add('open'); clearTimeout(peekT);
+    peekT = setTimeout(() => { if (!pinned && !root.classList.contains('list') && !root.matches(':hover')) root.classList.remove('open'); else peek(2500); }, ms || 4500);
+  }
+  function play() { want = true; if (ready) player.playVideo(); }
   function pause() { want = false; if (ready) player.pauseVideo(); }
-  function load() { want = true; root.classList.add('open'); if (ready) player.loadVideoById(curT().id); }
+  function load() { want = true; if (ready) player.loadVideoById(curT().id); }
   function go(i, back) { const c = curT(); if (!back && c) hist.push(c.id); if (hist.length > 60) hist.shift(); tmp = null; idx = (i + ALL.length) % ALL.length; show(); load(); }
   function playTmp(r) { const c = curT(); if (c) hist.push(c.id); tmp = r; show(); load(); }
   // 숨어 있을 때 누르면: 나오면서 재생 / 나와 있을 때 누르면: 재생·일시정지
-  $('.disc').onclick = () => { if (!root.classList.contains('open')) { root.classList.add('open'); if (!playing) play(); } else if (playing) pause(); else play(); };
+  $('.disc').onclick = () => { if (!root.classList.contains('open')) { pinned = true; clearTimeout(peekT); root.classList.add('open'); if (!playing) play(); } else { pinned = true; clearTimeout(peekT); if (playing) pause(); else play(); } };
   $('.pp').onclick = () => playing ? pause() : play();
   $('.nx').onclick = () => go(nextI);
   $('.pv').onclick = () => {
@@ -428,7 +447,7 @@ _JS = r"""
   $('.pl-ft .vi').onclick = () => { if (S.vol) { S._v = S.vol; setVol(0); } else setVol(S._v || 60); };
   $('.ls').onclick = e => { e.stopPropagation(); root.classList.toggle('list'); $('.ls').classList.toggle('on', root.classList.contains('list'));
     if (root.classList.contains('list')) { const c = root.querySelector('.pl-li.cur'); if (c) c.scrollIntoView({ block: 'nearest' }); } };
-  $('.cl').onclick = () => { root.classList.remove('open', 'list'); $('.ls').classList.remove('on'); }; // 접기 (노래는 계속)
+  $('.cl').onclick = () => { pinned = false; clearTimeout(peekT); root.classList.remove('open', 'list'); $('.ls').classList.remove('on'); }; // 접기 (노래는 계속)
   $('.np-bar').onclick = e => { if (!ready) return; const r = e.currentTarget.getBoundingClientRect(), d = player.getDuration() || 0; player.seekTo(d * Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), true); };
   document.addEventListener('click', e => { if (root.classList.contains('list') && e.target.isConnected && !root.contains(e.target)) { root.classList.remove('list'); $('.ls').classList.remove('on'); } });
   setInterval(() => {
@@ -440,11 +459,17 @@ _JS = r"""
   function init() {
     player = new YT.Player('mg-yt', {
       width: 200, height: 200, videoId: curT().id,
-      playerVars: { playsinline: 1, controls: 0, rel: 0 },
+      playerVars: { playsinline: 1, controls: 0, rel: 0, autoplay: 1 },
       events: {
-        onReady: () => { ready = true; player.setVolume(S.vol); if (want) player.playVideo(); },
+        onReady: () => { ready = true; player.setVolume(S.vol); want = true; player.playVideo();
+          // 브라우저가 소리 자동재생을 막으면: 화면 아무 데나 처음 누르는 순간 바로 재생
+          setTimeout(() => { if (!playing) {
+            const go1 = () => { ['pointerdown', 'keydown', 'touchend'].forEach(ev => document.removeEventListener(ev, go1, true)); if (!playing && want) player.playVideo(); };
+            ['pointerdown', 'keydown', 'touchend'].forEach(ev => document.addEventListener(ev, go1, true));
+          } }, 1200);
+        },
         onStateChange: e => {
-          if (e.data === 1) { setPlaying(true); root.classList.add('open'); root.classList.remove('showtip'); }
+          if (e.data === 1) { const was = playing; setPlaying(true); root.classList.remove('showtip'); if (!was) peek(4500); }
           else if (e.data === 2) setPlaying(false);
           else if (e.data === 0) { if (S.rep === 'one' || ALL.length < 2) { player.seekTo(0); player.playVideo(); } else go(nextI); }
         },
@@ -464,7 +489,7 @@ _JS = r"""
       setTimeout(() => { if (!playing) { root.classList.add('showtip'); setTimeout(() => root.classList.remove('showtip'), 7000); } }, 3000);
     }
   }, 0));
-  setTimeout(() => root.classList.add('in'), 1200);
+  setTimeout(() => { root.classList.add('in'); setTimeout(() => peek(5000), 500); }, 1200);
 })();
 """
 
@@ -475,7 +500,7 @@ def inject():
         ytkey = str(st.secrets.get("YOUTUBE_API_KEY", "") or "")
     except Exception:
         ytkey = ""
-    js = _JS.replace("__TRACKS__", json.dumps(_tracks(), ensure_ascii=False)).replace("__YTKEY__", json.dumps(ytkey))
+    js = _JS.replace("__TRACKS__", json.dumps(_tracks(), ensure_ascii=False)).replace("__YTKEY__", json.dumps(ytkey)).replace("__FIRST__", json.dumps(FIRST_ID))
     components.html(
         f"""<script>
 // Streamlit Cloud가 화면 오른쪽 아래에 붙이는 배지(만든 사람 프사·'Hosted with Streamlit') 숨기기
