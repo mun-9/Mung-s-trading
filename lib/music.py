@@ -39,11 +39,11 @@ TRACKS = [
     {"id": "trnx5XT0cZs", "title": "Alan Walker - Play (ft. K-391, Tungevaag, Mangoo)"},
     {"id": "q1ULJ92aldE", "title": "Syn Cole - Feel Good"},
     {"id": "LHvYrn3FAgI", "title": "Unknown Brain - Superhero (feat. Chris Linton)"},
-    {"id": "GIZIwNgeEmU", "title": "K-391 & RØRY - Aurora"},
+    {"id": "QeSy1SH9EqA", "title": "K-391 & RØRY - Aurora"},
 ]
 
 # 사이트에 들어오면 항상 이 곡부터 (그 다음부터는 안 들은 곡 중에서 무작위)
-FIRST_ID = "GIZIwNgeEmU"
+FIRST_ID = "QeSy1SH9EqA"
 
 
 @st.cache_data(ttl=86400, show_spinner=False)
@@ -109,6 +109,15 @@ _CSS = r"""
   backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4); box-shadow: 0 10px 30px rgba(0,0,0,.28);
   transition: width .45s cubic-bezier(.2,1,.3,1), opacity .3s ease, padding .45s ease; }
 #mg-music.open .np { width: 340px; opacity: 1; padding: 0 12px 0 16px; }
+/* 자동으로 들어갈 때: 살짝 머뭇거리듯 천천히 줄어들다가 '쑥' 들어감 */
+#mg-music.open.tuck .np { animation: mg-tuck .95s cubic-bezier(.55,0,.85,.35) forwards; }
+@keyframes mg-tuck { 0% { width: var(--npw, 340px); opacity: 1; } 55% { width: calc(var(--npw, 340px) * .82); opacity: .95; } 100% { width: 0; opacity: 0; padding: 0; } }
+#mg-music.open.tuck .disc { animation: mg-spin 3.2s linear infinite, mg-nudge .95s ease-in-out; }
+@keyframes mg-nudge { 0%, 100% { margin-left: 0; } 55% { margin-left: 4px; } }
+/* 소리 꺼진 채로 먼저 재생될 때 안내 */
+#mg-music .mute-tip { display: none; font-size: 10.5px; font-weight: 700; color: #9DB8FF; }
+#mg-music.muted .mute-tip { display: inline; }
+#mg-music.muted .np-a { display: none; }
 #mg-music .np-top, #mg-music .np-ctl { display: flex; align-items: center; gap: 4px; width: 312px; }
 #mg-music .np-ctl { gap: 2px; }
 #mg-music .np-ctl .cur, #mg-music .np-ctl .dur { font-size: 10.5px; color: var(--mp-sub); font-variant-numeric: tabular-nums; width: 30px; text-align: center; flex-shrink: 0; }
@@ -232,6 +241,7 @@ _CSS = r"""
   #mg-music.in { transform: translateX(-27px); } #mg-music.in.open { transform: translateX(10px); }
   #mg-music .disc { width: 52px; height: 52px; } #mg-music .label { inset: 16px; }
   #mg-music.open .np { width: min(290px, calc(100vw - 84px)); padding: 0 8px 0 14px; }
+  #mg-music { --npw: min(290px, calc(100vw - 84px)); }
   #mg-music .np-top, #mg-music .np-ctl { width: min(268px, calc(100vw - 106px)); }
   #mg-music .pl { bottom: 96px; width: calc(100vw - 20px); }
   #mg-music .pl-cover { width: 64px; height: 64px; } #mg-music .pl-now b { font-size: 16px; } #mg-music .pl-t { font-size: 13.5px; }
@@ -295,7 +305,7 @@ _JS = r"""
   root.innerHTML = `<div class="glow"></div>
     <div class="disc" title="눌러서 재생"><div class="label"></div><div class="hint">${I.play}</div></div>
     <div class="np">
-      <div class="np-top"><div class="np-tx"><div class="np-t"></div><div class="np-a"></div></div>
+      <div class="np-top"><div class="np-tx"><div class="np-t"></div><div class="np-a"></div><div class="mute-tip">🔇 화면을 한 번 누르면 소리가 켜져요</div></div>
         <button class="ls" title="플레이리스트">${I.list}</button><button class="cl" title="접기">${I.close}</button></div>
       <div class="np-ctl"><button class="pv" title="이전 곡">${I.prev}</button><button class="pp" title="재생">${I.play}</button><button class="nx" title="다음 곡">${I.next}</button>
         <span class="cur">0:00</span><div class="np-bar"><i></i></div><span class="dur">0:00</span></div>
@@ -402,10 +412,15 @@ _JS = r"""
   }
   // 곡 이름을 잠깐 보여줬다가 다시 LP만 남기기 (직접 열어둔 경우는 그대로)
   let pinned = false, peekT = null;
+  function tuck() {
+    if (pinned || root.classList.contains('list') || root.matches(':hover')) return peek(1800);
+    root.classList.add('tuck');
+    setTimeout(() => { root.classList.remove('tuck'); if (!pinned) root.classList.remove('open'); }, 950);
+  }
   function peek(ms) {
     if (pinned || root.classList.contains('list')) return;
-    root.classList.add('open'); clearTimeout(peekT);
-    peekT = setTimeout(() => { if (!pinned && !root.classList.contains('list') && !root.matches(':hover')) root.classList.remove('open'); else peek(2500); }, ms || 4500);
+    root.classList.remove('tuck'); root.classList.add('open'); clearTimeout(peekT);
+    peekT = setTimeout(tuck, ms || 2600);
   }
   function play() { want = true; if (ready) player.playVideo(); }
   function pause() { want = false; if (ready) player.pauseVideo(); }
@@ -456,20 +471,30 @@ _JS = r"""
     if (d) { $('.np-bar i').style.width = (c / d * 100).toFixed(2) + '%'; $('.cur').textContent = fmt(c); $('.dur').textContent = fmt(d); }
   }, 500);
   show(); tools(); setVol(S.vol);
+  const d0 = document;
   function init() {
     player = new YT.Player('mg-yt', {
       width: 200, height: 200, videoId: curT().id,
       playerVars: { playsinline: 1, controls: 0, rel: 0, autoplay: 1 },
       events: {
-        onReady: () => { ready = true; player.setVolume(S.vol); want = true; player.playVideo();
-          // 브라우저가 소리 자동재생을 막으면: 화면 아무 데나 처음 누르는 순간 바로 재생
-          setTimeout(() => { if (!playing) {
-            const go1 = () => { ['pointerdown', 'keydown', 'touchend'].forEach(ev => document.removeEventListener(ev, go1, true)); if (!playing && want) player.playVideo(); };
-            ['pointerdown', 'keydown', 'touchend'].forEach(ev => document.addEventListener(ev, go1, true));
-          } }, 1200);
+        onReady: () => {
+          ready = true; player.setVolume(S.vol); want = true;
+          // 브라우저는 소리 나는 자동재생을 막지만, 소리 끈 재생은 허용 → 일단 소리 끄고 바로 재생(LP가 돎)
+          // → 화면을 처음 누르는 순간 소리 켜기 (그 전에 이미 소리 재생이 허용된 브라우저면 바로 소리 남)
+          player.playVideo();
+          setTimeout(() => {
+            if (playing) return;
+            player.mute(); root.classList.add('muted'); player.playVideo();
+            const wake = () => {
+              ['pointerdown', 'keydown', 'touchend', 'click'].forEach(ev => d0.removeEventListener(ev, wake, true));
+              try { player.unMute(); player.setVolume(S.vol); if (!playing && want) player.playVideo(); } catch (e) {}
+              root.classList.remove('muted');
+            };
+            ['pointerdown', 'keydown', 'touchend', 'click'].forEach(ev => d0.addEventListener(ev, wake, true));
+          }, 900);
         },
         onStateChange: e => {
-          if (e.data === 1) { const was = playing; setPlaying(true); root.classList.remove('showtip'); if (!was) peek(4500); }
+          if (e.data === 1) { const was = playing; setPlaying(true); root.classList.remove('showtip'); if (!was) peek(2600); }
           else if (e.data === 2) setPlaying(false);
           else if (e.data === 0) { if (S.rep === 'one' || ALL.length < 2) { player.seekTo(0); player.playVideo(); } else go(nextI); }
         },
@@ -489,7 +514,7 @@ _JS = r"""
       setTimeout(() => { if (!playing) { root.classList.add('showtip'); setTimeout(() => root.classList.remove('showtip'), 7000); } }, 3000);
     }
   }, 0));
-  setTimeout(() => { root.classList.add('in'); setTimeout(() => peek(5000), 500); }, 1200);
+  setTimeout(() => { root.classList.add('in'); setTimeout(() => peek(2600), 650); }, 1200);
 })();
 """
 
