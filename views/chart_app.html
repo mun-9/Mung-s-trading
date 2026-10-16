@@ -147,6 +147,16 @@ svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-widt
 .phead b { font-size: 12.5px; font-weight: 600; color: var(--strong); }
 .phead .hint { margin-left: auto; font-size: 11px; color: var(--dim); }
 .cell.active .phead .hint { color: #7FA3FF; }
+/* 분할 차트 끌어서 위치 바꾸기 */
+.phead .grip { display: none; width: 14px; height: 18px; margin-left: -4px; color: var(--dim); cursor: grab; align-items: center; justify-content: center; }
+.phead .grip svg { width: 10px; height: 14px; }
+#grid:not(.l1) .phead .grip { display: inline-flex; }
+#grid:not(.l1) .phead[draggable="true"] { cursor: grab; }
+#grid.dragging .pbody { pointer-events: none; }
+#grid.dragging .cell { transition: box-shadow .12s, opacity .12s; }
+#grid .cell.drag-src { opacity: .45; }
+#grid .cell.drop-on { box-shadow: inset 0 0 0 2px #5B8DFF; }
+#grid .cell.drop-on .phead { background: rgba(91,141,255,.16); }
 .pbody { position: relative; flex: 1; min-height: 0; }
 .pbody > div { position: absolute; inset: 0; }
 
@@ -493,8 +503,9 @@ function paneInfo(i) {
 }
 function paneHead(i) {
   const tfs = state.engine === 'live' ? `<div class="tfs">${TFS.map(([v, l]) => `<button data-tf="${v}" class="${panes[i].iv === v ? 'on' : ''}">${l}</button>`).join('')}</div>` : '';
-  return `<span id="phi_${i}" style="display:flex;align-items:center;gap:7px">${paneInfo(i)}</span>${tfs}
-    <span class="hint" id="phh_${i}">${state.layout === 1 ? '' : i === state.active ? '선택됨 · 오른쪽 목록에서 종목 변경' : '차트를 누르면 선택'}</span>`;
+  const grip = '<span class="grip" title="끌어서 다른 칸과 위치 바꾸기"><svg viewBox="0 0 10 14" fill="currentColor"><circle cx="2.5" cy="2.5" r="1.3"/><circle cx="7.5" cy="2.5" r="1.3"/><circle cx="2.5" cy="7" r="1.3"/><circle cx="7.5" cy="7" r="1.3"/><circle cx="2.5" cy="11.5" r="1.3"/><circle cx="7.5" cy="11.5" r="1.3"/></svg></span>';
+  return `${grip}<span id="phi_${i}" style="display:flex;align-items:center;gap:7px">${paneInfo(i)}</span>${tfs}
+    <span class="hint" id="phh_${i}">${state.layout === 1 ? '' : i === state.active ? '선택됨 · 오른쪽 목록에서 종목 변경' : '누르면 선택 · 끌어서 자리 바꾸기'}</span>`;
 }
 function bindHead(i) {
   const h = $('ph_' + i); if (!h) return;
@@ -527,15 +538,30 @@ function buildGrid() {
     c.className = 'cell' + (i === state.active ? ' active' : ''); c.id = 'cell_' + i;
     c.innerHTML = `<div class="phead" id="ph_${i}">${paneHead(i)}</div><div class="pbody" id="pb_${i}"></div>`;
     c.querySelector('.phead').onclick = () => setActive(i);
+    // 2분할 이상: 위쪽 머리줄을 끌어서 다른 칸에 놓으면 두 차트 자리가 바뀜
+    if (state.layout > 1) {
+      const hd = c.querySelector('.phead'); hd.draggable = true;
+      hd.addEventListener('dragstart', e => { DRAG = i; e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(i)); } catch (er) {} g.classList.add('dragging'); c.classList.add('drag-src'); });
+      hd.addEventListener('dragend', () => { DRAG = null; g.classList.remove('dragging'); g.querySelectorAll('.cell').forEach(x => x.classList.remove('drag-src', 'drop-on')); });
+      c.addEventListener('dragover', e => { if (DRAG === null || DRAG === i) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; c.classList.add('drop-on'); });
+      c.addEventListener('dragleave', e => { if (!c.contains(e.relatedTarget)) c.classList.remove('drop-on'); });
+      c.addEventListener('drop', e => { e.preventDefault(); if (DRAG === null || DRAG === i) return; swapPanes(DRAG, i); });
+    }
     g.appendChild(c);
     bindHead(i);
   }
   for (let i = 0; i < state.layout; i++) buildPane(i);
 }
+let DRAG = null;
+function swapPanes(a, b) {
+  [panes[a], panes[b]] = [panes[b], panes[a]];
+  if (state.active === a) state.active = b; else if (state.active === b) state.active = a;
+  DRAG = null; save(); buildGrid(); renderBar(); renderPanel();
+}
 function refreshHeads() {
   for (let i = 0; i < state.layout; i++) {
     const h = $('phi_' + i); if (h) h.innerHTML = paneInfo(i);
-    const k = $('phh_' + i); if (k) k.textContent = state.layout === 1 ? '' : i === state.active ? '선택됨 · 오른쪽 목록에서 종목 변경' : '차트를 누르면 선택';
+    const k = $('phh_' + i); if (k) k.textContent = state.layout === 1 ? '' : i === state.active ? '선택됨 · 오른쪽 목록에서 종목 변경' : '누르면 선택 · 끌어서 자리 바꾸기';
     const c = $('cell_' + i); if (c) c.classList.toggle('active', i === state.active);
   }
 }
