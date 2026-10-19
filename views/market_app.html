@@ -167,6 +167,15 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
 .otile b { display: block; font-size: 19px; font-weight: 800; letter-spacing: -0.02em; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .otile i { display: block; font-style: normal; font-size: 11.5px; color: var(--mid); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #omap { width: 100%; height: 480px; display: block; }
+.osum { background: var(--soft); border-radius: 14px; padding: 14px 16px 6px; margin-bottom: 16px; }
+.osum:empty { display: none; }
+.osum-h { font-size: 13.5px; font-weight: 800; margin-bottom: 10px; } .osum-h span { font-weight: 600; color: var(--sub); margin-left: 6px; font-size: 12.5px; }
+.osl { display: flex; gap: 10px; align-items: flex-start; padding-bottom: 10px; }
+.osl > i { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+.osl .d-box { background: #3182F6; } .osl .d-mp { background: #A06BFF; } .osl .d-pcr { background: #F5A623; } .osl .d-gex { background: var(--up); }
+.osl > div { min-width: 0; } .osl b { display: block; font-size: 13.5px; font-weight: 600; line-height: 1.45; } .osl b b { display: inline; font-weight: 800; }
+.osl span { display: block; font-size: 12px; color: var(--sub); line-height: 1.5; margin-top: 1px; }
+@media (min-width: 1001px) { .osum { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; } .osum-h { grid-column: 1 / -1; } }
 .onote { font-size: 12px; color: var(--sub); margin-top: 10px; line-height: 1.6; }
 @media (max-width: 1000px) { .otiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .otiles { gap: 8px; grid-template-columns: repeat(2, minmax(0, 1fr)); } .otile { padding: 10px 11px; border-radius: 12px; } .otile b { font-size: 16px; } .otile span { font-size: 11px; } .otile i { font-size: 10.5px; }
@@ -205,6 +214,7 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
     <div class="ohead"><div class="ttl"><b>옵션 지도</b><span>행사가별 콜·풋 쌓인 자리 · CBOE 15분 지연</span></div><div class="seg" id="oSym"></div></div>
     <div class="otools"><div class="seg" id="oExp"></div><div class="seg" id="oMode"></div></div>
     <div class="otiles" id="oTiles"></div>
+    <div class="osum" id="oSum"></div>
     <div class="lmap-legend" id="oLegend"></div>
     <svg id="omap"></svg>
     <div class="onote" id="oNote"><div class="loading">옵션 데이터 불러오는 중</div></div>
@@ -606,14 +616,28 @@ setTimeout(fit, 1500); setTimeout(fit, 4000); setInterval(fit, 2000); try { new 
     const z = ZOOM[st.sym] || 0.1, rows = all.filter(r => Math.abs(r.k / px - 1) <= z);
     const pcrTxt = v => v == null ? '-' : v.toFixed(2);
     const gUp = S.gex >= 0;
+    const pcrCls = S.pcr == null ? '' : S.pcr > 1.2 ? 'down' : S.pcr < 0.7 ? 'up' : '';
+    const pcrWord = S.pcr == null ? '' : S.pcr > 1.2 ? '하락 대비 쏠림' : S.pcr < 0.7 ? '상승 베팅 쏠림' : '비슷함 · 중립';
     $('oTiles').innerHTML = [
       ['현재가', usd(px), st.sym],
-      ['맥스페인', S.mp != null ? usd(S.mp) : '-', S.mp != null ? `${pctTo(S.mp, px)} · 만기에 끌리는 가격` : ''],
-      ['콜 벽 (저항)', S.cw.k != null ? usd(S.cw.k) : '-', S.cw.k != null ? `${pctTo(S.cw.k, px)} · ${K(S.cw.co)}계약` : ''],
-      ['풋 벽 (지지)', S.pw.k != null ? usd(S.pw.k) : '-', S.pw.k != null ? `${pctTo(S.pw.k, px)} · ${K(S.pw.po)}계약` : ''],
-      ['풋/콜 비율', `<span class="${S.pcr > 1 ? 'down' : 'up'}">${pcrTxt(S.pcr)}</span>`, `거래량 기준 ${pcrTxt(S.pcrV)} · ${S.pcr > 1 ? '하락 대비 많음' : '상승 베팅 많음'}`],
-      ['감마', `<span class="${gUp ? 'up' : 'down'}">${gUp ? '+' : ''}$${K(S.gex)}</span>`, gUp ? '변동성 눌림 · 박스권 쉬움' : '변동성 커짐 · 한쪽으로 쏠리기 쉬움'],
+      ['맥스페인', S.mp != null ? usd(S.mp) : '-', S.mp != null ? pctTo(S.mp, px) : ''],
+      ['콜 벽 · 저항', S.cw.k != null ? usd(S.cw.k) : '-', S.cw.k != null ? `${pctTo(S.cw.k, px)} · ${K(S.cw.co)}` : ''],
+      ['풋 벽 · 지지', S.pw.k != null ? usd(S.pw.k) : '-', S.pw.k != null ? `${pctTo(S.pw.k, px)} · ${K(S.pw.po)}` : ''],
+      ['풋/콜 비율', `<span class="${pcrCls}">${pcrTxt(S.pcr)}</span>`, pcrWord],
+      ['감마', `<span class="${gUp ? 'up' : 'down'}">${gUp ? '+' : ''}$${K(S.gex)}</span>`, gUp ? '박스권 성향' : '급등락 성향'],
     ].map(([a, b, c]) => `<div class="otile"><span>${a}</span><b class="num">${b}</b><i>${c}</i></div>`).join('');
+    // ---- 지금 한눈에: 지표를 쉬운 말로 ----
+    const near = sel.length ? dlabel(sel[0]) : '';
+    const mpGap = S.mp != null ? (S.mp / px - 1) * 100 : 0;
+    const L = [];
+    if (S.cw.k != null && S.pw.k != null) L.push(['box', `<b>${usd(S.pw.k)} ~ ${usd(S.cw.k)}</b> 사이가 1차 박스`, `위는 콜이 제일 많이 쌓인 자리라 막히기 쉽고, 아래는 풋이 제일 많아 받쳐주기 쉬워요`]);
+    if (S.mp != null) L.push(['mp', Math.abs(mpGap) < 1 ? `맥스페인 <b>${usd(S.mp)}</b> ≈ 현재가` : `맥스페인 <b>${usd(S.mp)}</b>은 현재가보다 ${mpGap > 0 ? '위' : '아래'} (${pctTo(S.mp, px)})`,
+      Math.abs(mpGap) < 1 ? `가까운 만기(${near})까지 이 근처에서 머물 가능성` : `가까운 만기(${near}) 다가올수록 ${mpGap > 0 ? '위로' : '아래로'} 끌릴 수 있어요`]);
+    if (S.pcr != null) L.push(['pcr', `풋/콜 <b>${pcrTxt(S.pcr)}</b> → ${pcrWord}`, S.pcr > 1.2 ? '하락에 대비한 풋이 많아요 (겁먹은 시장, 반대로 바닥 신호일 때도)' : S.pcr < 0.7 ? '상승 쪽 베팅이 몰려 있어요 (과열 주의)' : '상승·하락 베팅이 비슷해요']);
+    L.push(['gex', gUp ? '감마 <b class="up">+</b> → 박스권 성향' : '감마 <b class="down">−</b> → 급등락 성향',
+      gUp ? '튀면 되돌리는 힘이 커서 크게 안 움직이기 쉬워요' : '움직이면 그 방향으로 더 밀리기 쉬워요 · 손절 짧게'
+      + (S.flip ? ` · 전환점 ${usd(S.flip)} ${px < S.flip ? '위로 올라서면 진정' : '아래로 깨지면 변동성↑'}` : '')]);
+    $('oSum').innerHTML = `<div class="osum-h">지금 한눈에 <span>${st.sym} ${usd(px)}</span></div>` + L.map(([k, a, b]) => `<div class="osl"><i class="d-${k}"></i><div><b>${a}</b><span>${b}</span></div></div>`).join('');
     const gexMode = st.mode === 'gex';
     $('oLegend').innerHTML = gexMode
       ? `<span><i style="background:var(--up)"></i>+감마 (가격을 붙잡음)</span><span><i style="background:var(--down)"></i>−감마 (움직임을 키움)</span><span><i style="background:#3182F6"></i>현재가</span>${S.flip ? `<span><i style="background:#F5A623"></i>감마 전환점 ${usd(S.flip)}</span>` : ''}`
@@ -634,7 +658,7 @@ setTimeout(fit, 1500); setTimeout(fit, 4000); setInterval(fit, 2000); try { new 
     for (let j = 0; j <= tickN; j++) { const k = lo + span * j / tickN, yy = y(k);
       s += `<line x1="${padL}" x2="${W - padR}" y1="${yy}" y2="${yy}" style="stroke:var(--grid)"/><text x="${padL - 8}" y="${yy + 4}" text-anchor="end" font-size="11" style="fill:var(--sub)">${usd(k)}</text>`; }
     s += `<line x1="${cx}" x2="${cx}" y1="${top}" y2="${H - bot}" style="stroke:var(--line)" stroke-width="1.5"/>`;
-    if (!gexMode) s += `<text x="${cx - 8}" y="${top + 12}" text-anchor="end" font-size="11" font-weight="700" fill="#F04452">◀ 풋</text><text x="${cx + 8}" y="${top + 12}" font-size="11" font-weight="700" fill="#089981">콜 ▶</text>`;
+    if (!gexMode && !mob) s += `<text x="${cx - 8}" y="${top + 12}" text-anchor="end" font-size="11" font-weight="700" fill="#F04452">◀ 풋</text><text x="${cx + 8}" y="${top + 12}" font-size="11" font-weight="700" fill="#089981">콜 ▶</text>`;
     for (const r of rows) {
       const yy = y(r.k) - bh / 2;
       if (gexMode) {
@@ -653,7 +677,7 @@ setTimeout(fit, 1500); setTimeout(fit, 4000); setInterval(fit, 2000); try { new 
       const lab = (k, v, side, color) => { const end = cx + side * v / mx * half, t = `${usd(k)} · ${K(v)}`, tw = t.length * 6.6 + 4;
         const out = side > 0 ? end + 6 + tw < W - padR : end - 6 - tw > padL;
         const yy = y(k) + (out ? 4 : -bh / 2 - 5), x = out ? end + side * 6 : cx + side * 8;
-        return `<text x="${x}" y="${yy}" ${side < 0 ? 'text-anchor="end"' : ''} font-size="11.5" font-weight="800" fill="${color}">${t}</text>`; };
+        return `<text x="${x}" y="${yy}" ${side < 0 ? 'text-anchor="end"' : ''} font-size="${mob ? 10.5 : 11.5}" font-weight="800" fill="${color}" style="paint-order:stroke;stroke:var(--card);stroke-width:4px;stroke-linejoin:round">${t}</text>`; };
       if (vC(tc)) s += lab(tc.k, vC(tc), 1, '#089981');
       if (vP(tp)) s += lab(tp.k, vP(tp), -1, '#F04452');
     }
@@ -667,9 +691,7 @@ setTimeout(fit, 1500); setTimeout(fit, 4000); setInterval(fit, 2000); try { new 
     s += hline(px, '#3182F6', usd(px), '5 4');
     svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.innerHTML = s;
     const ts = d.ts ? d.ts.replace('T', ' ').slice(0, 16) : '';
-    $('oNote').innerHTML = `만기 ${sel.length ? sel.length + '개 (' + dlabel(sel[0]) + (sel.length > 1 ? ' ~ ' + dlabel(sel[sel.length - 1]) : '') + ')' : '없음'} 합산 · 현재가 ±${Math.round(z * 100)}% 표시 · CBOE ${ts ? ts + ' 기준 ' : ''}15분 지연<br>`
-      + (gexMode ? '감마 = 1% 움직일 때 딜러가 헤지로 사고파는 규모. 막대가 초록이면 가격을 붙잡고(되돌림), 빨강이면 움직임을 키움(추세). 전환점 아래로 내려가면 변동성이 커지기 쉬워요.'
-        : '콜이 크게 쌓인 자리는 저항, 풋이 크게 쌓인 자리는 지지 역할을 하기 쉬워요. 만기가 다가올수록 가격이 맥스페인 쪽으로 끌리는 경향이 있어요.');
+    $('oNote').innerHTML = `만기 ${sel.length ? sel.length + '개 (' + dlabel(sel[0]) + (sel.length > 1 ? ' ~ ' + dlabel(sel[sel.length - 1]) : '') + ')' : '없음'} 합산 · 현재가 ±${Math.round(z * 100)}% 표시 · CBOE ${ts ? ts + ' 기준 ' : ''}15분 지연`;
     fit();
   }
   function set(o) { if (!o) return; O = o; draw(); }
