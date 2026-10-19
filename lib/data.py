@@ -1250,3 +1250,57 @@ def fetch_news(limit=30):
             continue
     items.sort(key=lambda x: x["ts"], reverse=True)
     return items[:limit]
+
+
+# ---------- 미국 옵션 지도 (나스닥 · 반도체) ----------
+# CBOE 무료 지연 시세(약 15분): 행사가별 콜/풋 미결제약정 · 거래량 · 감마
+OPT_SYMS = {"QQQ": "나스닥 QQQ", "SOXX": "반도체 SOXX", "SOXL": "SOXL"}
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def fetch_options(sym, span=0.22, days=62):
+    """→ {px, ts, exp:[날짜], rows:[[만기번호, 행사가, 콜OI, 풋OI, 콜거래량, 풋거래량, 콜감마, 풋감마]]}
+    현재가 ±22% 행사가 · 62일 안 만기만 (화면에 보낼 양을 줄임)."""
+    import re
+    from datetime import date
+    j = _http_json(f"https://cdn.cboe.com/api/global/delayed_quotes/options/{sym}.json", timeout=12)
+    d = j.get("data") or {}
+    px = float(d.get("current_price") or d.get("close") or d.get("prev_day_close") or 0)
+    if not px:
+        raise ValueError("no price")
+    today = date.today()
+    agg = {}
+    for o in d.get("options") or []:
+        m = re.search(r"(\d{6})([CP])(\d{8})$", str(o.get("option", "")))
+        if not m:
+            continue
+        ymd, cp, k = m.group(1), m.group(2), int(m.group(3)) / 1000
+        if abs(k / px - 1) > span:
+            continue
+        ex = date(2000 + int(ymd[:2]), int(ymd[2:4]), int(ymd[4:]))
+        if not (0 <= (ex - today).days <= days):
+            continue
+        r = agg.setdefault((ex.isoformat(), k), [0, 0, 0, 0, 0.0, 0.0])
+        oi, vol, g = float(o.get("open_interest") or 0), float(o.get("volume") or 0), float(o.get("gamma") or 0)
+        if cp == "C":
+            r[0] += oi; r[2] += vol; r[4] = g
+        else:
+            r[1] += oi; r[3] += vol; r[5] = g
+    exps = sorted({e for e, _ in agg})
+    ei = {e: i for i, e in enumerate(exps)}
+    rows = [[ei[e], k, int(v[0]), int(v[1]), int(v[2]), int(v[3]), round(v[4], 5), round(v[5], 5)]
+            for (e, k), v in sorted(agg.items()) if v[0] or v[1]]
+    return {"px": px, "ts": str(j.get("timestamp") or ""), "exp": exps, "rows": rows}
+
+
+def fetch_options_all():
+    from concurrent.futures import ThreadPoolExecutor
+
+    def one(s):
+        try:
+            return s, fetch_options(s)
+        except Exception as e:
+            return s, {"err": type(e).__name__}
+
+    with ThreadPoolExecutor(max_workers=3) as ex:
+        return dict(ex.map(one, OPT_SYMS))

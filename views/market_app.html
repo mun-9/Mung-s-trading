@@ -156,6 +156,21 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
   .r4 div[style*="font-size:13px"] { font-size: 11px !important; line-height: 1.4; }
   .fng .val b { font-size: 26px; } .fng .val { margin-top: -30px; } .fng-hist span { font-size: 10.5px; } .fng-hist b { font-size: 13px; }
   .dom-lg { font-size: 10.5px; gap: 3px 8px; } .two { grid-template-columns: 1fr; } .card { padding: 18px; } #lmap { height: 380px; } }
+
+/* ---------- 옵션 지도 ---------- */
+.ohead { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.ohead .ttl { display: flex; align-items: baseline; gap: 8px; } .ohead .ttl b { font-size: 17px; font-weight: 800; letter-spacing: -0.02em; } .ohead .ttl span { font-size: 12.5px; color: var(--sub); }
+.otools { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.otiles { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
+.otile { background: var(--soft); border-radius: 14px; padding: 12px 14px; min-width: 0; }
+.otile span { display: block; font-size: 12px; color: var(--sub); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.otile b { display: block; font-size: 19px; font-weight: 800; letter-spacing: -0.02em; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.otile i { display: block; font-style: normal; font-size: 11.5px; color: var(--mid); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#omap { width: 100%; height: 480px; display: block; }
+.onote { font-size: 12px; color: var(--sub); margin-top: 10px; line-height: 1.6; }
+@media (max-width: 1000px) { .otiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .otiles { gap: 8px; grid-template-columns: repeat(2, minmax(0, 1fr)); } .otile { padding: 10px 11px; border-radius: 12px; } .otile b { font-size: 16px; } .otile span { font-size: 11px; } .otile i { font-size: 10.5px; }
+  .ohead .ttl { flex-direction: column; gap: 2px; } .ohead .ttl b { font-size: 16px; } .ohead .ttl span { font-size: 11.5px; } #omap { height: 440px; } .otools { gap: 6px; } }
 </style>
 </head>
 <body>
@@ -184,6 +199,15 @@ html, body { margin: 0; padding: 0; background: transparent; color: var(--text);
         <div class="note" id="lqNote"></div>
       </div>
     </div>
+  </div>
+
+  <div class="card" id="optCard">
+    <div class="ohead"><div class="ttl"><b>옵션 지도</b><span>행사가별 콜·풋 쌓인 자리 · CBOE 15분 지연</span></div><div class="seg" id="oSym"></div></div>
+    <div class="otools"><div class="seg" id="oExp"></div><div class="seg" id="oMode"></div></div>
+    <div class="otiles" id="oTiles"></div>
+    <div class="lmap-legend" id="oLegend"></div>
+    <svg id="omap"></svg>
+    <div class="onote" id="oNote"><div class="loading">옵션 데이터 불러오는 중</div></div>
   </div>
 
   <div class="card"><div class="ct"><b>코인 히트맵</b><span>시가총액 크기 · 24시간 변동 · TradingView</span></div>
@@ -527,6 +551,131 @@ setTimeout(fit, 1500); setTimeout(fit, 4000); setInterval(fit, 2000); try { new 
   }
   render(DATA.macro);
   try { parent.addEventListener('mg-mkt', () => render(parent.__mgMkt)); if (parent.__mgMkt) render(parent.__mgMkt); } catch (e) {}
+})();
+
+// ---------- 옵션 지도 (나스닥 · 반도체) — 서버가 CBOE 옵션 체인을 5분마다 넘겨줌 ----------
+(function () {
+  const SYMS = [['QQQ', '나스닥 QQQ'], ['SOXX', '반도체 SOXX'], ['SOXL', 'SOXL']];
+  const ZOOM = { QQQ: 0.07, SOXX: 0.12, SOXL: 0.2 };   // 화면에 보일 행사가 범위 (현재가 ±)
+  const EXPS = [['near', '가까운 만기'], ['w', '7일'], ['m', '30일'], ['all', '전체']];
+  const MODES = [['oi', '미결제약정'], ['vol', '오늘 거래량'], ['gex', '감마']];
+  let O = null, st = { sym: 'QQQ', exp: 'm', mode: 'oi' };
+  try { Object.assign(st, JSON.parse(localStorage.getItem('mung_opt') || '{}')); } catch (e) {}
+  const save = () => { try { localStorage.setItem('mung_opt', JSON.stringify(st)); } catch (e) {} };
+  const K = n => { const a = Math.abs(n); return (n < 0 ? '-' : '') + (a >= 1e9 ? (a / 1e9).toFixed(2) + 'B' : a >= 1e6 ? (a / 1e6).toFixed(1) + 'M' : a >= 1e3 ? (a / 1e3).toFixed(1) + 'K' : Math.round(a)); };
+  const usd = v => '$' + (v >= 100 ? v.toFixed(0) : v.toFixed(v % 1 ? 1 : 0));
+  const pctTo = (v, px) => { const d = (v / px - 1) * 100; return (d >= 0 ? '+' : '') + d.toFixed(1) + '%'; };
+  const dlabel = e => { const [y, m, d] = e.split('-'); return +m + '/' + +d; };
+  function seg(id, list, key) {
+    $(id).innerHTML = list.map(([v, t]) => `<button data-v="${v}" class="${st[key] === v ? 'on' : ''}">${t}</button>`).join('');
+    $(id).querySelectorAll('button').forEach(b => b.onclick = () => { st[key] = b.dataset.v; save(); draw(); });
+  }
+  function pick(d) {
+    const now = new Date(); now.setHours(0, 0, 0, 0);
+    const days = d.exp.map(e => Math.round((new Date(e + 'T00:00:00') - now) / 864e5));
+    const ok = d.exp.map((e, i) => st.exp === 'near' ? i === 0 : st.exp === 'w' ? days[i] <= 7 : st.exp === 'm' ? days[i] <= 31 : true);
+    const by = new Map();
+    for (const [ei, k, co, po, cv, pv, cg, pg] of d.rows) {
+      if (!ok[ei]) continue;
+      const r = by.get(k) || { k, co: 0, po: 0, cv: 0, pv: 0, gx: 0 };
+      r.co += co; r.po += po; r.cv += cv; r.pv += pv; r.gx += (cg * co - pg * po) * 100 * d.px * d.px * 0.01;   // 1% 움직일 때 딜러가 사고팔 금액
+      by.set(k, r);
+    }
+    const sel = d.exp.filter((e, i) => ok[i]);
+    return { rows: [...by.values()].sort((a, b) => a.k - b.k), sel };
+  }
+  function stats(rows, px) {
+    let mp = null, best = Infinity;
+    for (const c of rows) { let pain = 0; for (const r of rows) { if (c.k > r.k) pain += r.co * (c.k - r.k); else pain += r.po * (r.k - c.k); } if (pain < best) { best = pain; mp = c.k; } }
+    const above = rows.filter(r => r.k >= px), below = rows.filter(r => r.k <= px);
+    const cw = (above.length ? above : rows).reduce((a, r) => r.co > a.co ? r : a, { co: -1 });
+    const pw = (below.length ? below : rows).reduce((a, r) => r.po > a.po ? r : a, { po: -1 });
+    const co = rows.reduce((a, r) => a + r.co, 0), po = rows.reduce((a, r) => a + r.po, 0);
+    const cv = rows.reduce((a, r) => a + r.cv, 0), pv = rows.reduce((a, r) => a + r.pv, 0);
+    const gex = rows.reduce((a, r) => a + r.gx, 0);
+    // 감마 전환점: 아래에서부터 쌓은 순감마가 음→양으로 바뀌는 행사가
+    let cum = 0, flip = null; for (const r of rows) { const prev = cum; cum += r.gx; if (prev < 0 && cum >= 0) flip = r.k; }
+    return { mp, cw, pw, pcr: co ? po / co : null, pcrV: cv ? pv / cv : null, gex, flip };
+  }
+  function draw() {
+    seg('oSym', SYMS, 'sym'); seg('oExp', EXPS.map(([v, t]) => [v, v === 'near' && O && O[st.sym] && O[st.sym].exp ? t + ' ' + dlabel(O[st.sym].exp[0]) : t]), 'exp'); seg('oMode', MODES, 'mode');
+    const d = O && O[st.sym];
+    if (!d) return;
+    if (d.err || !d.rows) { $('oTiles').innerHTML = ''; $('omap').innerHTML = ''; $('oLegend').innerHTML = ''; $('oNote').innerHTML = '<div class="es"><div class="ei">⚠️</div><b>옵션 데이터를 불러오지 못했어요</b><span>5분 뒤 자동으로 다시 시도해요</span></div>'; fit(); return; }
+    const px = d.px, { rows: all, sel } = pick(d), S = stats(all, px);
+    const z = ZOOM[st.sym] || 0.1, rows = all.filter(r => Math.abs(r.k / px - 1) <= z);
+    const pcrTxt = v => v == null ? '-' : v.toFixed(2);
+    const gUp = S.gex >= 0;
+    $('oTiles').innerHTML = [
+      ['현재가', usd(px), st.sym],
+      ['맥스페인', S.mp != null ? usd(S.mp) : '-', S.mp != null ? `${pctTo(S.mp, px)} · 만기에 끌리는 가격` : ''],
+      ['콜 벽 (저항)', S.cw.k != null ? usd(S.cw.k) : '-', S.cw.k != null ? `${pctTo(S.cw.k, px)} · ${K(S.cw.co)}계약` : ''],
+      ['풋 벽 (지지)', S.pw.k != null ? usd(S.pw.k) : '-', S.pw.k != null ? `${pctTo(S.pw.k, px)} · ${K(S.pw.po)}계약` : ''],
+      ['풋/콜 비율', `<span class="${S.pcr > 1 ? 'down' : 'up'}">${pcrTxt(S.pcr)}</span>`, `거래량 기준 ${pcrTxt(S.pcrV)} · ${S.pcr > 1 ? '하락 대비 많음' : '상승 베팅 많음'}`],
+      ['감마', `<span class="${gUp ? 'up' : 'down'}">${gUp ? '+' : ''}$${K(S.gex)}</span>`, gUp ? '변동성 눌림 · 박스권 쉬움' : '변동성 커짐 · 한쪽으로 쏠리기 쉬움'],
+    ].map(([a, b, c]) => `<div class="otile"><span>${a}</span><b class="num">${b}</b><i>${c}</i></div>`).join('');
+    const gexMode = st.mode === 'gex';
+    $('oLegend').innerHTML = gexMode
+      ? `<span><i style="background:var(--up)"></i>+감마 (가격을 붙잡음)</span><span><i style="background:var(--down)"></i>−감마 (움직임을 키움)</span><span><i style="background:#3182F6"></i>현재가</span>${S.flip ? `<span><i style="background:#F5A623"></i>감마 전환점 ${usd(S.flip)}</span>` : ''}`
+      : `<span><i style="background:var(--down)"></i>풋 (하락 베팅 · 지지)</span><span><i style="background:var(--up)"></i>콜 (상승 베팅 · 저항)</span><span><i style="background:#3182F6"></i>현재가</span><span><i style="background:#A06BFF"></i>맥스페인</span>`;
+    // ---- 그리기: 세로 = 행사가(위가 높은 가격), 가운데 축 기준 왼쪽 풋 · 오른쪽 콜 ----
+    const svg = $('omap'), W = svg.clientWidth || 800, H = svg.clientHeight || 480, mob = W < 520;
+    const padL = mob ? 48 : 62, padR = mob ? 52 : 70, top = 8, bot = 8, n = rows.length;
+    if (!n) { svg.innerHTML = ''; return; }
+    const lo = rows[0].k, hi = rows[n - 1].k, span = Math.max(hi - lo, 1e-9);
+    const y = k => top + (1 - (k - lo) / span) * (H - top - bot);
+    const bh = Math.max(1.5, Math.min(14, (H - top - bot) / n * 0.78));
+    const cx = padL + (W - padL - padR) / 2, half = (W - padL - padR) / 2 - 4;
+    const vC = r => st.mode === 'vol' ? r.cv : r.co, vP = r => st.mode === 'vol' ? r.pv : r.po;
+    const mx = gexMode ? Math.max(...rows.map(r => Math.abs(r.gx)), 1) : Math.max(...rows.map(r => Math.max(vC(r), vP(r))), 1);
+    let s = '';
+    // 가격 눈금
+    const tickN = mob ? 7 : 9;
+    for (let j = 0; j <= tickN; j++) { const k = lo + span * j / tickN, yy = y(k);
+      s += `<line x1="${padL}" x2="${W - padR}" y1="${yy}" y2="${yy}" style="stroke:var(--grid)"/><text x="${padL - 8}" y="${yy + 4}" text-anchor="end" font-size="11" style="fill:var(--sub)">${usd(k)}</text>`; }
+    s += `<line x1="${cx}" x2="${cx}" y1="${top}" y2="${H - bot}" style="stroke:var(--line)" stroke-width="1.5"/>`;
+    if (!gexMode) s += `<text x="${cx - 8}" y="${top + 12}" text-anchor="end" font-size="11" font-weight="700" fill="#F04452">◀ 풋</text><text x="${cx + 8}" y="${top + 12}" font-size="11" font-weight="700" fill="#089981">콜 ▶</text>`;
+    for (const r of rows) {
+      const yy = y(r.k) - bh / 2;
+      if (gexMode) {
+        if (!r.gx) continue; const w = Math.abs(r.gx) / mx * half, pos = r.gx > 0;
+        s += `<rect x="${pos ? cx : cx - w}" y="${yy}" width="${Math.max(1, w)}" height="${bh}" rx="1.5" fill="${pos ? '#089981' : '#F04452'}" opacity="${0.4 + 0.6 * Math.abs(r.gx) / mx}"><title>${usd(r.k)}\n순감마 ${r.gx >= 0 ? '+' : ''}$${K(r.gx)} (1% 움직일 때)</title></rect>`;
+      } else {
+        const c = vC(r), p = vP(r), tip = `${usd(r.k)} (${pctTo(r.k, px)})\n콜 ${K(c)} · 풋 ${K(p)}`;
+        if (p) s += `<rect x="${cx - p / mx * half}" y="${yy}" width="${Math.max(1, p / mx * half)}" height="${bh}" rx="1.5" fill="#F04452" opacity="${0.35 + 0.65 * p / mx}"><title>${tip}</title></rect>`;
+        if (c) s += `<rect x="${cx}" y="${yy}" width="${Math.max(1, c / mx * half)}" height="${bh}" rx="1.5" fill="#089981" opacity="${0.35 + 0.65 * c / mx}"><title>${tip}</title></rect>`;
+      }
+    }
+    // 가장 큰 자리 라벨
+    if (!gexMode) {
+      const tc = rows.reduce((a, r) => vC(r) > vC(a) ? r : a, rows[0]), tp = rows.reduce((a, r) => vP(r) > vP(a) ? r : a, rows[0]);
+      // 라벨: 막대 끝 바깥에 / 자리가 없으면 막대 위에 따로 띄움
+      const lab = (k, v, side, color) => { const end = cx + side * v / mx * half, t = `${usd(k)} · ${K(v)}`, tw = t.length * 6.6 + 4;
+        const out = side > 0 ? end + 6 + tw < W - padR : end - 6 - tw > padL;
+        const yy = y(k) + (out ? 4 : -bh / 2 - 5), x = out ? end + side * 6 : cx + side * 8;
+        return `<text x="${x}" y="${yy}" ${side < 0 ? 'text-anchor="end"' : ''} font-size="11.5" font-weight="800" fill="${color}">${t}</text>`; };
+      if (vC(tc)) s += lab(tc.k, vC(tc), 1, '#089981');
+      if (vP(tp)) s += lab(tp.k, vP(tp), -1, '#F04452');
+    }
+    const hline = (k, color, label, dash, ty) => { if (k == null || k < lo || k > hi) return ''; const yy = y(k), tyy = ty == null ? yy : ty;
+      return `<line x1="${padL}" x2="${W - padR}" y1="${yy}" y2="${yy}" stroke="${color}" stroke-width="1.5" stroke-dasharray="${dash}"/>
+        <rect x="${W - padR + 4}" y="${tyy - 10}" width="${padR - 6}" height="20" rx="5" fill="${color}"/><text x="${W - padR / 2 + 1}" y="${tyy + 4}" text-anchor="middle" font-size="${mob ? 10 : 11}" font-weight="700" fill="#fff">${label}</text>`; };
+    // 현재가 꼬리표와 겹치면 한 칸 비켜서 표시
+    const nudge = k => { if (k == null) return null; const a = y(k), b = y(px); return Math.abs(a - b) < 22 ? b + (a <= b ? -22 : 22) : null; };
+    if (!gexMode) s += hline(S.mp, '#A06BFF', (mob ? '' : '맥스 ') + usd(S.mp), '2 4', nudge(S.mp));
+    else if (S.flip) s += hline(S.flip, '#F5A623', (mob ? '' : '전환 ') + usd(S.flip), '2 4', nudge(S.flip));
+    s += hline(px, '#3182F6', usd(px), '5 4');
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.innerHTML = s;
+    const ts = d.ts ? d.ts.replace('T', ' ').slice(0, 16) : '';
+    $('oNote').innerHTML = `만기 ${sel.length ? sel.length + '개 (' + dlabel(sel[0]) + (sel.length > 1 ? ' ~ ' + dlabel(sel[sel.length - 1]) : '') + ')' : '없음'} 합산 · 현재가 ±${Math.round(z * 100)}% 표시 · CBOE ${ts ? ts + ' 기준 ' : ''}15분 지연<br>`
+      + (gexMode ? '감마 = 1% 움직일 때 딜러가 헤지로 사고파는 규모. 막대가 초록이면 가격을 붙잡고(되돌림), 빨강이면 움직임을 키움(추세). 전환점 아래로 내려가면 변동성이 커지기 쉬워요.'
+        : '콜이 크게 쌓인 자리는 저항, 풋이 크게 쌓인 자리는 지지 역할을 하기 쉬워요. 만기가 다가올수록 가격이 맥스페인 쪽으로 끌리는 경향이 있어요.');
+    fit();
+  }
+  function set(o) { if (!o) return; O = o; draw(); }
+  draw(); set(DATA.opts);
+  try { parent.addEventListener('mg-opt', () => set(parent.__mgOpt)); if (parent.__mgOpt) set(parent.__mgOpt); } catch (e) {}
+  let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 150); });
 })();
 </script>
 </body>
