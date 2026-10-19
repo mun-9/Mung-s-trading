@@ -79,7 +79,7 @@ _CSS = r"""
   font-family: 'Pretendard', -apple-system, sans-serif; transform: translateX(-140%); opacity: 0;
   transition: transform .7s cubic-bezier(.2,1.3,.4,1), opacity .5s ease; pointer-events: none;
   --mp-bg: rgba(18,22,30,.88); --mp-line: rgba(255,255,255,.08); --mp-sub: rgba(255,255,255,.52); --mp-acc: #5B8DFF;
-  --d: 60px; --cardw: 340px; --npw: calc(var(--d) + 10px + var(--cardw)); }
+  --d: 60px; --ph: 48px; --cardw: 352px; --npw: calc(var(--d) / 2 + var(--cardw)); }
 /* 컴퓨터: LP 전체가 보임 / 휴대폰(아래 @media): 왼쪽 벽에 반쯤 숨어 있다가 누르면 쏙 나옴 */
 #mg-music.in { transform: translateX(24px); opacity: 1; pointer-events: auto; }
 #mg-music.in.open { transform: translateX(24px); }
@@ -108,43 +108,41 @@ _CSS = r"""
   background: radial-gradient(circle, rgba(91,141,255,.42), transparent 66%); opacity: 0; transition: opacity .6s; pointer-events: none; animation: mg-pulse 2.4s ease-in-out infinite; }
 #mg-music.playing .glow { opacity: 1; }
 
-/* 지금 재생 카드: LP 오른쪽에 같은 높이로 붙는 미니 플레이어
-   펼치고 접을 때 크기(width)를 바꾸지 않고 '가림막(clip-path)'만 움직임 → 화면을 다시 계산하지 않아 버벅임 없음 */
-#mg-music .np { position: absolute; left: calc(var(--d) + 10px); top: 50%; width: var(--cardw); height: var(--d); margin-top: calc(var(--d) / -2);
-  box-sizing: border-box; display: flex; align-items: center; gap: 4px; padding: 0 8px 0 14px; overflow: hidden;
-  border-radius: 16px; background: #141820; color: #fff; border: 1px solid var(--mp-line);
-  box-shadow: 0 10px 28px rgba(0,0,0,.36);
-  opacity: 0; transform: translateX(-10px); clip-path: inset(0 100% 0 0 round 16px); pointer-events: none; will-change: clip-path, transform, opacity;
-  transition: clip-path .55s cubic-bezier(.2,.9,.2,1), transform .55s cubic-bezier(.2,.9,.2,1), opacity .3s ease; }
-#mg-music.open .np { opacity: 1; transform: none; clip-path: inset(0 0 0 0 round 16px); pointer-events: auto; }
-/* 앨범 사진을 흐리게 깐 배경 (색만 은은하게) */
-#mg-music .np-bg { position: absolute; inset: -20px; z-index: 0; background: center/cover; filter: blur(22px) saturate(1.6); opacity: .32; pointer-events: none; }
-#mg-music .np::after { content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
-  background: linear-gradient(90deg, rgba(20,24,32,.35), rgba(20,24,32,.85) 60%); }
-#mg-music .np > *:not(.np-bg) { position: relative; z-index: 1; }
-/* 자동으로 들어갈 때: 살짝 머뭇거리다 '쑥' 들어감 */
-#mg-music.open.tuck .np { animation: mg-tuck .9s cubic-bezier(.6,0,.8,.3) forwards; }
-@keyframes mg-tuck {
-  0%   { clip-path: inset(0 0 0 0 round 16px); transform: none; opacity: 1; }
-  45%  { clip-path: inset(0 9% 0 0 round 16px); transform: translateX(-3px); opacity: 1; }
-  100% { clip-path: inset(0 100% 0 0 round 16px); transform: translateX(-10px); opacity: 0; } }
-#mg-music.open.tuck .disc { animation: mg-spin 3.2s linear infinite, mg-nudge .9s ease-in-out; }
-@keyframes mg-nudge { 0%, 100% { translate: 0; } 45% { translate: 3px 0; } }
+/* 지금 재생: LP 뒤에서 뻗어 나오는 까만 캡슐 (다이내믹 아일랜드 느낌)
+   크기는 그대로 두고 가림막(clip-path)만 움직임 → 화면을 다시 계산하지 않아 매끄러움 */
+#mg-music .np { position: absolute; z-index: 1; left: calc(var(--d) / 2); top: 50%; width: var(--cardw); height: var(--ph); margin-top: calc(var(--ph) / -2);
+  box-sizing: border-box; display: flex; align-items: center; gap: 2px; padding: 0 8px 0 calc(var(--d) / 2 + 14px);
+  border-radius: 999px; background: #050608; color: #fff; box-shadow: 0 0 0 1px rgba(255,255,255,.07), 0 12px 30px rgba(0,0,0,.45);
+  opacity: 0; transform: translateX(-6px); clip-path: inset(0 100% 0 0 round 999px); pointer-events: none; will-change: clip-path, transform, opacity;
+  transition: clip-path .6s cubic-bezier(.16,1,.3,1), transform .6s cubic-bezier(.16,1,.3,1), opacity .25s ease; }
+#mg-music.open .np { opacity: 1; transform: none; clip-path: inset(-2px -2px -2px 0 round 999px); pointer-events: auto; }
+/* 들어갈 때: 처음엔 아주 천천히 줄어드는 척 → 점점 빨라지며 LP 속으로 쏙 (한 곡선으로 이어져서 끊김 없음) */
+#mg-music.in.tuck { transition: transform .85s cubic-bezier(.7,0,.84,0), opacity .5s ease; }
+#mg-music.tuck .np { transition: clip-path .85s cubic-bezier(.7,0,.84,0), transform .85s cubic-bezier(.7,0,.84,0), opacity .85s cubic-bezier(.9,0,1,.5); }
 
-#mg-music .np-tx { flex: 1; min-width: 0; padding-right: 6px; }
-#mg-music .np-t { font-size: 13.5px; font-weight: 750; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.015em; }
-#mg-music .np-a { font-size: 11px; line-height: 1.3; color: var(--mp-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
-#mg-music .np .sep { width: 1px; height: 20px; background: rgba(255,255,255,.1); margin: 0 3px; flex-shrink: 0; }
-#mg-music .np .ls, #mg-music .np .cl { width: 28px; height: 28px; color: rgba(255,255,255,.5); }
-#mg-music .np .ls:hover, #mg-music .np .cl:hover { color: #fff; }
-#mg-music .np .ls svg, #mg-music .np .cl svg { width: 15px; height: 15px; }
+#mg-music .np-tx { flex: 1; min-width: 0; padding-right: 4px; }
+#mg-music .np-t { font-size: 13px; font-weight: 750; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.015em; }
+#mg-music .np-a { font-size: 10.5px; line-height: 1.25; color: rgba(255,255,255,.45); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+/* 소리 막대 (재생 중일 때만 춤춤) */
+#mg-music .np-eq { display: flex; align-items: center; gap: 2px; height: 16px; margin: 0 6px 0 2px; flex-shrink: 0; }
+#mg-music .np-eq i { width: 2.5px; height: 16px; border-radius: 2px; background: linear-gradient(180deg, #A9C1FF, #5B8DFF); transform: scaleY(.22); }
+#mg-music.playing .np-eq i { animation: mg-eq 1s ease-in-out infinite; }
+#mg-music .np-eq i:nth-child(2) { animation-delay: .3s !important; } #mg-music .np-eq i:nth-child(3) { animation-delay: .6s !important; } #mg-music .np-eq i:nth-child(4) { animation-delay: .15s !important; }
+#mg-music .np .pv, #mg-music .np .nx, #mg-music .np .pp, #mg-music .np .ls, #mg-music .np .cl { width: 30px; height: 30px; }
+#mg-music .np .pv, #mg-music .np .nx { color: rgba(255,255,255,.7); }
+#mg-music .np .pv svg, #mg-music .np .nx svg { width: 14px; height: 14px; }
+#mg-music .np .ls, #mg-music .np .cl { color: rgba(255,255,255,.4); }
+#mg-music .np .ls svg, #mg-music .np .cl svg { width: 14px; height: 14px; }
 #mg-music .np .ls.on { color: var(--mp-acc); }
-#mg-music .np .cur, #mg-music .np .dur { display: none; }
-/* 진행 막대: 카드 맨 아래 가장자리에 얇게 */
-#mg-music .np-bar { position: absolute !important; left: 0; right: 0; bottom: 0; height: 2px; z-index: 2 !important; background: rgba(255,255,255,.08); cursor: pointer; transition: height .15s; }
-#mg-music .np-bar::before { content: ''; position: absolute; left: 0; right: 0; top: -8px; bottom: 0; }
-#mg-music .np-bar:hover { height: 4px; }
-#mg-music .np-bar i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: linear-gradient(90deg, #5B8DFF, #A9C1FF); box-shadow: 0 0 8px rgba(91,141,255,.6); }
+#mg-music .np .pv:hover, #mg-music .np .nx:hover, #mg-music .np .ls:hover, #mg-music .np .cl:hover { color: #fff; }
+#mg-music .np .sep { width: 1px; height: 16px; background: rgba(255,255,255,.1); margin: 0 2px; flex-shrink: 0; }
+#mg-music .np .cur, #mg-music .np .dur, #mg-music .np .np-bar { display: none; }
+/* 재생 위치: LP 테두리를 따라 도는 얇은 고리 */
+#mg-music .ring { position: absolute; z-index: 3; left: -4px; top: 50%; width: calc(var(--d) + 8px); height: calc(var(--d) + 8px); margin-top: calc(var(--d) / -2 - 4px);
+  border-radius: 50%; pointer-events: none; --p: 0;
+  background: conic-gradient(from -90deg, #7FA3FF calc(var(--p) * 1%), rgba(255,255,255,.07) 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px)); }
 #mg-music button { border: 0; background: transparent; color: #fff; width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
   display: flex; align-items: center; justify-content: center; padding: 0; flex-shrink: 0; transition: background .15s, color .15s, transform .12s; }
 #mg-music button:hover { background: rgba(255,255,255,.1); }
@@ -152,14 +150,14 @@ _CSS = r"""
 #mg-music button svg { width: 16px; height: 16px; }
 #mg-music .np .pv, #mg-music .np .nx { width: 28px; height: 28px; color: rgba(255,255,255,.85); }
 #mg-music .np .pv svg, #mg-music .np .nx svg { width: 14px; height: 14px; }
-#mg-music button.pp { width: 32px; height: 32px; background: #fff; color: #111; box-shadow: 0 3px 10px rgba(0,0,0,.3); }
-#mg-music button.pp svg { width: 13px; height: 13px; }
-#mg-music button.pp:hover { background: #E3EBFF; }
+#mg-music button.pp { width: 32px; height: 32px; background: transparent; color: #fff; }
+#mg-music button.pp svg { width: 17px; height: 17px; }
+#mg-music button.pp:hover { background: rgba(255,255,255,.12); }
 #mg-music button.on { color: var(--mp-acc); }
 
 /* 플레이리스트 */
-#mg-music .pl { position: absolute; left: 0; bottom: calc(var(--d) + 12px); width: var(--npw); box-sizing: border-box; max-height: 0; opacity: 0; overflow: hidden; border-radius: 20px;
-  background: var(--mp-bg); border: 1px solid var(--mp-line); color: #fff; box-shadow: 0 16px 40px rgba(0,0,0,.35);
+#mg-music .pl { position: absolute; left: 0; bottom: calc(var(--d) / 2 + var(--ph) / 2 + 12px); width: var(--npw); box-sizing: border-box; max-height: 0; opacity: 0; overflow: hidden; border-radius: 20px;
+  background: rgba(6,7,10,.97); border: 1px solid rgba(255,255,255,.07); color: #fff; box-shadow: 0 16px 40px rgba(0,0,0,.35);
   backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4);
   transform: translateY(8px); transition: max-height .4s ease, opacity .25s ease, transform .3s ease; pointer-events: none;
   display: flex; flex-direction: column; }
@@ -256,9 +254,9 @@ _CSS = r"""
 @keyframes mg-pulse { 0%,100% { transform: scale(.92); } 50% { transform: scale(1.08); } }
 @media (max-width: 860px) { body.mg-on-chart #mg-music { bottom: 110px; } }  /* 차트 화면 아래 탭 바 위로 */
 @media (max-width: 768px) {
-  #mg-music { bottom: 20px; --d: 52px; --cardw: calc(100vw - 86px); }
+  #mg-music { bottom: 20px; --d: 52px; --ph: 46px; --cardw: calc(100vw - 50px); }
   #mg-music.in { transform: translateX(-26px); } #mg-music.in.open { transform: translateX(12px); }
-  #mg-music .np { padding: 0 4px 0 12px; gap: 2px; }
+  #mg-music .np { padding-right: 4px; gap: 0; }
   #mg-music .np .sep { display: none; }
   #mg-music .pl-cover { width: 64px; height: 64px; } #mg-music .pl-now b { font-size: 16px; } #mg-music .pl-t { font-size: 13.5px; }
   #mg-music.list .pl { max-height: min(560px, calc(100vh - 180px)); }
@@ -318,10 +316,11 @@ _JS = r"""
   const JUNK = /노래방|karaoke|반주|\binst\b|instrumental|mr제거|1시간|1 hour|playlist|플레이리스트/i;  // 노래방·반주·모음 영상은 결과에서 빼기
   const root = document.createElement('div');
   root.id = 'mg-music';
-  root.innerHTML = `<div class="glow"></div>
+  root.innerHTML = `<div class="glow"></div><div class="ring"></div>
     <div class="disc" title="눌러서 재생"><div class="label"></div><div class="hint">${I.play}</div></div>
-    <div class="np"><div class="np-bg"></div>
+    <div class="np">
       <div class="np-tx"><div class="np-t"></div><div class="np-a"></div></div>
+      <span class="np-eq"><i></i><i></i><i></i><i></i></span>
       <button class="pv" title="이전 곡">${I.prev}</button><button class="pp" title="재생">${I.play}</button><button class="nx" title="다음 곡">${I.next}</button>
       <span class="sep"></span><button class="ls" title="플레이리스트">${I.list}</button><button class="cl" title="접기">${I.close}</button>
       <span class="cur">0:00</span><span class="dur">0:00</span><div class="np-bar"><i></i></div>
@@ -390,9 +389,9 @@ _JS = r"""
 
   function show() {
     const t = curT();
-    $('.label').style.backgroundImage = $('.np-bg').style.backgroundImage = `url(${thumb(t.id)})`;
+    $('.label').style.backgroundImage = `url(${thumb(t.id)})`;
     $('.np-t').textContent = t.song; $('.np-a').textContent = t.artist || '';
-    $('.np-bar i').style.width = '0%'; $('.cur').textContent = '0:00'; $('.dur').textContent = '0:00';
+    $('.np-bar i').style.width = '0%'; $('.ring').style.setProperty('--p', 0); $('.cur').textContent = '0:00'; $('.dur').textContent = '0:00';
     $('.pl-hero .bg').style.backgroundImage = $('.pl-cover').style.backgroundImage = `url(${thumb(t.id)})`;
     $('.pl-now b').textContent = t.song; $('.pl-now .ar').textContent = t.artist || '';
     if (!tmp) { S.last = t.id; S.bag = S.bag.filter(id => id !== t.id); save(); }
@@ -430,8 +429,8 @@ _JS = r"""
   let pinned = false, peekT = null;
   function tuck() {
     if (pinned || root.classList.contains('list') || root.matches(':hover')) return peek(1800);
-    root.classList.add('tuck');
-    setTimeout(() => { root.classList.remove('tuck'); if (!pinned) root.classList.remove('open'); }, 900);
+    root.classList.add('tuck'); root.classList.remove('open');
+    clearTimeout(peekT); peekT = setTimeout(() => root.classList.remove('tuck'), 900);
   }
   function peek(ms) {
     if (pinned || root.classList.contains('list')) return;
@@ -490,7 +489,7 @@ _JS = r"""
   setInterval(() => {
     if (!ready || !player.getDuration) return;
     const d = player.getDuration() || 0, c = player.getCurrentTime() || 0;
-    if (d) { $('.np-bar i').style.width = (c / d * 100).toFixed(2) + '%'; $('.cur').textContent = fmt(c); $('.dur').textContent = fmt(d); }
+    if (d) { $('.ring').style.setProperty('--p', (c / d * 100).toFixed(2)); $('.np-bar i').style.width = (c / d * 100).toFixed(2) + '%'; $('.cur').textContent = fmt(c); $('.dur').textContent = fmt(d); }
   }, 500);
   show(); tools(); setVol(S.vol);
   const d0 = document;
