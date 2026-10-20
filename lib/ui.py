@@ -208,6 +208,9 @@ div[class*="st-key-topnav_dark"] .nav-logo .word { font-size: 17px; }
 div[class*="st-key-topnav_"] [data-testid="stMarkdownContainer"] { margin: 0 !important; }
 .nav-logo { display: flex; align-items: center; gap: 9px; margin: 0; white-space: nowrap; }
 .nav-logo { gap: 8px !important; }
+a.nav-logo, a.nav-logo:hover, a.nav-logo:visited { text-decoration: none !important; color: inherit !important; cursor: pointer; }
+a.nav-logo { transition: opacity .15s ease; }
+a.nav-logo:hover { opacity: .72; }
 .nav-logo .word { font-size: 20px; font-weight: 800; color: var(--mg-text); letter-spacing: -0.6px; }
 .nav-logo .tag { font-size: 11px; font-weight: 700; color: var(--mg-accent); background: rgba(36,89,237,0.08); padding: 3px 7px; border-radius: 6px; letter-spacing: 0.2px; }
 div[class*="st-key-topnav_dark"] .nav-logo .tag { background: rgba(41,98,255,0.18); color: #7FA3FF; }
@@ -599,6 +602,8 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
 """).replace("__THEME_VARS__", THEME_CSS))
 
 
+INSTAGRAM_URL = "https://www.instagram.com/mung9__/"
+
 NAV_PAGES = [("history", "views/history.py", "히스토리", ":material/receipt_long:"),
              ("chart", "views/chart.py", "차트", ":material/candlestick_chart:"),
              ("market", "views/market.py", "시장", ":material/public:"),
@@ -610,9 +615,11 @@ def nav(current, dark=False):
     """전체 폭 상단 헤더: 로고 + 메뉴."""
     mode = "dark" if dark else "light"
     with st.container(key=f"topnav_{mode}", horizontal=True, vertical_alignment="center"):
-        html("<div class='nav-logo'><svg viewBox='0 0 24 24' width='22' height='22'><rect x='3' y='12' width='4' height='9' rx='1.5' fill='#2459ED' opacity='.45'/>"
+        # 로고를 누르면 인스타그램(@Mung9__)이 새 탭으로 열림
+        html(f"<a class='nav-logo' href='{INSTAGRAM_URL}' target='_blank' rel='noopener noreferrer' title='Instagram @Mung9__'>"
+             "<svg viewBox='0 0 24 24' width='22' height='22'><rect x='3' y='12' width='4' height='9' rx='1.5' fill='#2459ED' opacity='.45'/>"
              "<rect x='10' y='7' width='4' height='14' rx='1.5' fill='#2459ED' opacity='.7'/><rect x='17' y='3' width='4' height='18' rx='1.5' fill='#2459ED'/></svg>"
-             "<span class='word'>Mung9_</span><span class='tag'>Trading</span></div>")
+             "<span class='word'>Mung9_</span><span class='tag'>Trading</span></a>")
         # 컴퓨터: [로고] ...... [메뉴 탭][다크 모드]  /  휴대폰: 윗줄 [로고 ... 다크 모드], 아랫줄 메뉴 탭 (CSS order)
         # 다크 모드 버튼은 lib/theme.py 스크립트가 빈 자리에 채워 넣음
         with st.container(key="navtabs", horizontal=True, vertical_alignment="center", width="content"):
