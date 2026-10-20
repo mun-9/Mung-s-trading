@@ -210,7 +210,13 @@ div[class*="st-key-topnav_"] [data-testid="stMarkdownContainer"] { margin: 0 !im
 .nav-logo { gap: 8px !important; }
 a.nav-logo, a.nav-logo:hover, a.nav-logo:visited { text-decoration: none !important; color: inherit !important; cursor: pointer; }
 a.nav-logo { transition: opacity .15s ease; }
-a.nav-logo:hover { opacity: .72; }
+a.nav-logo:hover { opacity: .85; }
+.nav-logo .mg-mark { width: 28px; height: 28px; flex-shrink: 0; filter: drop-shadow(0 2px 6px rgba(36,89,237,.35)); }
+.mg-mark .halo { animation: mg-mark-halo 3.6s ease-in-out infinite; }
+.mg-mark .spark { transform-box: fill-box; transform-origin: center; animation: mg-mark-spark 3.6s ease-in-out infinite; }
+@keyframes mg-mark-halo { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+@keyframes mg-mark-spark { 0%,100% { transform: scale(.75) rotate(0deg); opacity: .75; } 50% { transform: scale(1.12) rotate(45deg); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .mg-mark .halo, .mg-mark .spark { animation: none; } }
 .nav-logo .word { font-size: 20px; font-weight: 800; color: var(--mg-text); letter-spacing: -0.6px; }
 .nav-logo .tag { font-size: 11px; font-weight: 700; color: var(--mg-accent); background: rgba(36,89,237,0.08); padding: 3px 7px; border-radius: 6px; letter-spacing: 0.2px; }
 div[class*="st-key-topnav_dark"] .nav-logo .tag { background: rgba(41,98,255,0.18); color: #7FA3FF; }
@@ -532,7 +538,7 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
     body.mg-scrolled div[class*="st-key-topnav_"] > [data-testid="stElementContainer"] { display: none !important; }
     body.mg-scrolled div[class*="st-key-topnav_"] { padding: 8px 14px !important; row-gap: 0 !important; }
     .nav-logo .word { font-size: 16.5px !important; }
-    .nav-logo svg { width: 18px; height: 18px; }
+    .nav-logo .mg-mark { width: 24px; height: 24px; }
     .mg-theme-btn { width: 34px; height: 34px; border-radius: 10px; }
     .ph-title { font-size: 21px; }
     .pos-divider { border-left: none !important; border-top: 1px solid var(--mg-border) !important; padding-top: 14px !important; margin-top: 6px !important; }
@@ -604,6 +610,37 @@ div[data-baseweb="tab-highlight"] { background-color: #3182F6 !important; }
 
 INSTAGRAM_URL = "https://www.instagram.com/mung9__/"
 
+# 왼쪽 위 로고 마크 (1:1): 어두운 배경 + 파란 네온 막대 3개 + 맨 끝 반짝임. 빛 번짐·반짝임은 CSS(.mg-mark)로 천천히 맥동
+LOGO_MARK = (
+    "<svg class='mg-mark' viewBox='0 0 64 64' width='28' height='28' xmlns='http://www.w3.org/2000/svg' aria-hidden='true'>"
+    "<defs><linearGradient id='mgmBg' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='#12204A'/>"
+    "<stop offset='.55' stop-color='#080D1C'/><stop offset='1' stop-color='#03050B'/></linearGradient>"
+    "<radialGradient id='mgmHalo' cx='.62' cy='.55' r='.6'>"
+    "<stop offset='0' stop-color='#3A78FF' stop-opacity='.6'/>"
+    "<stop offset='.6' stop-color='#2459ED' stop-opacity='.12'/>"
+    "<stop offset='1' stop-color='#2459ED' stop-opacity='0'/></radialGradient>"
+    "<linearGradient id='mgmBar' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#E4EEFF'/>"
+    "<stop offset='.3' stop-color='#7EAAFF'/><stop offset='1' stop-color='#1D4BDA'/></linearGradient>"
+    "<linearGradient id='mgmEdge' x1='0' y1='0' x2='1' y2='1'>"
+    "<stop offset='0' stop-color='#A9C4FF' stop-opacity='.55'/>"
+    "<stop offset='.5' stop-color='#5B8DFF' stop-opacity='.12'/>"
+    "<stop offset='1' stop-color='#5B8DFF' stop-opacity='.35'/></linearGradient>"
+    "<filter id='mgmGlow' x='-60%' y='-60%' width='220%' height='220%'>"
+    "<feGaussianBlur stdDeviation='2.4' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/>"
+    "</feMerge></filter><clipPath id='mgmClip'><rect x='1' y='1' width='62' height='62' rx='15'/></clipPath></defs>"
+    "<rect x='1' y='1' width='62' height='62' rx='15' fill='url(#mgmBg)'/><g clip-path='url(#mgmClip)'>"
+    "<rect class='halo' x='0' y='0' width='64' height='64' fill='url(#mgmHalo)'/>"
+    "<path d='M-4 60 L60 -4' stroke='#8FB2FF' stroke-opacity='.14' stroke-width='1.2'/>"
+    "<path d='M6 70 L70 6' stroke='#8FB2FF' stroke-opacity='.07' stroke-width='6'/></g><g filter='url(#mgmGlow)'>"
+    "<rect x='14' y='37' width='8.5' height='15' rx='2.6' fill='url(#mgmBar)' opacity='.5'/>"
+    "<rect x='27.75' y='28' width='8.5' height='24' rx='2.6' fill='url(#mgmBar)' opacity='.78'/>"
+    "<rect x='41.5' y='19' width='8.5' height='33' rx='2.6' fill='url(#mgmBar)'/>"
+    "<path class='spark' d='M45.75 5.2 L47.1 10.1 L52 11.5 L47.1 12.9 L45.75 17.8 L44.4 12.9 L39.5 11.5 L44.4 10.1 Z' fill='#F4F8FF'/>"
+    "</g>"
+    "<rect x='1.5' y='1.5' width='61' height='61' rx='14.5' fill='none' stroke='url(#mgmEdge)' stroke-width='1'/>"
+    "</svg>"
+)
+
 NAV_PAGES = [("history", "views/history.py", "히스토리", ":material/receipt_long:"),
              ("chart", "views/chart.py", "차트", ":material/candlestick_chart:"),
              ("market", "views/market.py", "시장", ":material/public:"),
@@ -617,9 +654,7 @@ def nav(current, dark=False):
     with st.container(key=f"topnav_{mode}", horizontal=True, vertical_alignment="center"):
         # 로고를 누르면 인스타그램(@Mung9__)이 새 탭으로 열림
         html(f"<a class='nav-logo' href='{INSTAGRAM_URL}' target='_blank' rel='noopener noreferrer' title='Instagram @Mung9__'>"
-             "<svg viewBox='0 0 24 24' width='22' height='22'><rect x='3' y='12' width='4' height='9' rx='1.5' fill='#2459ED' opacity='.45'/>"
-             "<rect x='10' y='7' width='4' height='14' rx='1.5' fill='#2459ED' opacity='.7'/><rect x='17' y='3' width='4' height='18' rx='1.5' fill='#2459ED'/></svg>"
-             "<span class='word'>Mung9_</span><span class='tag'>Trading</span></a>")
+             f"{LOGO_MARK}<span class='word'>Mung9_</span><span class='tag'>Trading</span></a>")
         # 컴퓨터: [로고] ...... [메뉴 탭][다크 모드]  /  휴대폰: 윗줄 [로고 ... 다크 모드], 아랫줄 메뉴 탭 (CSS order)
         # 다크 모드 버튼은 lib/theme.py 스크립트가 빈 자리에 채워 넣음
         with st.container(key="navtabs", horizontal=True, vertical_alignment="center", width="content"):

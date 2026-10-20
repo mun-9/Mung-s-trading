@@ -50,7 +50,13 @@ svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-widt
 .logo { display: flex; align-items: center; gap: 7px; margin-right: 18px; color: var(--strong); font-size: 14px; font-weight: 700; white-space: nowrap; }
 .logo svg { width: 18px; height: 18px; }
 a.logo { text-decoration: none; cursor: pointer; transition: opacity .15s ease; }
-a.logo:hover { opacity: .72; }
+a.logo:hover { opacity: .85; }
+.logo .mg-mark { width: 20px; height: 20px; flex-shrink: 0; }
+.mg-mark .halo { animation: mg-mark-halo 3.6s ease-in-out infinite; }
+.mg-mark .spark { transform-box: fill-box; transform-origin: center; animation: mg-mark-spark 3.6s ease-in-out infinite; }
+@keyframes mg-mark-halo { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+@keyframes mg-mark-spark { 0%,100% { transform: scale(.75) rotate(0deg); opacity: .75; } 50% { transform: scale(1.12) rotate(45deg); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .mg-mark .halo, .mg-mark .spark { animation: none; } }
 .wtab { display: flex; align-items: center; gap: 7px; height: 28px; margin-top: 6px; padding: 0 12px; border-radius: 7px 7px 0 0; color: var(--sub); font-size: 13px; cursor: pointer; border: 0; background: transparent; white-space: nowrap; }
 .wtab:hover { color: var(--strong); }
 .wtab.on { background: var(--bar); color: var(--strong); }
@@ -311,7 +317,7 @@ a.logo:hover { opacity: .72; }
 <!-- SPLASH-END -->
 <div id="app">
   <div id="upper">
-    <a class="logo" href="https://www.instagram.com/mung9__/" target="_blank" rel="noopener noreferrer" title="Instagram @Mung9__"><svg viewBox="0 0 24 24"><rect x="3" y="12" width="4" height="9" rx="1.5" fill="#2962FF" opacity=".5"/><rect x="10" y="7" width="4" height="14" rx="1.5" fill="#2962FF" opacity=".75"/><rect x="17" y="3" width="4" height="18" rx="1.5" fill="#2962FF"/></svg><span class="logo-t">Mung9_</span></a>
+    <a class="logo" href="https://www.instagram.com/mung9__/" target="_blank" rel="noopener noreferrer" title="Instagram @Mung9__"><svg class='mg-mark' viewBox='0 0 64 64' width='20' height='20' xmlns='http://www.w3.org/2000/svg' aria-hidden='true'><defs><linearGradient id='mgmBg' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='#12204A'/><stop offset='.55' stop-color='#080D1C'/><stop offset='1' stop-color='#03050B'/></linearGradient><radialGradient id='mgmHalo' cx='.62' cy='.55' r='.6'><stop offset='0' stop-color='#3A78FF' stop-opacity='.6'/><stop offset='.6' stop-color='#2459ED' stop-opacity='.12'/><stop offset='1' stop-color='#2459ED' stop-opacity='0'/></radialGradient><linearGradient id='mgmBar' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#E4EEFF'/><stop offset='.3' stop-color='#7EAAFF'/><stop offset='1' stop-color='#1D4BDA'/></linearGradient><linearGradient id='mgmEdge' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='#A9C4FF' stop-opacity='.55'/><stop offset='.5' stop-color='#5B8DFF' stop-opacity='.12'/><stop offset='1' stop-color='#5B8DFF' stop-opacity='.35'/></linearGradient><filter id='mgmGlow' x='-60%' y='-60%' width='220%' height='220%'><feGaussianBlur stdDeviation='2.4' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge></filter><clipPath id='mgmClip'><rect x='1' y='1' width='62' height='62' rx='15'/></clipPath></defs><rect x='1' y='1' width='62' height='62' rx='15' fill='url(#mgmBg)'/><g clip-path='url(#mgmClip)'><rect class='halo' x='0' y='0' width='64' height='64' fill='url(#mgmHalo)'/><path d='M-4 60 L60 -4' stroke='#8FB2FF' stroke-opacity='.14' stroke-width='1.2'/><path d='M6 70 L70 6' stroke='#8FB2FF' stroke-opacity='.07' stroke-width='6'/></g><g filter='url(#mgmGlow)'><rect x='14' y='37' width='8.5' height='15' rx='2.6' fill='url(#mgmBar)' opacity='.5'/><rect x='27.75' y='28' width='8.5' height='24' rx='2.6' fill='url(#mgmBar)' opacity='.78'/><rect x='41.5' y='19' width='8.5' height='33' rx='2.6' fill='url(#mgmBar)'/><path class='spark' d='M45.75 5.2 L47.1 10.1 L52 11.5 L47.1 12.9 L45.75 17.8 L44.4 12.9 L39.5 11.5 L44.4 10.1 Z' fill='#F4F8FF'/></g><rect x='1.5' y='1.5' width='61' height='61' rx='14.5' fill='none' stroke='url(#mgmEdge)' stroke-width='1'/></svg><span class="logo-t">Mung9_</span></a>
     <div id="tabs" style="display:flex;align-self:stretch;"></div>
     <div class="upper-right">
       <button class="linkbtn ghost" id="goTools" title="도구"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h2M12 11h2M8 15h2M12 15h2M16 11v6"/></svg><span>도구</span></button>
