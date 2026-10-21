@@ -70,6 +70,20 @@ def breaking_banner():
 
 breaking_banner()
 
+
+# 가격 작은 창(PiP)에 내 포지션 넘겨주기 (보이지 않는 칸)
+@st.fragment(run_every=10)
+def _pip_pos():
+    if hist["demo"]:
+        return
+    pos, _, _ = D.fetch_positions(keys)
+    from lib import pip as _pip
+    _pip.push_positions(pos)
+
+
+with st.container(key="mg_hidden_pippos"):
+    _pip_pos()
+
 title_row("보유 포지션", f"<span class='badge'>{badge}</span>" + ("" if hist["demo"] else "<span class='mg-fillbell' role='button' data-mg-fillbell title='체결 알림'><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9'/><path d='M10.3 21a1.94 1.94 0 0 0 3.4 0'/></svg></span>"), clear_all)
 
 

@@ -15,8 +15,9 @@ import lib.theme  # noqa: E402
 import lib.alerts  # noqa: E402
 import lib.newsfeed  # noqa: E402
 import lib.fillfeed  # noqa: E402
+import lib.pip  # noqa: E402
 
-for _m in (lib.archive, lib.data, lib.ui, lib.music, lib.theme, lib.alerts, lib.newsfeed, lib.fillfeed):
+for _m in (lib.archive, lib.data, lib.ui, lib.music, lib.theme, lib.alerts, lib.newsfeed, lib.fillfeed, lib.pip):
     _mt = os.path.getmtime(_m.__file__)
     if getattr(_m, "_loaded_mtime", _mt) != _mt:
         importlib.reload(_m)
@@ -32,6 +33,7 @@ with st.container(key="mg_music_host"):
     lib.newsfeed.feed()
     lib.fillfeed.feed()
     lib.music.inject()
+    lib.pip.inject()
 
 pages = [
     st.Page("views/history.py", title="매매 히스토리", default=True),
