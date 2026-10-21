@@ -72,9 +72,12 @@ _JS = r"""
     c.fillStyle = '#fff'; c.textAlign = 'center'; c.fillText(txt, x - w / 2, y + 1); return w;
   }
   function renderCanvas() {
-    const list = rows(), Wd = 640, rh = 76, pad = 14, H = Math.max(Math.round(Wd / 2.35), list.length * rh + pad * 2);
-    if (canvas.height !== H) canvas.height = H;
-    const c = canvas.getContext('2d');
+    // 창 크기 = 그림(영상) 크기 → 줄 수에 딱 맞게. 컴퓨터는 작게(0.5배), 폰은 안드로이드 비율 제한(가로:세로 2.39 이하) 때문에 최소 높이만 둠
+    const list = rows(), Wd = 640, rh = 76, pad = 10, mob = matchMedia('(pointer: coarse)').matches, sc = mob ? 0.75 : 0.5;
+    const H = mob ? Math.max(Math.round(Wd / 2.35), list.length * rh + pad * 2) : list.length * rh + pad * 2;
+    const cw = Math.round(Wd * sc), ch = Math.round(H * sc);
+    if (canvas.width !== cw || canvas.height !== ch) { canvas.width = cw; canvas.height = ch; }
+    const c = canvas.getContext('2d'); c.setTransform(sc, 0, 0, sc, 0, 0);
     c.fillStyle = '#0B0D12'; c.fillRect(0, 0, Wd, H);
     const y0 = (H - list.length * rh) / 2;
     c.textBaseline = 'middle';
@@ -104,7 +107,7 @@ _JS = r"""
     open = true; connect(); subscribe(); setBtn();
     // 시세 그림을 영상으로 만들어 영상 PiP (주소창 없이 깔끔 · 컴퓨터·폰 공통 · 다른 앱 위에도 떠 있음)
     try {
-      canvas = d.createElement('canvas'); canvas.width = 640; canvas.height = 272; renderCanvas();
+      canvas = d.createElement('canvas'); canvas.width = 320; canvas.height = 120; renderCanvas();
       video = d.createElement('video'); video.muted = true; video.playsInline = true; video.autoplay = true;
       video.style.cssText = 'position:fixed;left:0;bottom:0;width:2px;height:2px;opacity:0;pointer-events:none;z-index:-1';
       d.body.appendChild(video);
