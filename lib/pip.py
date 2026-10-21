@@ -1,8 +1,7 @@
 """가격 작은 창 (PiP): 다른 탭·앱을 써도 화면 위에 떠 있는 실시간 시세.
 
 - 메뉴 오른쪽(다크 모드 버튼 옆) 버튼 → 코인 고르기 → '띄우기'
-- 컴퓨터(크롬·엣지): 진짜 작은 창(Document PiP)으로 띄움
-- 휴대폰(안드로이드 크롬·삼성 인터넷): 시세를 그린 그림을 '영상 PiP'로 띄움 → 다른 앱 위에도 떠 있음
+- 시세를 그린 그림을 '영상 PiP'로 띄움 → 주소창 없이 작게, 다른 앱·탭 위에도 떠 있음 (컴퓨터·폰 공통)
 - 내 포지션이 있으면 맨 위에 자동으로 넣고, 진입가 기준 수익률(레버리지 반영)도 같이 보여줌
 - 시세는 Bitget 공개 실시간 스트림(USDT 무기한)
 """
@@ -64,25 +63,34 @@ _JS = r"""
       return `<div class="r"><div class="l"><b>${base(s)}</b>${p ? `<em class="${p.side === 'SHORT' ? 'dn' : 'up'}">${p.side === 'SHORT' ? '숏' : '롱'} ${p.lev}x</em>` : ''}</div>
         <div class="v"><b class="${fl}">${fmt(t.last)}</b><span class="${(t.pct || 0) >= 0 ? 'up' : 'dn'}">${pc(t.pct)}${r != null ? ` · <i class="${r >= 0 ? 'up' : 'dn'}">내 ${pc(r)}</i>` : ''}</span></div></div>`; }).join('');
   }
+  // 한 줄에 하나: [코인 (포지션이면 롱/숏 배지)] ........ [가격] [등락 알약]
+  //   포지션 코인은 알약에 24시간 등락 대신 '내 수익률'
+  const FONT = "Pretendard, -apple-system, 'Segoe UI', Roboto, sans-serif";
+  function pill(c, x, y, h, txt, col) {
+    c.font = `800 ${Math.round(h * .5)}px ${FONT}`; const w = Math.max(132, c.measureText(txt).width + h * .7);  // 폭을 맞춰서 가격 끝선이 줄마다 똑같게
+    c.fillStyle = col; c.beginPath(); c.roundRect ? c.roundRect(x - w, y - h / 2, w, h, h * .28) : c.rect(x - w, y - h / 2, w, h); c.fill();
+    c.fillStyle = '#fff'; c.textAlign = 'center'; c.fillText(txt, x - w / 2, y + 1); return w;
+  }
   function renderCanvas() {
-    const list = rows(), Wd = 600, rh = 104, H = Math.max(Math.round(Wd / 2.3), list.length * rh + 24);
+    const list = rows(), Wd = 640, rh = 76, pad = 14, H = Math.max(Math.round(Wd / 2.35), list.length * rh + pad * 2);
     if (canvas.height !== H) canvas.height = H;
     const c = canvas.getContext('2d');
-    c.fillStyle = '#0D1015'; c.fillRect(0, 0, Wd, H);
+    c.fillStyle = '#0B0D12'; c.fillRect(0, 0, Wd, H);
     const y0 = (H - list.length * rh) / 2;
-    list.forEach((s, i) => { const t = T[s] || {}, p = posOf(s), r = p && t.last ? roe(p, t.last) : null, y = y0 + i * rh;
-      if (i) { c.fillStyle = 'rgba(255,255,255,.07)'; c.fillRect(28, y, Wd - 56, 2); }
-      c.textBaseline = 'middle';
-      c.fillStyle = '#fff'; c.font = '800 38px Pretendard, -apple-system, Roboto, sans-serif'; c.textAlign = 'left'; c.fillText(base(s), 30, y + rh / 2 - (p ? 14 : 0));
-      if (p) { c.fillStyle = p.side === 'SHORT' ? DN : UP; c.font = '700 26px Pretendard, -apple-system, Roboto, sans-serif'; c.fillText((p.side === 'SHORT' ? '숏 ' : '롱 ') + p.lev + 'x', 30, y + rh / 2 + 24); }
-      const up = (t.pct || 0) >= 0;
-      c.textAlign = 'right';
-      c.fillStyle = t.prev && t.last !== t.prev ? (t.last > t.prev ? UP : DN) : '#fff'; c.font = '800 44px Pretendard, -apple-system, Roboto, sans-serif';
-      c.fillText(fmt(t.last), Wd - 30, y + rh / 2 - 14);
-      c.font = '700 26px Pretendard, -apple-system, Roboto, sans-serif';
-      let x = Wd - 30;
-      if (r != null) { c.fillStyle = r >= 0 ? UP : DN; const tx = '내 ' + pc(r); c.fillText(tx, x, y + rh / 2 + 26); x -= c.measureText(tx).width + 18; }
-      c.fillStyle = up ? UP : DN; c.fillText(pc(t.pct), x, y + rh / 2 + 26);
+    c.textBaseline = 'middle';
+    list.forEach((s, i) => { const t = T[s] || {}, p = posOf(s), r = p && t.last ? roe(p, t.last) : null, cy = y0 + i * rh + rh / 2;
+      if (i) { c.fillStyle = 'rgba(255,255,255,.06)'; c.fillRect(26, y0 + i * rh, Wd - 52, 2); }
+      // 코인
+      c.textAlign = 'left'; c.fillStyle = 'rgba(255,255,255,.92)'; c.font = `700 30px ${FONT}`; c.fillText(base(s), 26, cy + 1);
+      if (p) { const nx = 26 + c.measureText(base(s)).width + 10, tag = (p.side === 'SHORT' ? 'S' : 'L') + p.lev;
+        c.font = `800 19px ${FONT}`; const tw = c.measureText(tag).width + 14;
+        c.fillStyle = p.side === 'SHORT' ? 'rgba(255,84,104,.18)' : 'rgba(19,194,150,.18)'; c.beginPath(); c.roundRect ? c.roundRect(nx, cy - 14, tw, 28, 7) : c.rect(nx, cy - 14, tw, 28); c.fill();
+        c.fillStyle = p.side === 'SHORT' ? DN : UP; c.fillText(tag, nx + 7, cy + 1); }
+      // 등락 알약 (오른쪽 끝) → 그 왼쪽에 가격
+      const v = r != null ? r : t.pct, pw = pill(c, Wd - 26, cy, 40, v == null ? '-' : pc(v), v == null ? '#2A2F38' : v >= 0 ? '#0E9F7B' : '#E5394F');
+      c.textAlign = 'right'; c.font = `800 34px ${FONT}`;
+      c.fillStyle = t.prev && t.last !== t.prev ? (t.last > t.prev ? '#7CF0CC' : '#FF9AA8') : '#fff';
+      c.fillText(fmt(t.last), Wd - 26 - pw - 16, cy + 1);
     });
   }
 
@@ -94,22 +102,9 @@ _JS = r"""
 
   async function start() {
     open = true; connect(); subscribe(); setBtn();
-    const n = rows().length;
-    // 1) 컴퓨터 크롬·엣지: 진짜 작은 창
-    const dp = TOP.documentPictureInPicture;
-    if (dp && !matchMedia('(pointer: coarse)').matches) {
-      try {
-        pipWin = await dp.requestWindow({ width: 250, height: Math.min(360, 22 + n * 58) });
-        const st = pipWin.document.createElement('style'); st.textContent = DOC_CSS; pipWin.document.head.appendChild(st);
-        pipWin.document.title = 'Mung9_ 시세';
-        pipWin.document.body.innerHTML = '<div id="rows"></div>';
-        pipWin.addEventListener('pagehide', stop);
-        render(); return;
-      } catch (e) { pipWin = null; }
-    }
-    // 2) 휴대폰 등: 시세 그림을 영상으로 만들어 영상 PiP
+    // 시세 그림을 영상으로 만들어 영상 PiP (주소창 없이 깔끔 · 컴퓨터·폰 공통 · 다른 앱 위에도 떠 있음)
     try {
-      canvas = d.createElement('canvas'); canvas.width = 600; canvas.height = 260; renderCanvas();
+      canvas = d.createElement('canvas'); canvas.width = 640; canvas.height = 272; renderCanvas();
       video = d.createElement('video'); video.muted = true; video.playsInline = true; video.autoplay = true;
       video.style.cssText = 'position:fixed;left:0;bottom:0;width:2px;height:2px;opacity:0;pointer-events:none;z-index:-1';
       d.body.appendChild(video);
