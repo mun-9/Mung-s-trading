@@ -1,7 +1,8 @@
 """가격 작은 창 (PiP): 다른 탭·앱을 써도 화면 위에 떠 있는 실시간 시세.
 
 - 메뉴 오른쪽(다크 모드 버튼 옆) 버튼 → 코인 고르기 → '띄우기'
-- 시세를 그린 그림을 '영상 PiP'로 띄움 → 주소창 없이 작게, 다른 앱·탭 위에도 떠 있음 (컴퓨터·폰 공통)
+- 컴퓨터(크롬·엣지): 작은 창(Document PiP) · 줄 수에 맞춘 크기
+- 휴대폰(안드로이드): 시세를 그린 그림을 '영상 PiP'로 띄움 → 다른 앱 위에도 떠 있음
 - 내 포지션이 있으면 맨 위에 자동으로 넣고, 진입가 기준 수익률(레버리지 반영)도 같이 보여줌
 - 시세는 Bitget 공개 실시간 스트림(USDT 무기한)
 """
@@ -56,12 +57,17 @@ _JS = r"""
     const now = Date.now(); if (now - lastDraw < 250) { clearTimeout(drawT); drawT = setTimeout(render, 260); return; } lastDraw = now;
     if (pipWin) renderDoc(); else if (canvas) renderCanvas();
   }
+  // 컴퓨터 작은 창: 한 줄 = [코인 (L10)] ..... [가격] [등락]   (포지션 코인은 등락 대신 내 수익률)
+  const DOC_W = 232, ROW_H = 30, DOC_PAD = 6;
+  const docH = () => rows().length * ROW_H + DOC_PAD * 2;
   function renderDoc() {
     const b = pipWin.document.getElementById('rows'); if (!b) return;
-    b.innerHTML = rows().map(s => { const t = T[s] || {}, p = posOf(s), r = p && t.last ? roe(p, t.last) : null;
+    b.innerHTML = rows().map(s => { const t = T[s] || {}, p = posOf(s), r = p && t.last ? roe(p, t.last) : null, v = r != null ? r : t.pct;
       const fl = t.prev && t.last !== t.prev ? (t.last > t.prev ? 'fu' : 'fd') : '';
-      return `<div class="r"><div class="l"><b>${base(s)}</b>${p ? `<em class="${p.side === 'SHORT' ? 'dn' : 'up'}">${p.side === 'SHORT' ? '숏' : '롱'} ${p.lev}x</em>` : ''}</div>
-        <div class="v"><b class="${fl}">${fmt(t.last)}</b><span class="${(t.pct || 0) >= 0 ? 'up' : 'dn'}">${pc(t.pct)}${r != null ? ` · <i class="${r >= 0 ? 'up' : 'dn'}">내 ${pc(r)}</i>` : ''}</span></div></div>`; }).join('');
+      return `<div class="r"><b class="n">${base(s)}</b>${p ? `<em class="${p.side === 'SHORT' ? 'dn' : 'up'}">${p.side === 'SHORT' ? 'S' : 'L'}${p.lev}</em>` : ''}
+        <b class="p ${fl}">${fmt(t.last)}</b><span class="c ${v == null ? '' : v >= 0 ? 'cu' : 'cd'}">${v == null ? '-' : pc(v)}</span></div>`; }).join('');
+    // 코인을 넣고 빼면 창 높이도 맞춤 (브라우저가 막으면 그냥 둠)
+    try { const want = docH(), cur = pipWin.innerHeight; if (Math.abs(cur - want) > 2) pipWin.resizeBy(0, want - cur); } catch (e) {}
   }
   // 한 줄에 하나: [코인 (포지션이면 롱/숏 배지)] ........ [가격] [등락 알약]
   //   포지션 코인은 알약에 24시간 등락 대신 '내 수익률'
@@ -97,15 +103,30 @@ _JS = r"""
     });
   }
 
-  const DOC_CSS = `*{box-sizing:border-box;margin:0}body{background:#0D1015;color:#fff;font-family:Pretendard,-apple-system,'Segoe UI',sans-serif;padding:6px 14px;user-select:none}
-    .r{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0}.r+.r{border-top:1px solid rgba(255,255,255,.07)}
-    .l b{display:block;font-size:15px;font-weight:800}.l em{display:block;font-style:normal;font-size:11px;font-weight:700;margin-top:1px}
-    .v{text-align:right}.v b{display:block;font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;transition:color .4s}.v span{display:block;font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:1px}
-    .v i{font-style:normal}.up{color:${UP}}.dn{color:${DN}}.fu{color:${UP}}.fd{color:${DN}}`;
+  const DOC_CSS = `*{box-sizing:border-box;margin:0}html,body{background:#0B0D12;overflow:hidden}
+    body{color:#fff;font-family:Pretendard,-apple-system,'Segoe UI',sans-serif;padding:${DOC_PAD}px 10px;user-select:none;-webkit-font-smoothing:antialiased}
+    .r{display:flex;align-items:center;gap:6px;height:${ROW_H}px}.r+.r{border-top:1px solid rgba(255,255,255,.06)}
+    .n{font-size:12.5px;font-weight:700;color:rgba(255,255,255,.9)}
+    em{font-style:normal;font-size:9.5px;font-weight:800;padding:1px 4px;border-radius:4px}em.up{color:${UP};background:rgba(19,194,150,.16)}em.dn{color:${DN};background:rgba(255,84,104,.16)}
+    .p{margin-left:auto;font-size:13.5px;font-weight:800;font-variant-numeric:tabular-nums;transition:color .5s}.fu{color:#7CF0CC}.fd{color:#FF9AA8}
+    .c{width:56px;text-align:center;font-size:10.5px;font-weight:800;font-variant-numeric:tabular-nums;padding:3px 0;border-radius:5px;background:#2A2F38}
+    .cu{background:#0E9F7B}.cd{background:#E5394F}`;
 
   async function start() {
     open = true; connect(); subscribe(); setBtn();
-    // 시세 그림을 영상으로 만들어 영상 PiP (주소창 없이 깔끔 · 컴퓨터·폰 공통 · 다른 앱 위에도 떠 있음)
+    // 1) 컴퓨터 크롬·엣지: 작은 창 (크기를 딱 맞출 수 있음 · 맨 위 주소 줄은 크롬이 보안상 항상 띄움)
+    const dp = TOP.documentPictureInPicture;
+    if (dp && !matchMedia('(pointer: coarse)').matches) {
+      try {
+        pipWin = await dp.requestWindow({ width: DOC_W, height: docH() });
+        const st = pipWin.document.createElement('style'); st.textContent = DOC_CSS; pipWin.document.head.appendChild(st);
+        pipWin.document.title = '시세';
+        pipWin.document.body.innerHTML = '<div id="rows"></div>';
+        pipWin.addEventListener('pagehide', stop);
+        render(); return;
+      } catch (e) { pipWin = null; }
+    }
+    // 2) 휴대폰: 시세 그림을 영상으로 만들어 영상 PiP (다른 앱 위에도 떠 있음)
     try {
       canvas = d.createElement('canvas'); canvas.width = 320; canvas.height = 120; renderCanvas();
       video = d.createElement('video'); video.muted = true; video.playsInline = true; video.autoplay = true;
