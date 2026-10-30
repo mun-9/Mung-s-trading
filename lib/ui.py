@@ -301,26 +301,16 @@ html[data-mg-theme="dark"] .ot .m { color:#FBBF24; } html[data-mg-theme="dark"] 
 .mg-fillbell:hover { border-color: var(--mg-accent); }
 .mg-fillbell.on { color:var(--mg-accent); background:var(--mg-card); border-color:var(--mg-border); }
 .mg-fillbell.on svg { fill: currentColor; fill-opacity: .18; }
-/* 포지션 있을 때: 메뉴 바로 밑에 딱 붙는 긴급 띠 (배경 줄무늬가 계속 흐르고, 빛이 지나감) */
-.mg-brk { position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; gap:12px; height:38px;
-  width:100vw; margin:-22px calc(50% - 50vw) 14px; color:#fff;
-  background-color:#FF0000;
-  background-image:linear-gradient(135deg, rgba(0,0,0,.12) 25%, transparent 25%, transparent 50%, rgba(0,0,0,.12) 50%, rgba(0,0,0,.12) 75%, transparent 75%);
-  background-size:38px 38px; animation: mg-stripe .8s linear infinite; box-shadow: 0 6px 18px rgba(255,0,0,.35); }
-.mg-brk::after { content:''; position:absolute; top:0; bottom:0; left:-30%; width:30%; pointer-events:none;
-  background:linear-gradient(90deg, transparent, rgba(255,255,255,.28), transparent); animation: mg-sweep 2.4s ease-in-out infinite; }
-@keyframes mg-stripe { from { background-position: 0 0; } to { background-position: 38px 0; } }
-@keyframes mg-sweep { 0% { left:-30%; } 60%, 100% { left:110%; } }
-.mg-brk .tag { display:flex; align-items:center; gap:6px; padding:3px 9px; border-radius:6px; background:#fff; color:#D7263A;
-  font-size:11.5px; font-weight:900; letter-spacing:.1em; position:relative; z-index:1; }
-.mg-brk .tag i { width:7px; height:7px; border-radius:50%; background:#D7263A; animation: mg-blink 1s steps(2, start) infinite; }
-@keyframes mg-blink { to { visibility:hidden; } }
-.mg-brk .msg { position:relative; z-index:1; font-size:15px; font-weight:900; letter-spacing:-.01em; text-shadow:0 1px 2px rgba(0,0,0,.25); white-space:nowrap; }
-.mg-brk .sir { position:relative; z-index:1; font-size:16px; line-height:1; animation: mg-siren .9s steps(2, start) infinite; }
-@keyframes mg-siren { to { opacity:.15; } }
-.mg-brk .msg em { font-style:normal; font-weight:700; font-size:12.5px; opacity:.85; margin-left:8px; }
-@media (max-width:768px) { .mg-brk { height:34px; margin-top:-42px; gap:9px; } .mg-brk .msg { font-size:13.5px; } .mg-brk .msg em { font-size:11.5px; } }
-@media (prefers-reduced-motion: reduce) { .mg-brk, .mg-brk::after { animation-duration: 4s; } }
+/* 메뉴 바로 밑 잔잔한 띠: 깊은 남색↔청록이 아주 천천히 흐르고, 점 하나가 숨 쉬듯 */
+.mg-brk { position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; gap:10px; height:36px;
+  width:100vw; margin:-22px calc(50% - 50vw) 14px; color:rgba(255,255,255,.92);
+  background:linear-gradient(90deg, #13263B, #143C3A, #1A2F4A, #13263B); background-size:300% 100%; animation: mg-calm 18s ease-in-out infinite alternate; }
+@keyframes mg-calm { from { background-position: 0% 0; } to { background-position: 100% 0; } }
+.mg-brk .dot { width:7px; height:7px; border-radius:50%; background:#5EE0B5; box-shadow:0 0 0 0 rgba(94,224,181,.5); animation: mg-breathe 3.2s ease-in-out infinite; }
+@keyframes mg-breathe { 0%,100% { opacity:.55; box-shadow:0 0 0 0 rgba(94,224,181,.45); } 50% { opacity:1; box-shadow:0 0 0 6px rgba(94,224,181,0); } }
+.mg-brk .msg { font-size:13.5px; font-weight:700; letter-spacing:.02em; white-space:nowrap; }
+@media (max-width:768px) { .mg-brk { height:32px; margin-top:-42px; } .mg-brk .msg { font-size:12.5px; } }
+@media (prefers-reduced-motion: reduce) { .mg-brk, .mg-brk .dot { animation: none; } }
 .mg-fillbell.on svg { animation: mg-ring 1.6s ease-in-out 1; transform-origin: 50% 10%; }
 @keyframes mg-ring { 0%,100% { transform: rotate(0); } 15% { transform: rotate(14deg); } 30% { transform: rotate(-12deg); } 45% { transform: rotate(8deg); } 60% { transform: rotate(-4deg); } }
 /* 계좌 점검 */
@@ -678,8 +668,8 @@ def footer():
 
 
 def breaking_html(n_pos):
-    """긴급 띠: 글씨는 가만히, 뒤 배경 줄무늬가 계속 흐름."""
-    return "<div class='mg-brk'><span class='sir'>🚨</span><div class='msg'>승부 보는 자리 / 틀릴 시 접음</div><span class='sir'>🚨</span></div>"
+    """메뉴 밑 잔잔한 띠: '천천히 복구중'."""
+    return "<div class='mg-brk'><span class='dot'></span><div class='msg'>천천히 복구중</div></div>"
 
 
 def title_row(title, right_html, on_refresh):

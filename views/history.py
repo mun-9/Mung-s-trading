@@ -58,14 +58,11 @@ if hist["demo"]:
 else:
     badge = (f"<span class='dot' style='background:{GREEN};'></span><span style='font-size:13px;font-weight:700;color:{TEXT};'>Bitget</span>"
              f"<span class='hide-on-mobile' style='font-size:12px;color:{SUB};'>{hist['loaded_at'].strftime('%H:%M')} 기준</span>")
-# 포지션이 있을 때만: 메뉴 바로 아래 긴급 속보처럼 흘러가는 띠
-@st.fragment(run_every=10)
+# 메뉴 바로 아래 잔잔한 '천천히 복구중' 띠
 def breaking_banner():
     if hist["demo"]:
         return
-    pos, _, _ = D.fetch_positions(keys)
-    if pos:
-        html(_ui.breaking_html(len(pos)))
+    html(_ui.breaking_html(0))
 
 
 breaking_banner()
