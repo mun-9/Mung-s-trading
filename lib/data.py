@@ -774,7 +774,25 @@ def fetch_history(keys, _format=6):
     out["bill_others"] = others
     out["spot_rewards"] = spot_kinds
     out["backup"] = backup
+    out["bal_low"] = balance_low(all_bills)
     return out
+
+
+def balance_low(bills):
+    """시작일 이후 선물 지갑 잔고(장부 'balance' = 그 거래 직후 잔고)가 가장 낮았던 때 → {v, t} 또는 None."""
+    best = None
+    for b in bills or []:
+        if str(b.get("coin", "USDT")).upper() != "USDT" or b.get("balance") in (None, ""):
+            continue
+        try:
+            v = float(b["balance"])
+        except (TypeError, ValueError):
+            continue
+        if best is None or v < best[0]:
+            best = (v, int(b.get("cTime") or 0))
+    if not best:
+        return None
+    return {"v": round(best[0], 2), "t": _to_kst(best[1]).strftime("%m/%d %H:%M")}
 
 
 # -----------------------------------------------------------------------------

@@ -18,11 +18,12 @@ html, body { margin: 0; background: transparent; color: var(--text); font-family
 .tx { flex: 1; min-width: 0; }
 .hd { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .hd b { font-size: 15.5px; font-weight: 800; }
+.pill { font-size: 11.5px; font-weight: 700; color: var(--mid); background: var(--soft); padding: 4px 9px; border-radius: 8px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .edit { border: 0; background: var(--soft); color: var(--mid); font-family: inherit; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 8px; cursor: pointer; }
 .v { font-size: 21px; font-weight: 800; margin-top: 6px; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
 .v small { font-size: 13px; color: var(--sub); font-weight: 600; margin-left: 4px; }
 .s { font-size: 12.5px; color: var(--sub); margin-top: 4px; line-height: 1.5; }
-.s b { color: var(--text); font-weight: 700; }
+.s b { color: var(--text); font-weight: 700; } .s b.up { color: var(--up); }
 .up { color: var(--up); } .down { color: var(--down); }
 .bar { height: 8px; border-radius: 4px; background: var(--soft); overflow: hidden; margin-top: 10px; }
 .bar i { display: block; height: 100%; border-radius: 4px; transition: width .5s ease; }
@@ -32,7 +33,7 @@ html, body { margin: 0; background: transparent; color: var(--text); font-family
 .form input:focus { border-color: var(--blue); }
 .form button { border: 0; border-radius: 10px; background: var(--blue); color: #fff; font-family: inherit; font-weight: 800; font-size: 13px; padding: 0 14px; cursor: pointer; }
 .warn { margin-top: 8px; font-size: 12px; font-weight: 700; color: var(--down); background: rgba(240,68,82,.08); padding: 7px 10px; border-radius: 8px; }
-@media (max-width: 700px) { .wrap { grid-template-columns: 1fr; gap: 10px; } .card { padding: 14px 16px; gap: 14px; border-radius: 16px; } .ring, .ring svg { width: 76px; height: 76px; } .ring .c b { font-size: 16px; } .v { font-size: 19px; } }
+@media (max-width: 700px) { .pill { display: none; } .wrap { grid-template-columns: 1fr; gap: 10px; } .card { padding: 14px 16px; gap: 14px; border-radius: 16px; } .ring, .ring svg { width: 76px; height: 76px; } .ring .c b { font-size: 16px; } .v { font-size: 19px; } }
 </style>
 </head>
 <body>
@@ -50,36 +51,27 @@ function _fitFrame(fe, h) { fe.style.height = h + 'px'; fe.height = h; let n = f
 function fit() { try { const h = Math.ceil(document.body.getBoundingClientRect().height) + 4, fe = window.frameElement; if (fe && (Math.abs(fe.offsetHeight - h) > 2 || (fe.parentElement && Math.abs(fe.parentElement.offsetHeight - h) > 2))) _fitFrame(fe, h); } catch (e) {} }
 new ResizeObserver(fit).observe(document.body); setInterval(fit, 1500);
 
-let S = { goal: null, limit: null };
-try { Object.assign(S, JSON.parse(localStorage.getItem('mung_goal') || '{}')); } catch (e) {}
-const save = () => { try { localStorage.setItem('mung_goal', JSON.stringify(S)); } catch (e) {} };
 const money = (v, sign = true) => (sign ? (v > 0 ? '+' : v < 0 ? '-' : '') : (v < 0 ? '-' : '')) + '$' + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 function ring(p, col) {
   const r = 40, c = 2 * Math.PI * r, f = Math.max(0, Math.min(1, p));
   return `<svg viewBox="0 0 92 92"><circle cx="46" cy="46" r="${r}" fill="none" style="stroke:var(--soft)" stroke-width="9"/>${f > 0.005 ? `<circle cx="46" cy="46" r="${r}" fill="none" stroke="${col}" stroke-width="9" stroke-linecap="round" stroke-dasharray="${(c * f).toFixed(1)} ${c.toFixed(1)}"/>` : ''}</svg>`;
 }
-function form(id, val, ph) { return `<div class="form" id="${id}F"><input id="${id}I" inputmode="decimal" placeholder="${ph}" value="${val ?? ''}"><button id="${id}B">저장</button></div>`; }
 function draw() {
-  // 이번 달 목표
-  const g = S.goal, m = D.month;
+  // 원금 복구: 최저 잔고 → 원금(입금 합계)
+  const P = D.principal, L = D.low, C = D.cur;
   let h;
-  if (g) {
-    const p = m / g, left = Math.max(0, g - m), need = D.daysLeft > 0 ? left / D.daysLeft : left;
-    const col = p >= 1 ? 'var(--up)' : m < 0 ? 'var(--down)' : 'var(--blue)';
-    h = `<div class="ring">${ring(p, col)}<div class="c"><b>${Math.round(Math.max(0, p) * 100)}%</b><span>달성</span></div></div>
-      <div class="tx"><div class="hd"><b>🎯 이번 달 목표</b><button class="edit" id="goalE">수정</button></div>
-      <div class="v ${m >= 0 ? 'up' : 'down'}">${money(m)}<small>/ ${money(g, false)}</small></div>
-      <div class="s">${p >= 1 ? '목표 달성! 🎉 이제 지키는 매매를 해요' : `남은 ${D.daysLeft}일 동안 하루 평균 <b>${money(need, false)}</b>씩이면 달성`}</div>${form('goal', g, '목표 금액 (USDT)')}</div>`;
+  if (L == null || C == null || !(P > L)) {
+    h = `<div class="ring">${ring(0, 'var(--blue)')}<div class="c"><b>💪</b></div></div>
+      <div class="tx"><div class="hd"><b>원금 복구중</b></div><div class="s">잔고 기록을 불러오는 중이에요</div></div>`;
   } else {
-    h = `<div class="ring">${ring(0, 'var(--blue)')}<div class="c"><b>🎯</b></div></div>
-      <div class="tx"><div class="hd"><b>이번 달 목표</b></div><div class="s">한 달 수익 목표를 정하면 달성률과 하루에 필요한 금액을 보여줘요.</div>${form('goal', '', '예: 500 (USDT)').replace('class="form"', 'class="form on"')}</div>`;
+    const p = (C - L) / (P - L), left = P - C, done = C >= P;
+    const col = done ? 'var(--up)' : C < L ? 'var(--down)' : 'var(--blue)';
+    h = `<div class="ring">${ring(p, col)}<div class="c"><b>${(Math.max(0, p) * 100).toFixed(p < 0.1 ? 1 : 0)}%</b><span>복구</span></div></div>
+      <div class="tx"><div class="hd"><b>💪 원금 복구중</b><span class="pill">${money(L, false)} → ${money(P, false)}</span></div>
+      <div class="v">${money(C, false)}<small>/ ${money(P, false)}</small></div>
+      <div class="s">${done ? '원금 복구 완료! 🎉 이제부터는 진짜 수익이에요' : `최저 <b>${money(L, false)}</b>${D.lowAt ? ` (${D.lowAt})` : ''}에서 <b class="up">${money(C - L)}</b> 되찾음 · 원금까지 <b>${money(left, false)}</b> 남음`}</div></div>`;
   }
   $('goal').innerHTML = h;
-  for (const k of ['goal']) {
-    const e = $(k + 'E'); if (e) e.onclick = () => $(k + 'F').classList.toggle('on');
-    $(k + 'B').onclick = () => { const v = parseFloat(String($(k + 'I').value).replace(/,/g, '')); S[k] = v > 0 ? v : null; save(); draw(); };
-    $(k + 'I').onkeydown = ev => { if (ev.key === 'Enter') $(k + 'B').click(); };
-  }
   fit();
 }
 draw();
