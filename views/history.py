@@ -233,9 +233,8 @@ from pathlib import Path as _Path
 import streamlit.components.v1 as _components
 if not hist["demo"]:
     _fut, _spot, _eq_err = D.fetch_equity(keys)
-    _low = hist.get("bal_low")
     _rec = {"principal": round(sum(D.principal_list()), 2), "cur": round((_fut or 0) + (_spot or 0), 2) if _fut is not None else None,
-            "low": _low["v"] if _low else None, "lowAt": _low["t"] if _low else ""}
+            "low": float(getattr(D, "RECOVERY_LOW", 5225)), "lowAt": ""}
     st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
     with st.container(key="goal_box"):
         _components.html((_Path(__file__).parent / "goal_card.html").read_text(encoding="utf-8").replace("__DATA__", _json.dumps(_rec)), height=130)

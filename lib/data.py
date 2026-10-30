@@ -27,6 +27,7 @@ DASHBOARD_START_DATE = "2026-09-19"
 
 # 원금으로 직접 넣은 입금액 (이 금액과 맞는 입금만 원금, 나머지 입금은 전부 페이백)
 PRINCIPAL_DEPOSITS = [10520, 302, 250, 229.25]
+RECOVERY_LOW = 5225  # 큰 손실 뒤 최저 잔고 (원금 복구 카드 시작점, 직접 정한 값)
 
 # (예전 규칙, 원금 목록이 비어 있을 때만 사용) 이 날짜 이후, 이 금액 미만의 USDT 입금 = 페이백
 PAYBACK_START = datetime(2026, 10, 1, tzinfo=KST)
