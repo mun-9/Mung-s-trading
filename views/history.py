@@ -58,14 +58,6 @@ if hist["demo"]:
 else:
     badge = (f"<span class='dot' style='background:{GREEN};'></span><span style='font-size:13px;font-weight:700;color:{TEXT};'>Bitget</span>"
              f"<span class='hide-on-mobile' style='font-size:12px;color:{SUB};'>{hist['loaded_at'].strftime('%H:%M')} 기준</span>")
-# 메뉴 바로 아래 잔잔한 '천천히 복구중' 띠
-def breaking_banner():
-    if hist["demo"]:
-        return
-    html(_ui.breaking_html(0))
-
-
-breaking_banner()
 
 
 # 가격 작은 창(PiP)에 내 포지션 넘겨주기 (보이지 않는 칸)

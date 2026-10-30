@@ -207,6 +207,8 @@ div[class*="st-key-topnav_dark"] { background: #0F121A; border-bottom-color: #1E
 div[class*="st-key-topnav_dark"] .nav-logo .word { font-size: 17px; }
 div[class*="st-key-topnav_"] [data-testid="stMarkdownContainer"] { margin: 0 !important; }
 .nav-logo { display: flex; align-items: center; gap: 9px; margin: 0; white-space: nowrap; }
+/* 로고를 감싼 문단의 아래 여백(16px) 때문에 로고가 위로 떠 보이던 것 제거 → 메뉴·버튼과 가운데 정렬 */
+div[class*="st-key-topnav_"] [data-testid="stMarkdownContainer"] p, div[class*="st-key-topnav_"] .stMarkdown p { margin: 0 !important; }
 .nav-logo { gap: 8px !important; }
 a.nav-logo, a.nav-logo:hover, a.nav-logo:visited { text-decoration: none !important; color: inherit !important; cursor: pointer; }
 a.nav-logo { transition: opacity .15s ease; }
