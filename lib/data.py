@@ -128,7 +128,31 @@ def _exchange(keys=None):
         return _orig(m, stock)
 
     ex.parse_uta_market = _safe_uta_market
+
+    # 시장 목록(코인·종목 수천 개, 2.5MB+)은 한 번 받아서 서버에 6시간 보관 → 매 조회마다 다시 받지 않음
+    #   (예전엔 포지션 10초 조회 때마다 이걸 새로 받아서 화면이 느렸음)
+    mc = _market_cache()
+    if mc.get("uta") is not None:
+        ex.options["uta"] = mc["uta"]
+    _orig_load = ex.load_markets
+
+    def _load(reload=False, params={}):
+        import time
+        if not reload and mc.get("markets") and time.time() - mc.get("t", 0) < 6 * 3600:
+            if not ex.markets:
+                ex.set_markets(mc["markets"], mc.get("currencies"))
+            return ex.markets
+        r = _orig_load(reload, params)
+        mc.update(t=time.time(), markets=ex.markets, currencies=ex.currencies, uta=ex.options.get("uta"))
+        return r
+
+    ex.load_markets = _load
     return ex
+
+
+@st.cache_resource(show_spinner=False)
+def _market_cache():
+    return {}
 
 
 def _where(e):
@@ -666,12 +690,19 @@ def fetch_history(keys, _format=6):
         pass
 
     fill_from = _from("fills", since_ms)
-    new_fills = []
     chunk = 2 * day
-    for sym in sorted(symbols):
+
+    def _fills_of(sym):
+        """한 종목의 체결 (종목마다 따로 연결해서 여러 종목을 동시에 받음 → 처음 접속이 훨씬 빠름)"""
+        out, errs = [], []
         mkt = f"{sym}:USDT"
         if mkt not in ex.markets:
-            continue
+            return out, errs
+        opts = {"defaultType": "swap"}
+        if ex.options.get("uta") is not None:
+            opts["uta"] = ex.options["uta"]
+        x = ccxt.bitget({"enableRateLimit": True, "options": opts, "apiKey": keys[0], "secret": keys[1], "password": keys[2]})
+        x.set_markets(ex.markets, ex.currencies)   # 시장 목록은 이미 받은 것 재사용
         cur = fill_from
         while cur < now_ms:
             until = min(cur + chunk, now_ms)
@@ -679,13 +710,13 @@ def fetch_history(keys, _format=6):
             # 한 번에 최대 100건 → 100건이 꽉 차면 가장 오래된 체결 이전 구간을 다시 조회
             for _ in range(50):
                 try:
-                    trades = ex.fetch_my_trades(symbol=mkt, since=cur, limit=100, params={"until": end})
+                    trades = x.fetch_my_trades(symbol=mkt, since=cur, limit=100, params={"until": end})
                 except Exception as e:
-                    errors.append(f"{sym} 체결 조회 실패: {type(e).__name__}: {e}")
+                    errs.append(f"{sym} 체결 조회 실패: {type(e).__name__}: {e}")
                     break
                 for t in trades:
                     f = parse_fill(t)
-                    new_fills.append({**f, "datetime": f["datetime"].isoformat(), "ts": int(t["timestamp"])})
+                    out.append({**f, "datetime": f["datetime"].isoformat(), "ts": int(t["timestamp"])})
                 if len(trades) < 100:
                     break
                 oldest = min(t["timestamp"] for t in trades)
@@ -693,6 +724,14 @@ def fetch_history(keys, _format=6):
                     break
                 end = oldest
             cur = until
+        return out, errs
+
+    new_fills = []
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=4) as pool:   # 거래소 요청 한도(초당 10회) 안에서 4종목씩 동시에
+        for got, errs in pool.map(_fills_of, sorted(symbols)):
+            new_fills.extend(got)
+            errors.extend(errs)
     changed |= AR.merge(store, "fills", new_fills, lambda f: f["trade_id"])
     if not any("체결 조회 실패" in e for e in errors):
         fetched["fills"] = now_ms
