@@ -112,7 +112,33 @@ def _exchange(keys=None):
     cfg = {"enableRateLimit": True, "options": {"defaultType": "swap"}}
     if keys:
         cfg.update({"apiKey": keys[0], "secret": keys[1], "password": keys[2]})
-    return ccxt.bitget(cfg)
+    ex = ccxt.bitget(cfg)
+    # Bitget 통합계좌(UTA) 종목 목록에 코인 이름이 빈 종목(예: 10/29 상장 RFOXUSDT)이 섞여 있으면
+    # ccxt가 'None + str' 오류로 시장 목록을 통째로 못 불러옴 → 빈 이름은 종목 코드에서 채워서 넘김
+    _orig = ex.parse_uta_market
+
+    def _safe_uta_market(market, stock=False):
+        m = dict(market or {})
+        sym, q = str(m.get("symbol") or ""), str(m.get("quoteCoin") or "")
+        if not q:
+            q = next((c for c in ("USDT", "USDC", "USD", "BTC", "ETH") if sym.endswith(c)), "USDT")
+            m["quoteCoin"] = q
+        if not m.get("baseCoin"):
+            m["baseCoin"] = (sym[: -len(q)] if q and sym.endswith(q) and len(sym) > len(q) else sym) or "UNKNOWN"
+        return _orig(m, stock)
+
+    ex.parse_uta_market = _safe_uta_market
+    return ex
+
+
+def _where(e):
+    """오류가 난 마지막 코드 위치 2곳 (원인 찾기용)."""
+    import traceback
+    try:
+        fr = traceback.extract_tb(e.__traceback__)[-2:]
+        return " @ " + " ← ".join(f"{f.filename.rsplit('/', 1)[-1]}:{f.lineno} {f.name}" for f in reversed(fr))
+    except Exception:
+        return ""
 
 
 def _to_kst(ms):
@@ -196,7 +222,7 @@ def fetch_positions(keys):
             })
         return out, total_balance, None
     except Exception as e:
-        return [], 0.0, f"{type(e).__name__}: {e}"
+        return [], 0.0, f"{type(e).__name__}: {e}{_where(e)}"
 
 
 # -----------------------------------------------------------------------------
@@ -573,7 +599,7 @@ def fetch_history(keys, _format=6):
         ex = _exchange(keys)
         ex.load_markets()
     except Exception as e:
-        return _empty_result([f"거래소 연결 실패: {type(e).__name__}: {e}"])
+        return _empty_result([f"거래소 연결 실패: {type(e).__name__}: {e}{_where(e)}"])
 
     since_ms = int(datetime.strptime(DASHBOARD_START_DATE, "%Y-%m-%d").replace(tzinfo=KST).timestamp() * 1000)
     now_ms = int(datetime.now(UTC).timestamp() * 1000)
